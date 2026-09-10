@@ -24,6 +24,8 @@
   --border:rgba(0,0,0,.09);
   --accent:#6b4cff;
   --accent-soft:rgba(107,76,255,.11);
+  --danger:#e5484d;
+  --danger-soft:rgba(229,72,77,.1);
   --shadow:
     0 12px 34px rgba(0,0,0,.07),
     0 1px 2px rgba(0,0,0,.035);
@@ -44,6 +46,8 @@ html.dark{
   --border:rgba(255,255,255,.1);
   --accent:#8b73ff;
   --accent-soft:rgba(139,115,255,.15);
+  --danger:#ff6b72;
+  --danger-soft:rgba(255,107,114,.12);
   --shadow:
     0 15px 36px rgba(0,0,0,.28),
     0 1px 2px rgba(0,0,0,.18);
@@ -142,9 +146,11 @@ button{
 
 .node{
   position:absolute;
+
   width:190px;
   min-height:50px;
   height:50px;
+
   padding:10px 12px;
 
   background:var(--node);
@@ -165,48 +171,6 @@ button{
     border-color .18s ease,
     background .18s ease,
     transform .18s cubic-bezier(.22,.8,.25,1);
-}
-
-.node.start-node{
-  border-top-color:
-    color-mix(
-      in srgb,
-      var(--accent) 48%,
-      var(--border)
-    );
-
-  box-shadow:
-    0 12px 34px rgba(0,0,0,.07),
-    0 1px 2px rgba(0,0,0,.035),
-    0 -1px 0
-      color-mix(
-        in srgb,
-        var(--accent) 25%,
-        transparent
-      );
-}
-
-.node.start-node .node-icon{
-  color:var(--accent);
-  background:var(--accent-soft);
-
-  border-color:
-    color-mix(
-      in srgb,
-      var(--accent) 20%,
-      transparent
-    );
-}
-
-.node.start-node .node-icon::after{
-  content:"";
-  position:absolute;
-  width:4px;
-  height:4px;
-  border-radius:50%;
-  background:var(--accent);
-  opacity:.7;
-  transform:translate(7px,-7px);
 }
 
 .node:hover{
@@ -236,8 +200,13 @@ button{
   transition:none;
 }
 
+/* =========================
+   NODE HEAD
+========================= */
+
 .node-head{
   height:28px;
+
   display:flex;
   align-items:center;
   gap:9px;
@@ -325,16 +294,27 @@ button{
   text-overflow:ellipsis;
 }
 
-.node-toggle{
+/* =========================
+   NODE ACTIONS
+========================= */
+
+.node-actions{
+  display:flex;
+  align-items:center;
+  gap:3px;
+  flex:0 0 auto;
+}
+
+.node-action{
   width:28px;
   height:28px;
-  flex:0 0 28px;
 
   display:flex;
   align-items:center;
   justify-content:center;
 
   padding:0;
+
   border-radius:9px;
 
   color:var(--sub);
@@ -343,27 +323,42 @@ button{
   cursor:pointer;
 
   transition:
-    background .2s ease,
-    color .2s ease,
-    transform .2s cubic-bezier(.22,.8,.25,1);
+    background .18s ease,
+    color .18s ease,
+    transform .18s cubic-bezier(.22,.8,.25,1);
 }
 
-.node-toggle:hover{
+.node-action:hover{
   background:var(--soft);
   color:var(--text);
 }
 
-.node-toggle:active{
+.node-action:active{
   transform:scale(.88);
 }
 
-.node-toggle svg{
+.node-action svg{
   width:14px;
   height:14px;
   display:block;
+}
 
-  transition:
-    transform .32s cubic-bezier(.22,.8,.25,1);
+/* 일반 노드에서만 헤더 삭제 버튼 표시 */
+.node-delete{
+  display:none;
+}
+
+.node:not(.start-node).expanded .node-delete{
+  display:flex;
+}
+
+.node-delete:hover{
+  color:var(--danger);
+  background:var(--danger-soft);
+}
+
+.node-toggle{
+  color:var(--sub);
 }
 
 .node.expanded .node-toggle{
@@ -371,9 +366,71 @@ button{
   background:var(--accent-soft);
 }
 
+.node-toggle svg{
+  transition:
+    transform .32s cubic-bezier(.22,.8,.25,1);
+}
+
 .node.expanded .node-toggle svg{
   transform:rotate(180deg);
 }
+
+/* =========================
+   START NODE
+========================= */
+
+.node.start-node{
+  border-color:
+    color-mix(
+      in srgb,
+      var(--accent) 20%,
+      var(--border)
+    );
+
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(
+        in srgb,
+        var(--accent-soft) 65%,
+        var(--node)
+      ),
+      var(--node)
+    );
+}
+
+.node.start-node .node-icon{
+  color:var(--accent);
+
+  background:var(--accent-soft);
+
+  border-color:
+    color-mix(
+      in srgb,
+      var(--accent) 22%,
+      transparent
+    );
+}
+
+.start-badge{
+  flex:none;
+
+  padding:3px 6px;
+
+  border-radius:999px;
+
+  color:var(--accent);
+
+  background:var(--accent-soft);
+
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.03em;
+}
+
+/* =========================
+   NODE BODY
+========================= */
 
 .node-body{
   height:0;
@@ -391,7 +448,9 @@ button{
 
 .node-description{
   margin-top:11px;
+
   color:var(--sub);
+
   font-size:11px;
   line-height:1.5;
   letter-spacing:-.015em;
@@ -403,6 +462,7 @@ button{
   gap:5px;
 
   max-width:100%;
+
   margin-top:9px;
   padding:5px 8px;
 
@@ -419,16 +479,67 @@ button{
   text-overflow:ellipsis;
 }
 
-.node-param:before{
-  content:"";
-  width:4px;
-  height:4px;
-  border-radius:50%;
-  background:currentColor;
-  opacity:.45;
-  flex:none;
+.node-delete-row{
+  margin-top:9px;
+  padding-top:1px;
 }
 
+.node-delete-button{
+  width:100%;
+  height:30px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+
+  border-radius:9px;
+
+  color:var(--danger);
+  background:var(--danger-soft);
+
+  font-size:10px;
+  font-weight:650;
+
+  cursor:pointer;
+
+  transition:
+    background .18s ease,
+    transform .18s cubic-bezier(.22,.8,.25,1);
+}
+
+.node-delete-button:hover{
+  background:
+    color-mix(
+      in srgb,
+      var(--danger-soft) 70%,
+      var(--danger) 8%
+    );
+}
+
+.node-delete-button:active{
+  transform:scale(.97);
+}
+
+.node-delete-button svg{
+  width:13px;
+  height:13px;
+  display:block;
+}
+
+.node-param:before{
+  content:"";
+
+  width:4px;
+  height:4px;
+
+  border-radius:50%;
+
+  background:currentColor;
+  opacity:.45;
+
+  flex:none;
+}
 
 /* =========================
    PORT
@@ -437,12 +548,6 @@ button{
 .port-hit{
   position:absolute;
 
-  /*
-    기존 top:25px 때문에
-    노드가 펼쳐져도 포트가 접힌 위치에 남았음.
-
-    노드 전체 높이의 정중앙을 따라가도록 변경.
-  */
   top:50%;
 
   width:52px;
@@ -455,6 +560,7 @@ button{
   transform:translateY(-50%);
 
   z-index:40;
+
   cursor:crosshair;
 
   touch-action:none;
@@ -477,7 +583,11 @@ button{
   border-radius:50%;
 
   background:var(--canvas);
-  border:1.5px solid var(--text);
+
+  border:
+    1.5px solid
+    var(--text);
+
   opacity:.18;
 
   transition:
@@ -505,11 +615,16 @@ button{
 
 .port-hit:hover .port-pill{
   opacity:1;
+
   transform:scale(1.25);
+
   background:var(--accent);
   border-color:var(--accent);
 }
 
+.start-node .port-hit.input{
+  display:none;
+}
 
 /* =========================
    CONNECTION
@@ -517,12 +632,17 @@ button{
 
 .connection{
   fill:none;
+
   stroke:var(--text);
   stroke-width:1.8;
+
   stroke-linecap:round;
   stroke-linejoin:round;
+
   stroke-dasharray:2 5;
+
   opacity:.18;
+
   pointer-events:none;
 
   transition:
@@ -533,24 +653,32 @@ button{
 
 .connection.active{
   stroke:var(--accent);
+
   stroke-dasharray:none;
+
   opacity:.7;
   stroke-width:2.2;
 }
 
 .connection-dot{
   fill:var(--canvas);
+
   stroke:var(--text);
   stroke-width:1.2;
+
   opacity:.35;
 }
 
 .drag-connection{
   fill:none;
+
   stroke:var(--accent);
   stroke-width:2.2;
+
   stroke-linecap:round;
+
   opacity:.85;
+
   pointer-events:none;
 }
 
@@ -558,9 +686,8 @@ button{
   fill:var(--accent);
 }
 
-
 /* =========================
-   TOP CONTROLS
+   TOP
 ========================= */
 
 .top-controls{
@@ -584,6 +711,7 @@ button{
   justify-content:center;
 
   border-radius:50%;
+
   cursor:pointer;
 
   transition:
@@ -597,6 +725,7 @@ button{
 
 .theme-button{
   color:var(--text);
+
   background:var(--glass);
 
   border:1px solid var(--soft);
@@ -607,9 +736,12 @@ button{
 
 .add-button{
   color:#171717;
+
   background:#fff;
 
-  border:1px solid rgba(0,0,0,.07);
+  border:
+    1px solid
+    rgba(0,0,0,.07);
 
   box-shadow:
     0 6px 18px rgba(0,0,0,.1);
@@ -622,6 +754,7 @@ html.dark .add-button{
 .add-node-icon{
   width:19px;
   height:19px;
+
   display:block;
 
   transition:
@@ -634,7 +767,9 @@ html.dark .add-button{
 }
 
 .add-button.open .add-node-icon{
-  transform:rotate(90deg) scale(.96);
+  transform:
+    rotate(90deg)
+    scale(.96);
 }
 
 .add-menu{
@@ -651,9 +786,13 @@ html.dark .add-button{
   z-index:101;
 
   width:218px;
+
   padding:6px;
 
-  border:1px solid var(--soft);
+  border:
+    1px solid
+    var(--soft);
+
   border-radius:16px;
 
   background:var(--glass2);
@@ -679,7 +818,9 @@ html.dark .add-button{
 
 .add-menu.open{
   opacity:1;
+
   transform:none;
+
   pointer-events:auto;
 }
 
@@ -688,6 +829,7 @@ html.dark .add-button{
 
   display:flex;
   align-items:center;
+
   gap:10px;
 
   padding:9px;
@@ -698,6 +840,7 @@ html.dark .add-button{
   background:transparent;
 
   text-align:left;
+
   cursor:pointer;
 }
 
@@ -743,10 +886,11 @@ html.dark .add-button{
 
 .menu-desc{
   margin-left:auto;
+
   color:var(--faint);
+
   font-size:9px;
 }
-
 
 /* =========================
    COMPOSER
@@ -760,8 +904,10 @@ html.dark .add-button{
 
   bottom:
     max(
-      10px,
-      env(safe-area-inset-bottom)
+      18px,
+      calc(
+        env(safe-area-inset-bottom) + 8px
+      )
     );
 
   width:min(
@@ -772,6 +918,7 @@ html.dark .add-button{
   transform:translateX(-50%);
 
   z-index:200;
+
   pointer-events:none;
 }
 
@@ -779,25 +926,26 @@ html.dark .add-button{
   position:relative;
 
   left:50%;
+
   transform:translateX(-50%);
 
   pointer-events:auto;
 
   width:100%;
-  min-height:42px;
+  min-height:48px;
 
   display:flex;
   align-items:center;
 
-  gap:3px;
+  gap:4px;
 
-  padding:4px;
+  padding:5px;
 
   border:
     1px solid
     var(--soft);
 
-  border-radius:24px;
+  border-radius:26px;
 
   background:var(--glass2);
 
@@ -818,38 +966,45 @@ html.dark .add-button{
 }
 
 .chat-composer:not(.is-active){
-  width:290px;
-  min-height:36px;
+  width:320px;
 
-  padding:2px 3px;
+  min-height:42px;
 
-  border-radius:20px;
-  opacity:.82;
+  padding:3px 4px;
+
+  border-radius:22px;
+
+  opacity:.86;
 }
 
 .chat-composer:not(.is-active) .chat-input{
-  min-height:28px;
+  min-height:32px;
 
-  padding-top:5px;
-  padding-bottom:5px;
+  padding-top:6px;
+  padding-bottom:6px;
+
+  font-size:15.5px;
+  font-weight:500;
 }
 
 .chat-composer.has-text,
 .chat-composer:focus-within,
 .chat-composer.is-active{
-  min-height:48px;
+  min-height:54px;
 
-  padding:6px;
+  padding:7px;
 
-  border-radius:25px;
+  border-radius:28px;
+
   opacity:1;
 }
 
 .composer-button{
-  width:34px;
-  height:34px;
+  width:36px;
+  height:36px;
 
-  flex:0 0 34px;
+  flex:0 0 36px;
+
   align-self:center;
 
   display:flex;
@@ -876,8 +1031,9 @@ html.dark .add-button{
 }
 
 .attach-icon{
-  width:16px;
-  height:16px;
+  width:17px;
+  height:17px;
+
   display:block;
 }
 
@@ -885,15 +1041,16 @@ html.dark .add-button{
   flex:1;
 
   min-width:0;
-  min-height:34px;
+
+  min-height:38px;
   max-height:115px;
 
   resize:none;
 
   padding:
-    7px
-    5px
-    6px;
+    8px
+    6px
+    7px;
 
   border:0;
   outline:0;
@@ -901,8 +1058,8 @@ html.dark .add-button{
   color:var(--text);
   background:transparent;
 
-  font-size:13px;
-  line-height:1.4;
+  font-size:15px;
+  line-height:1.45;
 
   letter-spacing:-.015em;
 }
@@ -912,10 +1069,11 @@ html.dark .add-button{
 }
 
 .send-button{
-  width:29px;
-  height:29px;
+  width:32px;
+  height:32px;
 
-  flex:0 0 29px;
+  flex:0 0 32px;
+
   align-self:center;
 
   padding:0;
@@ -941,8 +1099,9 @@ html.dark .add-button{
 }
 
 .send-button svg{
-  width:14px;
-  height:14px;
+  width:15px;
+  height:15px;
+
   display:block;
 }
 
@@ -958,6 +1117,7 @@ html.dark .send-button{
   position:fixed;
 
   left:14px;
+
   top:max(14px,env(safe-area-inset-top));
 
   z-index:90;
@@ -967,12 +1127,15 @@ html.dark .send-button{
   border-radius:10px;
 
   background:var(--glass);
+
   border:1px solid var(--soft);
 
   color:var(--sub);
+
   font-size:10px;
 
   backdrop-filter:blur(18px);
+
   opacity:.8;
 }
 
@@ -980,9 +1143,12 @@ html.dark .send-button{
 
   .node{
     width:178px;
+
     min-height:48px;
     height:48px;
+
     padding:10px 12px;
+
     border-radius:16px;
   }
 
@@ -992,6 +1158,11 @@ html.dark .send-button{
 
   .node-description{
     font-size:10.5px;
+  }
+
+  .start-badge{
+    font-size:7.5px;
+    padding:3px 5px;
   }
 
   .top-controls{
@@ -1014,8 +1185,10 @@ html.dark .send-button{
 
     bottom:
       max(
-        9px,
-        env(safe-area-inset-bottom)
+        17px,
+        calc(
+          env(safe-area-inset-bottom) + 8px
+        )
       );
 
     transform:translateX(-50%);
@@ -1023,41 +1196,54 @@ html.dark .send-button{
 
   .chat-composer{
     left:50%;
-    transform:translateX(-50%);
-  }
 
-  .chat-composer{
-    min-height:41px;
-    border-radius:22px;
+    transform:translateX(-50%);
+
+    min-height:47px;
+
+    border-radius:24px;
+
     padding:4px;
   }
 
   .chat-composer:not(.is-active){
-    width:250px;
-    min-height:34px;
+    width:275px;
 
-    border-radius:19px;
-    padding:2px 3px;
+    min-height:40px;
+
+    border-radius:21px;
+
+    padding:3px 4px;
+  }
+
+  .chat-composer:not(.is-active) .chat-input{
+    min-height:31px;
+    font-size:15px;
   }
 
   .chat-composer.has-text,
   .chat-composer:focus-within,
   .chat-composer.is-active{
-    min-height:46px;
-    border-radius:24px;
-    padding:5px;
+    min-height:52px;
+
+    border-radius:27px;
+
+    padding:6px;
   }
 
   .composer-button{
-    width:33px;
-    height:33px;
-    flex-basis:33px;
+    width:34px;
+    height:34px;
+
+    flex-basis:34px;
   }
 
   .send-button{
-    width:28px;
-    height:28px;
-    flex-basis:28px;
+    width:30px;
+    height:30px;
+
+    flex-basis:30px;
+
     border-radius:50% !important;
   }
 
@@ -1260,6 +1446,13 @@ html.dark .send-button{
 
 const nodeTypes={
 
+  start:{
+    name:'시작하기',
+    desc:'AI 작업을 시작하는 기준점입니다.',
+    param:'여기서부터 작업이 시작됩니다.',
+    tag:'START'
+  },
+
   research:{
     name:'조사하기',
     desc:'필요한 정보를 찾아 수집합니다.',
@@ -1314,37 +1507,53 @@ const nodeTypes={
 let nodes=[
 
   {
+    id:'start',
+    type:'start',
+    x:780,
+    y:80,
+    expanded:false
+  },
+
+  {
     id:'n1',
     type:'research',
     x:780,
-    y:180,
-    start:true
+    y:220,
+    expanded:false
   },
 
   {
     id:'n2',
     type:'organize',
     x:780,
-    y:350
+    y:390,
+    expanded:false
   },
 
   {
     id:'n3',
     type:'write',
     x:780,
-    y:520
+    y:560,
+    expanded:false
   },
 
   {
     id:'n4',
     type:'createFile',
     x:780,
-    y:690
+    y:730,
+    expanded:false
   }
 
 ];
 
 let connections=[
+
+  {
+    from:'start',
+    to:'n1'
+  },
 
   {
     from:'n1',
@@ -1428,8 +1637,10 @@ const distance=(a,b)=>
   );
 
 const midpoint=(a,b)=>({
+
   x:(a.x+b.x)/2,
   y:(a.y+b.y)/2
+
 });
 
 const getNode=id=>
@@ -1463,6 +1674,23 @@ function renderTransform(){
 }
 
 const iconSvg={
+
+  start:
+  `<svg viewBox="0 0 20 20" fill="none">
+    <path
+      d="M10 3.5v13M5.5 7l4.5-3.5L14.5 7"
+      stroke="currentColor"
+      stroke-width="1.6"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <circle
+      cx="10"
+      cy="14.8"
+      r="1.5"
+      fill="currentColor"
+    />
+  </svg>`,
 
   research:
   `<svg viewBox="0 0 20 20" fill="none">
@@ -1566,6 +1794,39 @@ const iconSvg={
 
 };
 
+const deleteIcon=`
+  <svg viewBox="0 0 20 20" fill="none">
+    <path
+      d="M5.5 6.5h9M8 6.5V5h4v1.5M7 8.5v6.5h6V8.5"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+    <path
+      d="M9 9.5v3.5M11 9.5v3.5"
+      stroke="currentColor"
+      stroke-width="1.35"
+      stroke-linecap="round"
+    />
+  </svg>
+`;
+
+const toggleIcon=`
+  <svg
+    viewBox="0 0 20 20"
+    fill="none"
+  >
+    <path
+      d="M6 8l4 4 4-4"
+      stroke="currentColor"
+      stroke-width="1.6"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </svg>
+`;
+
 function renderNodes(){
 
   nodesLayer.innerHTML='';
@@ -1574,14 +1835,19 @@ function renderNodes(){
 
     const t=nodeTypes[n.type];
 
+    if(!t)
+      continue;
+
     const el=
       document.createElement('div');
 
-    el.className='node';
-
-    if(n.start){
-      el.classList.add('start-node');
-    }
+    el.className=
+      'node'+
+      (
+        n.type==='start'
+          ?' start-node'
+          :''
+      );
 
     el.dataset.id=n.id;
 
@@ -1603,30 +1869,44 @@ function renderNodes(){
           ${t.name}
         </span>
 
-        <button
-          type="button"
-          class="node-toggle"
-          data-action="toggle"
-          aria-label="상세 내용 열기"
-          aria-expanded="false"
-        >
+        ${
+          n.type==='start'
+            ?`
+              <span class="start-badge">
+                START
+              </span>
+            `
+            :''
+        }
 
-          <svg
-            viewBox="0 0 20 20"
-            fill="none"
+        <div class="node-actions">
+
+          ${
+            n.type!=='start'
+              ?`
+                <button
+                  type="button"
+                  class="node-action node-delete"
+                  data-action="delete"
+                  aria-label="노드 삭제"
+                >
+                  ${deleteIcon}
+                </button>
+              `
+              :''
+          }
+
+          <button
+            type="button"
+            class="node-action node-toggle"
+            data-action="toggle"
+            aria-label="상세 내용 열기"
+            aria-expanded="false"
           >
+            ${toggleIcon}
+          </button>
 
-            <path
-              d="M6 8l4 4 4-4"
-              stroke="currentColor"
-              stroke-width="1.6"
-              stroke-linecap="round"
-              stroke-linejoin="round"
-            />
-
-          </svg>
-
-        </button>
+        </div>
 
       </div>
 
@@ -1640,14 +1920,40 @@ function renderNodes(){
           ${t.param}
         </div>
 
+        ${
+          n.type!=='start'
+            ?`
+              <div class="node-delete-row">
+
+                <button
+                  type="button"
+                  class="node-delete-button"
+                  data-action="delete-expanded"
+                  aria-label="노드 삭제"
+                >
+                  ${deleteIcon}
+                  <span>노드 삭제</span>
+                </button>
+
+              </div>
+            `
+            :''
+        }
+
       </div>
 
-      <div
-        class="port-hit input"
-        data-port="input"
-      >
-        <span class="port-pill"></span>
-      </div>
+      ${
+        n.type!=='start'
+          ?`
+            <div
+              class="port-hit input"
+              data-port="input"
+            >
+              <span class="port-pill"></span>
+            </div>
+          `
+          :''
+      }
 
       <div
         class="port-hit output"
@@ -1659,6 +1965,7 @@ function renderNodes(){
     `;
 
     if(
+      n.type!=='start' &&
       connections.some(
         c=>c.to===n.id
       )
@@ -1668,7 +1975,7 @@ function renderNodes(){
         .querySelector(
           '.input .port-pill'
         )
-        .classList
+        ?.classList
         .add('connected');
 
     }
@@ -1683,16 +1990,25 @@ function renderNodes(){
         .querySelector(
           '.output .port-pill'
         )
-        .classList
+        ?.classList
         .add('connected');
 
     }
 
     nodesLayer.appendChild(el);
 
-  }
+    setNodeExpanded(
+      el,
+      !!n.expanded,
+      true
+    );
 
-  updateNodeExpansion(true);
+    el.classList.toggle(
+      'selected',
+      n.id===selectedNodeId
+    );
+
+  }
 
   requestAnimationFrame(
     renderConnections
@@ -1819,12 +2135,6 @@ function renderConnections(){
 
     connectionLayer.appendChild(p);
 
-    /*
-      선택/확장 상태에서는
-      연결선 끝의 장식용 힌트 원을 숨김.
-      실제 포트 원은 노드에 남아 있음.
-    */
-
     if(!active){
 
       for(
@@ -1862,40 +2172,47 @@ const resizeObserver=
     }
   );
 
+/* =========================
+   NODE EXPANSION
+========================= */
+
 function setNodeExpanded(
   el,
   expanded,
   immediate=false
 ){
 
+  if(!el)
+    return;
+
   const body=
-    el?.querySelector(
+    el.querySelector(
       '.node-body'
     );
 
   const head=
-    el?.querySelector(
+    el.querySelector(
       '.node-head'
     );
 
   const toggle=
-    el?.querySelector(
+    el.querySelector(
       '.node-toggle'
     );
 
-  if(!body||!head)
+  const n=
+    getNode(
+      el.dataset.id
+    );
+
+  if(!body||!head||!n)
     return;
+
+  n.expanded=expanded;
 
   el.classList.toggle(
     'expanded',
     expanded
-  );
-
-  el.classList.toggle(
-    'selected',
-    expanded &&
-    el.dataset.id===
-    selectedNodeId
   );
 
   toggle?.setAttribute(
@@ -2039,61 +2356,105 @@ function trackExpansion(){
 
 }
 
-function updateNodeExpansion(
-  immediate=false
-){
+function selectNode(id){
+
+  selectedNodeId=id;
 
   document
     .querySelectorAll('.node')
     .forEach(
-      el=>
-        setNodeExpanded(
-          el,
-          el.dataset.id===
-          selectedNodeId,
-          immediate
-        )
+      el=>{
+        el.classList.toggle(
+          'selected',
+          el.dataset.id===id
+        );
+      }
     );
+
+  renderConnections();
+
+  updateComposerState();
 
 }
 
 function toggleNodeExpanded(id){
 
+  const n=
+    getNode(id);
+
   const el=
     getNodeElement(id);
 
-  if(!el)
+  if(!n||!el)
     return;
 
-  const willExpand=
-    !el.classList.contains(
-      'expanded'
+  setNodeExpanded(
+    el,
+    !n.expanded
+  );
+
+  selectNode(id);
+
+}
+
+function deleteNode(id){
+
+  const node=
+    getNode(id);
+
+  if(!node||node.type==='start')
+    return;
+
+  const index=
+    nodes.findIndex(
+      n=>n.id===id
     );
 
-  selectedNodeId=
-    willExpand
-      ?id
-      :null;
+  if(index===-1)
+    return;
 
-  updateNodeExpansion();
+  if(
+    nodeDrag?.node?.id===
+    id
+  ){
 
-  renderConnections();
+    nodeDrag=null;
+
+  }
+
+  connections=
+    connections.filter(
+      c=>
+        c.from!==id&&
+        c.to!==id
+    );
+
+  nodes.splice(
+    index,
+    1
+  );
+
+  if(
+    selectedNodeId===id
+  ){
+
+    selectedNodeId=null;
+
+  }
+
+  renderNodes();
+
+  requestAnimationFrame(
+    renderConnections
+  );
 
   updateComposerState();
 
 }
 
-function selectNode(id){
-
-  selectedNodeId=id;
-
-  updateNodeExpansion();
-
-  renderConnections();
-
-  updateComposerState();
-
-}
+/* =========================
+   NODE POSITION
+========================= */
 
 function setNodePosition(
   n,
@@ -2123,57 +2484,170 @@ function setNodePosition(
 
 function findNewNodePosition(){
 
-  const base=
-    180+
-    nodes.length*
-    165;
+  const rect=
+    canvas.getBoundingClientRect();
+
+  const mobile=
+    window.innerWidth<=600;
+
+  const nodeWidth=
+    mobile
+      ?178
+      :190;
+
+  const nodeHeight=50;
+
+  const marginScreen=
+    28;
+
+  const leftWorld=
+    (
+      marginScreen-
+      offsetX
+    )/scale;
+
+  const topWorld=
+    (
+      marginScreen-
+      offsetY
+    )/scale;
+
+  const rightWorld=
+    (
+      rect.width-
+      marginScreen-
+      nodeWidth*scale-
+      offsetX
+    )/scale;
+
+  const bottomWorld=
+    (
+      rect.height-
+      115-
+      nodeHeight*scale-
+      offsetY
+    )/scale;
+
+  const minX=
+    Math.min(
+      leftWorld,
+      rightWorld
+    );
+
+  const maxX=
+    Math.max(
+      leftWorld,
+      rightWorld
+    );
+
+  const minY=
+    Math.min(
+      topWorld,
+      bottomWorld
+    );
+
+  const maxY=
+    Math.max(
+      topWorld,
+      bottomWorld
+    );
+
+  const centerX=
+    (minX+maxX)/2;
+
+  const centerY=
+    (minY+maxY)/2;
+
+  const gap=24;
 
   const spots=[
 
     {
-      x:780,
-      y:base
+      x:centerX-nodeWidth/2,
+      y:centerY-nodeHeight/2
     },
 
     {
-      x:570,
-      y:base
+      x:centerX-nodeWidth/2,
+      y:centerY-nodeHeight/2+nodeHeight+gap
     },
 
     {
-      x:990,
-      y:base
+      x:centerX-nodeWidth/2,
+      y:centerY-nodeHeight/2-nodeHeight-gap
     },
 
     {
-      x:780,
-      y:base-165
+      x:centerX-nodeWidth/2-nodeWidth-gap,
+      y:centerY-nodeHeight/2
     },
 
     {
-      x:570,
-      y:base-165
+      x:centerX-nodeWidth/2+nodeWidth+gap,
+      y:centerY-nodeHeight/2
     },
 
     {
-      x:990,
-      y:base-165
+      x:minX,
+      y:minY
     }
 
   ];
 
-  return spots.find(
-    p=>
-      !nodes.some(
-        n=>
-          Math.abs(n.x-p.x)<200&&
-          Math.abs(n.y-p.y)<130
+  const valid=
+    spots.find(
+      p=>{
+
+        if(
+          p.x<minX||
+          p.x>maxX||
+          p.y<minY||
+          p.y>maxY
+        )
+          return false;
+
+        return !nodes.some(
+          n=>{
+
+            const horizontal=
+              Math.abs(
+                n.x-p.x
+              )<
+              nodeWidth+gap;
+
+            const vertical=
+              Math.abs(
+                n.y-p.y
+              )<
+              nodeHeight+gap;
+
+            return horizontal&&vertical;
+
+          }
+        );
+
+      }
+    );
+
+  if(valid)
+    return valid;
+
+  return{
+
+    x:
+      clamp(
+        centerX-nodeWidth/2,
+        minX,
+        maxX
+      ),
+
+    y:
+      clamp(
+        centerY-nodeHeight/2,
+        minY,
+        maxY
       )
-  )
-  ||
-  {
-    x:780,
-    y:base+170
+
   };
 
 }
@@ -2182,6 +2656,30 @@ function addNode(type){
 
   if(!nodeTypes[type])
     return;
+
+  if(type==='start'){
+
+    const existing=
+      nodes.find(
+        n=>n.type==='start'
+      );
+
+    if(existing){
+
+      selectedNodeId=
+        existing.id;
+
+      closeAddMenu();
+
+      renderNodes();
+
+      updateComposerState();
+
+      return;
+
+    }
+
+  }
 
   const p=
     findNewNodePosition();
@@ -2198,22 +2696,33 @@ function addNode(type){
     type,
 
     x:p.x,
-    y:p.y
+    y:p.y,
+
+    expanded:false
 
   };
 
   nodes.push(node);
 
-  renderNodes();
-
   selectedNodeId=
     node.id;
+
+  renderNodes();
 
   closeAddMenu();
 
   requestAnimationFrame(()=>{
 
-    updateNodeExpansion();
+    document
+      .querySelectorAll('.node')
+      .forEach(
+        el=>{
+          el.classList.toggle(
+            'selected',
+            el.dataset.id===node.id
+          );
+        }
+      );
 
     renderConnections();
 
@@ -2222,6 +2731,10 @@ function addNode(type){
   });
 
 }
+
+/* =========================
+   ADD MENU
+========================= */
 
 function renderMenu(){
 
@@ -2336,9 +2849,67 @@ addButton.addEventListener(
   }
 );
 
+/* =========================
+   NODE EVENTS
+========================= */
+
 nodesLayer.addEventListener(
   'pointerdown',
   e=>{
+
+    const expandedDelete=
+      e.target.closest(
+        '.node-delete-button'
+      );
+
+    if(expandedDelete){
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const node=
+        expandedDelete.closest(
+          '.node'
+        );
+
+      if(node){
+
+        deleteNode(
+          node.dataset.id
+        );
+
+      }
+
+      return;
+
+    }
+
+    const deleteButton=
+      e.target.closest(
+        '.node-delete'
+      );
+
+    if(deleteButton){
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const node=
+        deleteButton.closest(
+          '.node'
+        );
+
+      if(node){
+
+        deleteNode(
+          node.dataset.id
+        );
+
+      }
+
+      return;
+
+    }
 
     const toggle=
       e.target.closest(
@@ -2369,6 +2940,10 @@ nodesLayer.addEventListener(
 
   }
 );
+
+/* =========================
+   THEME
+========================= */
 
 function setTheme(theme){
 
@@ -2409,6 +2984,10 @@ themeButton.addEventListener(
   }
 );
 
+/* =========================
+   CANVAS / GESTURES
+========================= */
+
 canvas.addEventListener(
   'pointerdown',
   e=>{
@@ -2425,15 +3004,10 @@ canvas.addEventListener(
 
       if(nodeDrag){
 
-        getNodeElement(
-          nodeDrag.node.id
-        )?.classList.remove(
-          'dragging'
-        );
+        finishNodeDrag();
 
       }
 
-      nodeDrag=null;
       canvasPan=null;
       connectionDrag=null;
 
@@ -2565,7 +3139,10 @@ canvas.addEventListener(
         nodeX:n.x,
         nodeY:n.y,
 
-        moved:false
+        moved:false,
+
+        wasExpanded:
+          !!n.expanded
 
       };
 
@@ -2612,6 +3189,82 @@ canvas.addEventListener(
   }
 );
 
+/* =========================
+   NODE DRAG
+========================= */
+
+function startNodeDrag(){
+
+  if(!nodeDrag)
+    return;
+
+  const el=
+    getNodeElement(
+      nodeDrag.node.id
+    );
+
+  if(!el)
+    return;
+
+  if(nodeDrag.moved)
+    return;
+
+  nodeDrag.moved=true;
+
+  nodeDrag.wasExpanded=
+    !!nodeDrag.node.expanded;
+
+  if(nodeDrag.wasExpanded){
+
+    setNodeExpanded(
+      el,
+      false
+    );
+
+  }
+
+  el.classList.add(
+    'dragging'
+  );
+
+}
+
+function finishNodeDrag(){
+
+  if(!nodeDrag)
+    return;
+
+  const drag=
+    nodeDrag;
+
+  const el=
+    getNodeElement(
+      drag.node.id
+    );
+
+  if(el){
+
+    el.classList.remove(
+      'dragging'
+    );
+
+  }
+
+  if(el){
+
+    setNodeExpanded(
+      el,
+      !!drag.wasExpanded
+    );
+
+  }
+
+  nodeDrag=null;
+
+  renderConnections();
+
+}
+
 canvas.addEventListener(
   'pointermove',
   e=>{
@@ -2634,6 +3287,12 @@ canvas.addEventListener(
     if(
       pointers.size>=2
     ){
+
+      if(nodeDrag){
+
+        finishNodeDrag();
+
+      }
 
       nodeDrag=null;
       canvasPan=null;
@@ -2746,17 +3405,11 @@ canvas.addEventListener(
         nodeDrag.startY;
 
       if(
-        !nodeDrag.moved &&
+        !nodeDrag.moved&&
         Math.hypot(dx,dy)>7
       ){
 
-        nodeDrag.moved=true;
-
-        getNodeElement(
-          nodeDrag.node.id
-        )?.classList.add(
-          'dragging'
-        );
+        startNodeDrag();
 
       }
 
@@ -2795,7 +3448,7 @@ canvas.addEventListener(
         canvasPan.startY;
 
       if(
-        !canvasPan.moved &&
+        !canvasPan.moved&&
         Math.hypot(dx,dy)>7
       ){
 
@@ -2827,19 +3480,10 @@ canvas.addEventListener(
   }
 );
 
+/* =========================
+   CONNECTION
+========================= */
 
-/*
-  연결 토글
-
-  처음 연결:
-    A → B
-
-  같은 A → B에 다시 연결:
-    A → B 삭제
-
-  다른 대상:
-    기존 연결 유지 + 새 연결 추가
-*/
 function finishConnection(e){
 
   dragConnectionLayer.innerHTML='';
@@ -2882,10 +3526,6 @@ function finishConnection(e){
 
     if(existingIndex!==-1){
 
-      /*
-        이미 같은 곳에 연결되어 있으면
-        다시 연결하는 동작을 "해제"로 사용.
-      */
       connections.splice(
         existingIndex,
         1
@@ -2943,15 +3583,10 @@ function endPointer(e){
 
     if(nodeDrag){
 
-      getNodeElement(
-        nodeDrag.node.id
-      )?.classList.remove(
-        'dragging'
-      );
+      finishNodeDrag();
 
     }
 
-    nodeDrag=null;
     canvasPan=null;
     connectionDrag=null;
 
@@ -2974,6 +3609,10 @@ canvas.addEventListener(
   'pointercancel',
   endPointer
 );
+
+/* =========================
+   DRAG CONNECTION
+========================= */
 
 function renderDragConnection(){
 
@@ -3029,6 +3668,10 @@ function renderDragConnection(){
 
 }
 
+/* =========================
+   WHEEL ZOOM
+========================= */
+
 canvas.addEventListener(
   'wheel',
   e=>{
@@ -3071,6 +3714,10 @@ canvas.addEventListener(
     passive:false
   }
 );
+
+/* =========================
+   COMPOSER
+========================= */
 
 function updateComposerState(){
 
@@ -3163,6 +3810,10 @@ document
     }
   );
 
+/* =========================
+   OUTSIDE CLICK
+========================= */
+
 document.addEventListener(
   'pointerdown',
   e=>{
@@ -3208,9 +3859,17 @@ addMenu.addEventListener(
   }
 );
 
+/* =========================
+   RESIZE
+========================= */
+
 resizeObserver.observe(
   nodesLayer
 );
+
+/* =========================
+   INITIAL
+========================= */
 
 function centerInitial(){
 
@@ -3236,7 +3895,7 @@ function centerInitial(){
   offsetY=
     Math.max(
       90,
-      r.height*.16
+      r.height*.12
     )-
     n.y*
     scale;
@@ -3258,3228 +3917,6 @@ centerInitial();
 render();
 
 updateComposerState();
-
-</script>
-
-</body>
-</html>
-html.dark {
-  color-scheme: dark;
-
-  --bg: #171717;
-  --canvas: #181818;
-
-  --glass: rgba(35,35,35,.70);
-  --glass-strong: rgba(40,40,40,.92);
-
-  --text: #f1f1f1;
-  --text-sub: #999;
-  --text-faint: #666;
-
-  --line: rgba(255,255,255,.25);
-  --line-soft: rgba(255,255,255,.09);
-
-  --node-bg: rgba(35,35,35,.77);
-  --node-border: rgba(255,255,255,.10);
-
-  --composer-bg: rgba(34,34,34,.84);
-
-  --shadow:
-    0 12px 30px rgba(0,0,0,.25),
-    0 1px 2px rgba(0,0,0,.18);
-}
-
-* {
-  box-sizing: border-box;
-  -webkit-tap-highlight-color: transparent;
-}
-
-html,
-body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  overflow: hidden;
-
-  font-family:
-    Pretendard,
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-
-  color: var(--text);
-  background: var(--bg);
-}
-
-button,
-textarea {
-  font: inherit;
-}
-
-button {
-  border: 0;
-}
-
-#app {
-  position: fixed;
-  inset: 0;
-  overflow: hidden;
-  background: var(--canvas);
-}
-
-
-/* =========================================================
-   CANVAS
-========================================================= */
-
-.canvas {
-  position: absolute;
-  inset: 0;
-
-  overflow: hidden;
-
-  touch-action: none;
-  user-select: none;
-
-  cursor: grab;
-}
-
-.canvas.dragging {
-  cursor: grabbing;
-}
-
-
-/* =========================================================
-   WORLD
-========================================================= */
-
-.world {
-  position: absolute;
-
-  left: 0;
-  top: 0;
-
-  width: 2000px;
-  height: 2000px;
-
-  transform-origin: 0 0;
-}
-
-
-/*
-  연결선은 항상 노드 아래.
-*/
-.world-svg {
-  position: absolute;
-  inset: 0;
-
-  width: 100%;
-  height: 100%;
-
-  overflow: visible;
-
-  z-index: 1;
-
-  pointer-events: none;
-}
-
-.nodes-layer {
-  position: absolute;
-  inset: 0;
-
-  z-index: 10;
-}
-
-
-/* =========================================================
-   NODE
-========================================================= */
-
-.node {
-  position: absolute;
-
-  width: 168px;
-  min-height: 98px;
-
-  padding: 15px 15px 13px;
-
-  background: var(--node-bg);
-
-  border: 1px solid var(--node-border);
-  border-radius: 15px;
-
-  box-shadow: var(--shadow);
-
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-
-  cursor: grab;
-
-  transition:
-    box-shadow .20s ease,
-    border-color .20s ease,
-    background .20s ease,
-    transform .20s cubic-bezier(.22,.8,.25,1);
-}
-
-.node:hover {
-  box-shadow:
-    0 11px 32px rgba(0,0,0,.075),
-    0 1px 2px rgba(0,0,0,.04);
-}
-
-.node.selected {
-  border-color: var(--line);
-
-  box-shadow:
-    0 14px 34px rgba(0,0,0,.09),
-    0 0 0 1px var(--line-soft);
-
-  transform: translateY(-2px);
-}
-
-.node.dragging {
-  cursor: grabbing;
-  transition: none;
-}
-
-.node-title {
-  display: flex;
-  align-items: center;
-
-  gap: 8px;
-
-  font-size: 14px;
-  line-height: 1.25;
-
-  font-weight: 650;
-  letter-spacing: -.025em;
-}
-
-.node-icon {
-  width: 20px;
-  height: 20px;
-
-  flex: 0 0 20px;
-
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-
-  font-size: 15px;
-  line-height: 1;
-
-  opacity: .88;
-}
-
-.node-name {
-  min-width: 0;
-}
-
-.node-description {
-  margin-top: 11px;
-
-  color: var(--text-sub);
-
-  font-size: 11.5px;
-  line-height: 1.45;
-
-  letter-spacing: -.015em;
-}
-
-.node-param {
-  max-width: 100%;
-
-  display: inline-flex;
-
-  margin-top: 8px;
-  padding: 4px 7px;
-
-  border-radius: 7px;
-
-  background: var(--line-soft);
-
-  color: var(--text-sub);
-
-  font-size: 10px;
-  line-height: 1.25;
-
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-
-/* =========================================================
-   PORT
-========================================================= */
-
-.port-hit {
-  position: absolute;
-
-  top: 50%;
-
-  width: 30px;
-  height: 30px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  transform: translateY(-50%);
-
-  z-index: 30;
-
-  cursor: crosshair;
-}
-
-.port-hit.input {
-  left: -15px;
-}
-
-.port-hit.output {
-  right: -15px;
-}
-
-
-/*
-  연결 힌트는 점 하나만.
-  점선 테두리 없음.
-*/
-.port-pill {
-  width: 9px;
-  height: 9px;
-
-  aspect-ratio: 1 / 1;
-
-  border-radius: 50%;
-
-  background: var(--text);
-
-  opacity: .22;
-
-  transition:
-    opacity .17s ease,
-    transform .17s cubic-bezier(.22,.8,.25,1);
-}
-
-
-/*
-  선택된 노드의 포트는 solid.
-*/
-.node.selected .port-pill {
-  opacity: .92;
-  transform: scale(1.12);
-}
-
-
-/*
-  이미 연결된 포트는 기본 상태에서 숨김.
-*/
-.port-pill.connected {
-  opacity: 0;
-}
-
-
-/*
-  선택하면 연결된 포트도 표시.
-*/
-.node.selected .port-pill.connected {
-  opacity: .95;
-}
-
-
-/* =========================================================
-   CONNECTION
-========================================================= */
-
-.connection {
-  fill: none;
-
-  stroke: var(--text);
-  stroke-width: 1.8;
-
-  stroke-linecap: round;
-  stroke-linejoin: round;
-
-  stroke-dasharray: 2.5 5;
-
-  opacity: .20;
-
-  pointer-events: none;
-
-  transition:
-    opacity .20s ease,
-    stroke-width .20s ease,
-    stroke-dasharray .20s ease;
-}
-
-.connection.active {
-  stroke-dasharray: none;
-  opacity: .62;
-  stroke-width: 2;
-}
-
-
-/*
-  실제 연결점.
-*/
-.connection-dot {
-  fill: var(--canvas);
-
-  stroke: var(--text);
-  stroke-width: 1.3;
-
-  opacity: .46;
-
-  transition:
-    opacity .18s ease,
-    fill .18s ease,
-    r .18s ease;
-}
-
-.connection-dot.active {
-  fill: var(--text);
-  opacity: .90;
-}
-
-
-/* =========================================================
-   DRAG CONNECTION
-========================================================= */
-
-.drag-connection {
-  fill: none;
-
-  stroke: var(--text);
-  stroke-width: 2;
-
-  stroke-linecap: round;
-
-  opacity: .80;
-
-  pointer-events: none;
-}
-
-.drag-source-dot {
-  fill: var(--text);
-  opacity: .95;
-}
-
-
-/* =========================================================
-   TOP CONTROLS
-========================================================= */
-
-.top-controls {
-  position: fixed;
-
-  top: max(14px, env(safe-area-inset-top));
-  right: 14px;
-
-  z-index: 100;
-
-  display: flex;
-  align-items: center;
-
-  gap: 7px;
-}
-
-.top-button {
-  width: 40px;
-  height: 40px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 50%;
-
-  cursor: pointer;
-
-  transition:
-    transform .18s cubic-bezier(.22,.8,.25,1),
-    background .18s ease;
-}
-
-.top-button:active {
-  transform: scale(.93);
-}
-
-.theme-button {
-  color: var(--text);
-
-  background: var(--glass);
-
-  border: 1px solid var(--line-soft);
-
-  backdrop-filter: blur(18px);
-  -webkit-backdrop-filter: blur(18px);
-}
-
-
-/*
-  추가 버튼은 흰색 강조.
-*/
-.add-button {
-  color: #181818;
-
-  background: #fff;
-
-  border: 1px solid rgba(0,0,0,.08);
-
-  box-shadow:
-    0 5px 16px rgba(0,0,0,.10);
-}
-
-html.dark .add-button {
-  color: #171717;
-  background: #f4f4f4;
-}
-
-
-/*
-  + / × 아이콘.
-*/
-.add-icon {
-  position: relative;
-
-  width: 18px;
-  height: 18px;
-
-  display: block;
-
-  transform: rotate(0deg);
-
-  transition:
-    transform .30s cubic-bezier(.22,.8,.25,1);
-}
-
-.add-icon::before,
-.add-icon::after {
-  content: "";
-
-  position: absolute;
-
-  left: 50%;
-  top: 50%;
-
-  width: 14px;
-  height: 1.5px;
-
-  border-radius: 2px;
-
-  background: currentColor;
-
-  transform:
-    translate(-50%, -50%);
-}
-
-.add-icon::after {
-  transform:
-    translate(-50%, -50%)
-    rotate(90deg);
-}
-
-
-/*
-  메뉴 활성화:
-  +가 45도 회전하면서 ×.
-*/
-.add-button.open .add-icon {
-  transform: rotate(45deg);
-}
-
-
-/* =========================================================
-   ADD MENU
-========================================================= */
-
-.add-menu {
-  position: fixed;
-
-  top:
-    calc(
-      max(14px, env(safe-area-inset-top)) + 48px
-    );
-
-  right: 14px;
-
-  z-index: 101;
-
-  width: 205px;
-
-  padding: 6px;
-
-  border:
-    1px solid var(--line-soft);
-
-  border-radius: 15px;
-
-  background: var(--glass-strong);
-
-  box-shadow:
-    0 14px 38px rgba(0,0,0,.10);
-
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-
-  opacity: 0;
-
-  transform:
-    translateY(-5px)
-    scale(.98);
-
-  pointer-events: none;
-
-  transition:
-    opacity .16s ease,
-    transform .18s cubic-bezier(.22,.8,.25,1);
-}
-
-.add-menu.open {
-  opacity: 1;
-
-  transform:
-    translateY(0)
-    scale(1);
-
-  pointer-events: auto;
-}
-
-.menu-item {
-  width: 100%;
-
-  display: flex;
-  align-items: center;
-
-  gap: 9px;
-
-  padding: 9px;
-
-  border-radius: 9px;
-
-  color: var(--text);
-
-  background: transparent;
-
-  text-align: left;
-
-  cursor: pointer;
-
-  transition:
-    background .14s ease;
-}
-
-.menu-item:hover {
-  background: var(--line-soft);
-}
-
-.menu-icon {
-  width: 20px;
-
-  display: inline-flex;
-  justify-content: center;
-
-  font-size: 14px;
-}
-
-.menu-name {
-  font-size: 12px;
-  font-weight: 550;
-}
-
-
-/* =========================================================
-   CHAT COMPOSER
-========================================================= */
-
-.chat-composer-wrap {
-  position: fixed;
-
-  left: 50%;
-  bottom: max(12px, env(safe-area-inset-bottom));
-
-  width:
-    min(
-      calc(100% - 28px),
-      500px
-    );
-
-  transform: translateX(-50%);
-
-  z-index: 200;
-
-  pointer-events: none;
-}
-
-.chat-composer {
-  pointer-events: auto;
-
-  min-height: 46px;
-
-  display: flex;
-  align-items: center;
-
-  gap: 2px;
-
-  padding: 4px 5px;
-
-  border:
-    1px solid var(--line-soft);
-
-  border-radius: 17px;
-
-  background: var(--composer-bg);
-
-  box-shadow:
-    0 8px 28px rgba(0,0,0,.075);
-
-  backdrop-filter: blur(22px);
-  -webkit-backdrop-filter: blur(22px);
-}
-
-.composer-button {
-  width: 34px;
-  height: 34px;
-
-  flex: 0 0 34px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  padding: 0;
-
-  border-radius: 50%;
-
-  color: var(--text-sub);
-
-  background: transparent;
-
-  cursor: pointer;
-
-  transition:
-    background .15s ease,
-    color .15s ease,
-    transform .15s cubic-bezier(.22,.8,.25,1);
-}
-
-.composer-button:hover {
-  color: var(--text);
-  background: var(--line-soft);
-}
-
-.composer-button:active {
-  transform: scale(.92);
-}
-
-.attach-icon {
-  font-size: 20px;
-  font-weight: 300;
-  line-height: 1;
-}
-
-
-/*
-  입력 영역은 최대한 컴팩트.
-*/
-.chat-input {
-  flex: 1;
-
-  min-width: 0;
-
-  min-height: 32px;
-  max-height: 110px;
-
-  resize: none;
-
-  padding:
-    6px
-    3px;
-
-  border: 0;
-  outline: 0;
-
-  color: var(--text);
-
-  background: transparent;
-
-  font-size: 13px;
-  line-height: 1.45;
-
-  letter-spacing: -.015em;
-}
-
-.chat-input::placeholder {
-  color: var(--text-faint);
-}
-
-
-/*
-  ChatGPT 계열의
-  흰색 원형 보내기 버튼.
-*/
-.send-button {
-  width: 34px;
-  height: 34px;
-
-  flex: 0 0 34px;
-
-  color: #181818;
-
-  background: #fff;
-
-  border: 1px solid rgba(0,0,0,.07);
-
-  box-shadow:
-    0 2px 8px rgba(0,0,0,.08);
-
-  transition:
-    transform .16s cubic-bezier(.22,.8,.25,1),
-    box-shadow .16s ease;
-}
-
-html.dark .send-button {
-  color: #181818;
-  background: #f4f4f4;
-}
-
-.send-button:hover {
-  box-shadow:
-    0 3px 10px rgba(0,0,0,.11);
-}
-
-.send-button:active {
-  transform: scale(.90);
-}
-
-.send-button svg {
-  width: 17px;
-  height: 17px;
-
-  display: block;
-}
-
-
-/* =========================================================
-   MOBILE
-========================================================= */
-
-@media (max-width: 600px) {
-
-  .node {
-    width: 158px;
-    min-height: 96px;
-
-    padding:
-      14px
-      13px
-      12px;
-
-    border-radius: 14px;
-  }
-
-  .node-title {
-    font-size: 13.5px;
-  }
-
-  .node-description {
-    margin-top: 10px;
-    font-size: 11px;
-  }
-
-  .top-controls {
-    right: 11px;
-  }
-
-  .add-menu {
-    right: 11px;
-  }
-
-  .chat-composer-wrap {
-    width: calc(100% - 22px);
-
-    bottom:
-      max(
-        9px,
-        env(safe-area-inset-bottom)
-      );
-  }
-
-  .chat-composer {
-    min-height: 44px;
-
-    padding: 4px;
-
-    border-radius: 16px;
-  }
-
-  .composer-button,
-  .send-button {
-    width: 32px;
-    height: 32px;
-
-    flex-basis: 32px;
-  }
-
-  .chat-input {
-    min-height: 32px;
-    font-size: 13px;
-  }
-
-  .send-button svg {
-    width: 16px;
-    height: 16px;
-  }
-}
-</style>
-</head>
-
-
-<body>
-
-<div id="app">
-
-  <!-- =====================================================
-       CANVAS
-  ====================================================== -->
-
-  <div id="canvas" class="canvas">
-
-    <div id="world" class="world">
-
-      <svg
-        id="connections"
-        class="world-svg"
-        viewBox="0 0 2000 2000"
-        preserveAspectRatio="none"
-      >
-
-        <defs>
-
-          <!--
-            연결 드래그 중에만 사용되는 화살표.
-          -->
-          <marker
-            id="arrow"
-            viewBox="0 0 10 10"
-            refX="8"
-            refY="5"
-            markerWidth="5"
-            markerHeight="5"
-            orient="auto"
-          >
-            <path
-              d="M 1 1 L 8 5 L 1 9"
-              fill="none"
-              stroke="currentColor"
-              stroke-width="1.5"
-            />
-          </marker>
-
-        </defs>
-
-        <g id="connectionLayer"></g>
-        <g id="dragConnectionLayer"></g>
-
-      </svg>
-
-
-      <div
-        id="nodesLayer"
-        class="nodes-layer"
-      ></div>
-
-    </div>
-
-  </div>
-
-
-  <!-- =====================================================
-       TOP CONTROLS
-  ====================================================== -->
-
-  <div class="top-controls">
-
-    <button
-      id="themeButton"
-      class="top-button theme-button"
-      aria-label="다크 모드"
-    >
-      ◐
-    </button>
-
-
-    <button
-      id="addButton"
-      class="top-button add-button"
-      aria-label="노드 추가"
-      aria-expanded="false"
-    >
-      <span class="add-icon"></span>
-    </button>
-
-  </div>
-
-
-  <!-- =====================================================
-       ADD MENU
-  ====================================================== -->
-
-  <div
-    id="addMenu"
-    class="add-menu"
-  ></div>
-
-
-  <!-- =====================================================
-       CHAT
-  ====================================================== -->
-
-  <div class="chat-composer-wrap">
-
-    <form
-      id="chatForm"
-      class="chat-composer"
-    >
-
-      <button
-        type="button"
-        id="attachButton"
-        class="composer-button"
-        aria-label="파일 추가"
-      >
-        <span class="attach-icon">+</span>
-      </button>
-
-
-      <textarea
-        id="chatInput"
-        class="chat-input"
-        rows="1"
-        placeholder="무엇을 만들까요?"
-      ></textarea>
-
-
-      <button
-        type="submit"
-        class="composer-button send-button"
-        aria-label="보내기"
-      >
-
-        <svg
-          viewBox="0 0 20 20"
-          fill="none"
-          aria-hidden="true"
-        >
-
-          <path
-            d="M10 15.5V4.5"
-            stroke="currentColor"
-            stroke-width="1.7"
-            stroke-linecap="round"
-          />
-
-          <path
-            d="M5.8 8.7L10 4.5L14.2 8.7"
-            stroke="currentColor"
-            stroke-width="1.7"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-
-        </svg>
-
-      </button>
-
-    </form>
-
-  </div>
-
-</div>
-
-
-<script>
-/* =========================================================
-   NODE TYPES
-========================================================= */
-
-const nodeTypes = {
-
-  research: {
-    icon: "⌕",
-    name: "조사하기",
-    description: "필요한 정보를 찾아 수집합니다.",
-    param: "생성형 AI 시장의 최근 3년 변화"
-  },
-
-  organize: {
-    icon: "≡",
-    name: "정리하기",
-    description: "자료를 기준에 따라 구조화합니다.",
-    param: "시장 규모 / 주요 기업"
-  },
-
-  judge: {
-    icon: "◌",
-    name: "판단하기",
-    description: "조건을 비교하고 결과를 판단합니다.",
-    param: "일치도 ≥ 70%"
-  },
-
-  write: {
-    icon: "↗",
-    name: "작성하기",
-    description: "주어진 정보를 문서 형태로 작성합니다.",
-    param: "2페이지 보고서"
-  },
-
-  convert: {
-    icon: "⇄",
-    name: "변환하기",
-    description: "자료의 형식이나 표현을 바꿉니다.",
-    param: "요약 → 표"
-  },
-
-  file: {
-    icon: "＋",
-    name: "파일추가하기",
-    description: "작업에 사용할 파일을 추가합니다.",
-    param: "발표자료 원본"
-  },
-
-  createFile: {
-    icon: "□",
-    name: "파일만들기",
-    description: "완성된 결과물을 파일로 생성합니다.",
-    param: "PDF"
-  }
-
-};
-
-
-/* =========================================================
-   INITIAL DATA
-========================================================= */
-
-let nodes = [
-
-  {
-    id: "n1",
-    type: "research",
-    x: 780,
-    y: 180
-  },
-
-  {
-    id: "n2",
-    type: "organize",
-    x: 780,
-    y: 350
-  },
-
-  {
-    id: "n3",
-    type: "write",
-    x: 780,
-    y: 520
-  },
-
-  {
-    id: "n4",
-    type: "createFile",
-    x: 780,
-    y: 690
-  }
-
-];
-
-
-let connections = [
-
-  {
-    from: "n1",
-    to: "n2"
-  },
-
-  {
-    from: "n2",
-    to: "n3"
-  },
-
-  {
-    from: "n3",
-    to: "n4"
-  }
-
-];
-
-
-/* =========================================================
-   DOM
-========================================================= */
-
-const canvas =
-  document.getElementById("canvas");
-
-const world =
-  document.getElementById("world");
-
-const nodesLayer =
-  document.getElementById("nodesLayer");
-
-const connectionLayer =
-  document.getElementById("connectionLayer");
-
-const dragConnectionLayer =
-  document.getElementById(
-    "dragConnectionLayer"
-  );
-
-const addButton =
-  document.getElementById("addButton");
-
-const addMenu =
-  document.getElementById("addMenu");
-
-const themeButton =
-  document.getElementById("themeButton");
-
-const chatForm =
-  document.getElementById("chatForm");
-
-const chatInput =
-  document.getElementById("chatInput");
-
-
-/* =========================================================
-   STATE
-========================================================= */
-
-let selectedNodeId = null;
-
-let scale = 1;
-
-let offsetX = 0;
-let offsetY = 0;
-
-const MIN_SCALE = 0.02;
-
-
-/*
-  현재 화면에서 눌려 있는 pointer.
-*/
-const activePointers = new Map();
-
-
-/*
-  한 손가락 노드 이동.
-*/
-let nodeDrag = null;
-
-
-/*
-  한 손가락 빈 캔버스 이동.
-*/
-let canvasPan = null;
-
-
-/*
-  두 손가락 핀치.
-*/
-let pinch = null;
-
-
-/*
-  연결선 드래그.
-*/
-let connectionDrag = null;
-
-
-/* =========================================================
-   UTILS
-========================================================= */
-
-function clamp(
-  value,
-  min,
-  max
-) {
-  return Math.min(
-    max,
-    Math.max(min, value)
-  );
-}
-
-
-function distance(a, b) {
-
-  return Math.hypot(
-    b.x - a.x,
-    b.y - a.y
-  );
-
-}
-
-
-function midpoint(a, b) {
-
-  return {
-    x: (a.x + b.x) / 2,
-    y: (a.y + b.y) / 2
-  };
-
-}
-
-
-function getNode(id) {
-
-  return nodes.find(
-    node => node.id === id
-  );
-
-}
-
-
-function getNodeElement(id) {
-
-  return document.querySelector(
-    `.node[data-id="${id}"]`
-  );
-
-}
-
-
-function screenToWorld(
-  x,
-  y
-) {
-
-  return {
-
-    x:
-      (x - offsetX) /
-      scale,
-
-    y:
-      (y - offsetY) /
-      scale
-
-  };
-
-}
-
-
-/* =========================================================
-   WORLD
-========================================================= */
-
-function renderWorldTransform() {
-
-  world.style.transform =
-    `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
-
-}
-
-
-/* =========================================================
-   NODES
-========================================================= */
-
-function renderNodes() {
-
-  nodesLayer.innerHTML = "";
-
-
-  for (
-    const node
-    of nodes
-  ) {
-
-    const type =
-      nodeTypes[node.type];
-
-
-    const el =
-      document.createElement("div");
-
-
-    el.className =
-      "node" +
-      (
-        selectedNodeId === node.id
-          ? " selected"
-          : ""
-      );
-
-
-    el.dataset.id =
-      node.id;
-
-
-    el.style.left =
-      `${node.x}px`;
-
-    el.style.top =
-      `${node.y}px`;
-
-
-    el.innerHTML = `
-
-      <div class="node-title">
-
-        <span class="node-icon">
-          ${type.icon}
-        </span>
-
-        <span class="node-name">
-          ${type.name}
-        </span>
-
-      </div>
-
-
-      <div class="node-description">
-        ${type.description}
-      </div>
-
-
-      <div class="node-param">
-        ${type.param}
-      </div>
-
-
-      <div
-        class="port-hit input"
-        data-port="input"
-      >
-        <span class="port-pill"></span>
-      </div>
-
-
-      <div
-        class="port-hit output"
-        data-port="output"
-      >
-        <span class="port-pill"></span>
-      </div>
-
-    `;
-
-
-    const inputPort =
-      el.querySelector(
-        ".port-hit.input .port-pill"
-      );
-
-
-    const outputPort =
-      el.querySelector(
-        ".port-hit.output .port-pill"
-      );
-
-
-    if (
-      connections.some(
-        connection =>
-          connection.to === node.id
-      )
-    ) {
-
-      inputPort.classList.add(
-        "connected"
-      );
-
-    }
-
-
-    if (
-      connections.some(
-        connection =>
-          connection.from === node.id
-      )
-    ) {
-
-      outputPort.classList.add(
-        "connected"
-      );
-
-    }
-
-
-    nodesLayer.appendChild(el);
-
-  }
-
-}
-
-
-/* =========================================================
-   PORT GEOMETRY
-========================================================= */
-
-function getPortPoint(
-  nodeId,
-  direction
-) {
-
-  const node =
-    getNode(nodeId);
-
-
-  const el =
-    getNodeElement(nodeId);
-
-
-  if (!node || !el) {
-    return null;
-  }
-
-
-  const width =
-    el.offsetWidth;
-
-
-  const height =
-    el.offsetHeight;
-
-
-  return {
-
-    x:
-      node.x +
-      (
-        direction === "output"
-          ? width
-          : 0
-      ),
-
-    y:
-      node.y +
-      height / 2
-
-  };
-
-}
-
-
-/* =========================================================
-   CONNECTION CURVE
-========================================================= */
-
-function curvePath(
-  a,
-  b
-) {
-
-  const dx =
-    b.x - a.x;
-
-
-  /*
-    과도하게 휘지 않도록
-    낮은 곡률.
-  */
-  const curve =
-    clamp(
-      Math.abs(dx) * .18,
-      12,
-      48
-    );
-
-
-  const direction =
-    dx >= 0
-      ? 1
-      : -1;
-
-
-  const c1 = {
-
-    x:
-      a.x +
-      curve *
-      direction,
-
-    y:
-      a.y
-
-  };
-
-
-  const c2 = {
-
-    x:
-      b.x -
-      curve *
-      direction,
-
-    y:
-      b.y
-
-  };
-
-
-  return `
-    M ${a.x} ${a.y}
-    C
-      ${c1.x} ${c1.y},
-      ${c2.x} ${c2.y},
-      ${b.x} ${b.y}
-  `;
-
-}
-
-
-/* =========================================================
-   CONNECTION RENDER
-========================================================= */
-
-function renderConnections() {
-
-  connectionLayer.innerHTML = "";
-
-
-  for (
-    const connection
-    of connections
-  ) {
-
-    const from =
-      getPortPoint(
-        connection.from,
-        "output"
-      );
-
-
-    const to =
-      getPortPoint(
-        connection.to,
-        "input"
-      );
-
-
-    if (!from || !to) {
-      continue;
-    }
-
-
-    const related =
-      selectedNodeId ===
-        connection.from ||
-      selectedNodeId ===
-        connection.to;
-
-
-    /*
-      실제 연결선.
-      화살표 없음.
-    */
-    const path =
-      document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "path"
-      );
-
-
-    path.classList.add(
-      "connection"
-    );
-
-
-    if (related) {
-      path.classList.add(
-        "active"
-      );
-    }
-
-
-    path.setAttribute(
-      "d",
-      curvePath(
-        from,
-        to
-      )
-    );
-
-
-    path.removeAttribute(
-      "marker-end"
-    );
-
-
-    connectionLayer.appendChild(
-      path
-    );
-
-
-    /*
-      시작점.
-    */
-    const startDot =
-      document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "circle"
-      );
-
-
-    startDot.classList.add(
-      "connection-dot"
-    );
-
-
-    if (related) {
-      startDot.classList.add(
-        "active"
-      );
-    }
-
-
-    startDot.setAttribute(
-      "cx",
-      from.x
-    );
-
-
-    startDot.setAttribute(
-      "cy",
-      from.y
-    );
-
-
-    startDot.setAttribute(
-      "r",
-      related
-        ? "3.5"
-        : "3"
-    );
-
-
-    connectionLayer.appendChild(
-      startDot
-    );
-
-
-    /*
-      끝점.
-    */
-    const endDot =
-      document.createElementNS(
-        "http://www.w3.org/2000/svg",
-        "circle"
-      );
-
-
-    endDot.classList.add(
-      "connection-dot"
-    );
-
-
-    if (related) {
-      endDot.classList.add(
-        "active"
-      );
-    }
-
-
-    endDot.setAttribute(
-      "cx",
-      to.x
-    );
-
-
-    endDot.setAttribute(
-      "cy",
-      to.y
-    );
-
-
-    endDot.setAttribute(
-      "r",
-      related
-        ? "3.5"
-        : "3"
-    );
-
-
-    connectionLayer.appendChild(
-      endDot
-    );
-
-  }
-
-}
-
-
-/* =========================================================
-   RENDER
-========================================================= */
-
-function render() {
-
-  renderWorldTransform();
-
-  renderNodes();
-
-  renderConnections();
-
-}
-
-
-/* =========================================================
-   SELECT
-========================================================= */
-
-function selectNode(id) {
-
-  selectedNodeId =
-    id;
-
-  renderNodes();
-
-  renderConnections();
-
-}
-
-
-/* =========================================================
-   NODE POSITION
-========================================================= */
-
-function setNodePosition(
-  node,
-  x,
-  y
-) {
-
-  node.x = x;
-  node.y = y;
-
-
-  const el =
-    getNodeElement(
-      node.id
-    );
-
-
-  if (!el) {
-    return;
-  }
-
-
-  el.style.left =
-    `${x}px`;
-
-  el.style.top =
-    `${y}px`;
-
-
-  renderConnections();
-
-}
-
-
-/* =========================================================
-   NEW NODE POSITION
-========================================================= */
-
-function findNewNodePosition() {
-
-  const centerX =
-    780;
-
-
-  const baseY =
-    180 +
-    nodes.length *
-    165;
-
-
-  /*
-    세로 배치를 최우선.
-  */
-  const candidates = [
-
-    {
-      x: centerX,
-      y: baseY
-    },
-
-    {
-      x: centerX,
-      y: baseY - 170
-    },
-
-    {
-      x: centerX,
-      y: baseY + 170
-    },
-
-    {
-      x: centerX - 210,
-      y: baseY
-    },
-
-    {
-      x: centerX + 210,
-      y: baseY
-    },
-
-    {
-      x: centerX - 210,
-      y: baseY - 170
-    },
-
-    {
-      x: centerX + 210,
-      y: baseY - 170
-    }
-
-  ];
-
-
-  for (
-    const candidate
-    of candidates
-  ) {
-
-    const collision =
-      nodes.some(
-        node =>
-
-          Math.abs(
-            node.x -
-            candidate.x
-          ) < 180 &&
-
-          Math.abs(
-            node.y -
-            candidate.y
-          ) < 125
-      );
-
-
-    if (!collision) {
-      return candidate;
-    }
-
-  }
-
-
-  return {
-
-    x: centerX,
-
-    y:
-      baseY +
-      340
-
-  };
-
-}
-
-
-/* =========================================================
-   ADD NODE
-========================================================= */
-
-function addNode(type) {
-
-  const position =
-    findNewNodePosition();
-
-
-  nodes.push({
-
-    id:
-      `n${Date.now()}_${Math.random()
-        .toString(36)
-        .slice(2, 7)}`,
-
-    type,
-
-    x:
-      position.x,
-
-    y:
-      position.y
-
-  });
-
-
-  closeAddMenu();
-
-  render();
-
-}
-
-
-/* =========================================================
-   ADD MENU
-========================================================= */
-
-function renderAddMenu() {
-
-  addMenu.innerHTML = "";
-
-
-  for (
-    const [key, type]
-    of Object.entries(nodeTypes)
-  ) {
-
-    const item =
-      document.createElement(
-        "button"
-      );
-
-
-    item.className =
-      "menu-item";
-
-
-    item.innerHTML = `
-
-      <span class="menu-icon">
-        ${type.icon}
-      </span>
-
-      <span class="menu-name">
-        ${type.name}
-      </span>
-
-    `;
-
-
-    item.addEventListener(
-      "click",
-      e => {
-
-        e.stopPropagation();
-
-        addNode(key);
-
-      }
-    );
-
-
-    addMenu.appendChild(
-      item
-    );
-
-  }
-
-}
-
-
-renderAddMenu();
-
-
-function openAddMenu() {
-
-  addMenu.classList.add(
-    "open"
-  );
-
-  addButton.classList.add(
-    "open"
-  );
-
-  addButton.setAttribute(
-    "aria-expanded",
-    "true"
-  );
-
-}
-
-
-function closeAddMenu() {
-
-  addMenu.classList.remove(
-    "open"
-  );
-
-  addButton.classList.remove(
-    "open"
-  );
-
-  addButton.setAttribute(
-    "aria-expanded",
-    "false"
-  );
-
-}
-
-
-function toggleAddMenu() {
-
-  if (
-    addMenu.classList.contains(
-      "open"
-    )
-  ) {
-
-    closeAddMenu();
-
-  } else {
-
-    openAddMenu();
-
-  }
-
-}
-
-
-addButton.addEventListener(
-  "click",
-  e => {
-
-    e.stopPropagation();
-
-    toggleAddMenu();
-
-  }
-);
-
-
-/* =========================================================
-   THEME
-========================================================= */
-
-function setTheme(theme) {
-
-  document.documentElement.classList.toggle(
-    "dark",
-    theme === "dark"
-  );
-
-
-  localStorage.setItem(
-    "visual-ai-theme",
-    theme
-  );
-
-}
-
-
-const savedTheme =
-  localStorage.getItem(
-    "visual-ai-theme"
-  );
-
-
-if (savedTheme) {
-  setTheme(savedTheme);
-}
-
-
-themeButton.addEventListener(
-  "click",
-  e => {
-
-    e.stopPropagation();
-
-
-    const isDark =
-      document.documentElement
-        .classList
-        .contains("dark");
-
-
-    setTheme(
-      isDark
-        ? "light"
-        : "dark"
-    );
-
-  }
-);
-
-
-/* =========================================================
-   POINTER DOWN
-========================================================= */
-
-canvas.addEventListener(
-  "pointerdown",
-  e => {
-
-    /*
-      모든 pointer를 가장 먼저 등록.
-    */
-    activePointers.set(
-      e.pointerId,
-      {
-        x: e.clientX,
-        y: e.clientY
-      }
-    );
-
-
-    /*
-      =====================================================
-      TWO FINGER
-      =====================================================
-    */
-
-    if (
-      activePointers.size >= 2
-    ) {
-
-      /*
-        기존 노드 이동을 즉시 취소.
-      */
-      if (nodeDrag) {
-
-        const nodeEl =
-          getNodeElement(
-            nodeDrag.node.id
-          );
-
-
-        nodeEl?.classList.remove(
-          "dragging"
-        );
-
-      }
-
-
-      nodeDrag = null;
-
-      canvasPan = null;
-
-
-      const points =
-        [...activePointers.values()];
-
-
-      const center =
-        midpoint(
-          points[0],
-          points[1]
-        );
-
-
-      /*
-        핀치 시작 중심을
-        월드 좌표로 고정.
-      */
-      const anchor =
-        screenToWorld(
-          center.x,
-          center.y
-        );
-
-
-      pinch = {
-
-        startDistance:
-          distance(
-            points[0],
-            points[1]
-          ),
-
-        startScale:
-          scale,
-
-        anchorWorldX:
-          anchor.x,
-
-        anchorWorldY:
-          anchor.y
-
-      };
-
-
-      return;
-    }
-
-
-    /*
-      =====================================================
-      CONNECTION PORT
-      =====================================================
-    */
-
-    const port =
-      e.target.closest(
-        ".port-hit"
-      );
-
-
-    if (port) {
-
-      const nodeEl =
-        port.closest(".node");
-
-
-      if (!nodeEl) {
-        return;
-      }
-
-
-      const node =
-        getNode(
-          nodeEl.dataset.id
-        );
-
-
-      if (!node) {
-        return;
-      }
-
-
-      const direction =
-        port.dataset.port;
-
-
-      /*
-        output에서만 연결 드래그.
-      */
-      if (
-        direction === "output"
-      ) {
-
-        connectionDrag = {
-
-          pointerId:
-            e.pointerId,
-
-          from:
-            node.id,
-
-          x:
-            e.clientX,
-
-          y:
-            e.clientY
-
-        };
-
-
-        renderDragConnection();
-
-        return;
-
-      }
-
-
-      return;
-    }
-
-
-    /*
-      =====================================================
-      NODE
-      =====================================================
-    */
-
-    const nodeEl =
-      e.target.closest(
-        ".node"
-      );
-
-
-    if (nodeEl) {
-
-      const node =
-        getNode(
-          nodeEl.dataset.id
-        );
-
-
-      if (!node) {
-        return;
-      }
-
-
-      selectNode(
-        node.id
-      );
-
-
-      nodeDrag = {
-
-        pointerId:
-          e.pointerId,
-
-        node,
-
-        startX:
-          e.clientX,
-
-        startY:
-          e.clientY,
-
-        nodeX:
-          node.x,
-
-        nodeY:
-          node.y
-
-      };
-
-
-      nodeEl.classList.add(
-        "dragging"
-      );
-
-
-      try {
-
-        canvas.setPointerCapture(
-          e.pointerId
-        );
-
-      } catch {}
-
-
-      return;
-    }
-
-
-    /*
-      =====================================================
-      EMPTY CANVAS
-      =====================================================
-    */
-
-    selectNode(null);
-
-
-    canvasPan = {
-
-      pointerId:
-        e.pointerId,
-
-      startX:
-        e.clientX,
-
-      startY:
-        e.clientY,
-
-      startOffsetX:
-        offsetX,
-
-      startOffsetY:
-        offsetY
-
-    };
-
-
-    canvas.classList.add(
-      "dragging"
-    );
-
-
-    try {
-
-      canvas.setPointerCapture(
-        e.pointerId
-      );
-
-    } catch {}
-
-  }
-);
-
-
-/* =========================================================
-   POINTER MOVE
-========================================================= */
-
-canvas.addEventListener(
-  "pointermove",
-  e => {
-
-    if (
-      !activePointers.has(
-        e.pointerId
-      )
-    ) {
-      return;
-    }
-
-
-    activePointers.set(
-      e.pointerId,
-      {
-        x: e.clientX,
-        y: e.clientY
-      }
-    );
-
-
-    /*
-      =====================================================
-      TWO FINGER
-      =====================================================
-
-      반드시 모든 단일 제스처보다 먼저 처리.
-    */
-    if (
-      activePointers.size >= 2
-    ) {
-
-      nodeDrag = null;
-      canvasPan = null;
-
-
-      const points =
-        [...activePointers.values()];
-
-
-      if (!pinch) {
-
-        const center =
-          midpoint(
-            points[0],
-            points[1]
-          );
-
-
-        const anchor =
-          screenToWorld(
-            center.x,
-            center.y
-          );
-
-
-        pinch = {
-
-          startDistance:
-            distance(
-              points[0],
-              points[1]
-            ),
-
-          startScale:
-            scale,
-
-          anchorWorldX:
-            anchor.x,
-
-          anchorWorldY:
-            anchor.y
-
-        };
-
-      }
-
-
-      const currentDistance =
-        distance(
-          points[0],
-          points[1]
-        );
-
-
-      if (
-        pinch.startDistance <= 0
-      ) {
-        return;
-      }
-
-
-      const ratio =
-        currentDistance /
-        pinch.startDistance;
-
-
-      scale =
-        Math.max(
-          MIN_SCALE,
-          pinch.startScale *
-          ratio
-        );
-
-
-      /*
-        현재 두 손가락 중심.
-      */
-      const center =
-        midpoint(
-          points[0],
-          points[1]
-        );
-
-
-      /*
-        핀치 시작 때 잡은 월드 지점을
-        현재 손가락 중심에 유지.
-      */
-      offsetX =
-        center.x -
-        pinch.anchorWorldX *
-        scale;
-
-
-      offsetY =
-        center.y -
-        pinch.anchorWorldY *
-        scale;
-
-
-      renderWorldTransform();
-
-      renderConnections();
-
-      return;
-    }
-
-
-    /*
-      =====================================================
-      CONNECTION DRAG
-      =====================================================
-    */
-
-    if (
-      connectionDrag &&
-      connectionDrag.pointerId ===
-        e.pointerId
-    ) {
-
-      connectionDrag.x =
-        e.clientX;
-
-      connectionDrag.y =
-        e.clientY;
-
-
-      renderDragConnection();
-
-      return;
-    }
-
-
-    /*
-      =====================================================
-      NODE DRAG
-      =====================================================
-    */
-
-    if (
-      nodeDrag &&
-      nodeDrag.pointerId ===
-        e.pointerId
-    ) {
-
-      const dx =
-        (
-          e.clientX -
-          nodeDrag.startX
-        ) / scale;
-
-
-      const dy =
-        (
-          e.clientY -
-          nodeDrag.startY
-        ) / scale;
-
-
-      setNodePosition(
-
-        nodeDrag.node,
-
-        nodeDrag.nodeX +
-          dx,
-
-        nodeDrag.nodeY +
-          dy
-
-      );
-
-
-      return;
-    }
-
-
-    /*
-      =====================================================
-      CANVAS PAN
-      =====================================================
-    */
-
-    if (
-      canvasPan &&
-      canvasPan.pointerId ===
-        e.pointerId
-    ) {
-
-      offsetX =
-        canvasPan.startOffsetX +
-        (
-          e.clientX -
-          canvasPan.startX
-        );
-
-
-      offsetY =
-        canvasPan.startOffsetY +
-        (
-          e.clientY -
-          canvasPan.startY
-        );
-
-
-      renderWorldTransform();
-
-      return;
-    }
-
-  }
-);
-
-
-/* =========================================================
-   POINTER END
-========================================================= */
-
-function endPointer(e) {
-
-  /*
-    연결 드래그가 끝나면
-    성공/실패와 상관없이 먼저 정리.
-  */
-  if (
-    connectionDrag &&
-    connectionDrag.pointerId ===
-      e.pointerId
-  ) {
-
-    finishConnectionDrag(e);
-
-  }
-
-
-  activePointers.delete(
-    e.pointerId
-  );
-
-
-  /*
-    두 손가락 상태 종료.
-  */
-  if (
-    activePointers.size < 2
-  ) {
-
-    pinch = null;
-
-  }
-
-
-  /*
-    모든 pointer가 끝났을 때
-    단일 제스처 상태도 종료.
-  */
-  if (
-    activePointers.size === 0
-  ) {
-
-    if (nodeDrag) {
-
-      const nodeEl =
-        getNodeElement(
-          nodeDrag.node.id
-        );
-
-
-      nodeEl?.classList.remove(
-        "dragging"
-      );
-
-    }
-
-
-    nodeDrag = null;
-
-    canvasPan = null;
-
-    pinch = null;
-
-    connectionDrag = null;
-
-
-    canvas.classList.remove(
-      "dragging"
-    );
-
-  }
-
-}
-
-
-canvas.addEventListener(
-  "pointerup",
-  endPointer
-);
-
-
-canvas.addEventListener(
-  "pointercancel",
-  endPointer
-);
-
-
-/* =========================================================
-   CONNECTION DRAG
-========================================================= */
-
-function renderDragConnection() {
-
-  dragConnectionLayer.innerHTML = "";
-
-
-  if (!connectionDrag) {
-    return;
-  }
-
-
-  const start =
-    getPortPoint(
-      connectionDrag.from,
-      "output"
-    );
-
-
-  if (!start) {
-    return;
-  }
-
-
-  const target =
-    screenToWorld(
-      connectionDrag.x,
-      connectionDrag.y
-    );
-
-
-  /*
-    임시 연결선.
-  */
-  const path =
-    document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "path"
-    );
-
-
-  path.classList.add(
-    "drag-connection"
-  );
-
-
-  path.setAttribute(
-    "d",
-    curvePath(
-      start,
-      target
-    )
-  );
-
-
-  /*
-    화살표는 오직 이때만.
-  */
-  path.setAttribute(
-    "marker-end",
-    "url(#arrow)"
-  );
-
-
-  dragConnectionLayer.appendChild(
-    path
-  );
-
-
-  /*
-    시작점.
-  */
-  const dot =
-    document.createElementNS(
-      "http://www.w3.org/2000/svg",
-      "circle"
-    );
-
-
-  dot.classList.add(
-    "drag-source-dot"
-  );
-
-
-  dot.setAttribute(
-    "cx",
-    start.x
-  );
-
-
-  dot.setAttribute(
-    "cy",
-    start.y
-  );
-
-
-  dot.setAttribute(
-    "r",
-    "4"
-  );
-
-
-  dragConnectionLayer.appendChild(
-    dot
-  );
-
-}
-
-
-/* =========================================================
-   FINISH CONNECTION
-========================================================= */
-
-function finishConnectionDrag(e) {
-
-  /*
-    임시 선을 무조건 제거.
-    허공에 놓아도 절대 남지 않는다.
-  */
-  dragConnectionLayer.innerHTML = "";
-
-
-  if (!connectionDrag) {
-    return;
-  }
-
-
-  const source =
-    connectionDrag.from;
-
-
-  const targetElement =
-    document.elementFromPoint(
-      e.clientX,
-      e.clientY
-    );
-
-
-  const targetPort =
-    targetElement?.closest(
-      ".port-hit.input"
-    );
-
-
-  if (targetPort) {
-
-    const targetNode =
-      targetPort.closest(
-        ".node"
-      );
-
-
-    const targetId =
-      targetNode?.dataset.id;
-
-
-    if (
-      targetId &&
-      targetId !== source
-    ) {
-
-      const exists =
-        connections.some(
-          connection =>
-
-            connection.from ===
-              source &&
-
-            connection.to ===
-              targetId
-        );
-
-
-      if (!exists) {
-
-        connections.push({
-
-          from:
-            source,
-
-          to:
-            targetId
-
-        });
-
-      }
-
-    }
-
-  }
-
-
-  connectionDrag = null;
-
-  dragConnectionLayer.innerHTML = "";
-
-  render();
-
-}
-
-
-/* =========================================================
-   WHEEL ZOOM
-========================================================= */
-
-canvas.addEventListener(
-  "wheel",
-  e => {
-
-    e.preventDefault();
-
-
-    /*
-      커서 아래 월드 좌표를 기억.
-    */
-    const before =
-      screenToWorld(
-        e.clientX,
-        e.clientY
-      );
-
-
-    const factor =
-      Math.exp(
-        -e.deltaY *
-        .0015
-      );
-
-
-    scale =
-      Math.max(
-        MIN_SCALE,
-        scale *
-        factor
-      );
-
-
-    /*
-      커서가 계속 같은 월드 위치를 보도록.
-    */
-    offsetX =
-      e.clientX -
-      before.x *
-      scale;
-
-
-    offsetY =
-      e.clientY -
-      before.y *
-      scale;
-
-
-    renderWorldTransform();
-
-    renderConnections();
-
-  },
-  {
-    passive: false
-  }
-);
-
-
-/* =========================================================
-   CHAT INPUT
-========================================================= */
-
-chatInput.addEventListener(
-  "input",
-  () => {
-
-    chatInput.style.height =
-      "auto";
-
-
-    chatInput.style.height =
-      Math.min(
-        chatInput.scrollHeight,
-        110
-      ) + "px";
-
-  }
-);
-
-
-/* =========================================================
-   CHAT SUBMIT
-========================================================= */
-
-chatForm.addEventListener(
-  "submit",
-  e => {
-
-    e.preventDefault();
-
-
-    const text =
-      chatInput.value.trim();
-
-
-    if (!text) {
-      return;
-    }
-
-
-    /*
-      실제 AI 요청 연결부.
-    */
-
-
-    chatInput.value = "";
-
-    chatInput.style.height =
-      "auto";
-
-
-    chatInput.focus();
-
-  }
-);
-
-
-/* =========================================================
-   ATTACH
-========================================================= */
-
-document
-  .getElementById(
-    "attachButton"
-  )
-  .addEventListener(
-    "click",
-    () => {
-
-      /*
-        실제 파일 업로드 연결부.
-      */
-
-    }
-  );
-
-
-/* =========================================================
-   OUTSIDE MENU
-========================================================= */
-
-document.addEventListener(
-  "pointerdown",
-  e => {
-
-    if (
-      !addMenu.contains(
-        e.target
-      ) &&
-      !addButton.contains(
-        e.target
-      )
-    ) {
-
-      closeAddMenu();
-
-    }
-
-  }
-);
-
-
-/* =========================================================
-   UI EVENT ISOLATION
-========================================================= */
-
-document
-  .querySelector(
-    ".chat-composer-wrap"
-  )
-  .addEventListener(
-    "pointerdown",
-    e => {
-
-      e.stopPropagation();
-
-    }
-  );
-
-
-document
-  .querySelector(
-    ".top-controls"
-  )
-  .addEventListener(
-    "pointerdown",
-    e => {
-
-      e.stopPropagation();
-
-    }
-  );
-
-
-addMenu.addEventListener(
-  "pointerdown",
-  e => {
-
-    e.stopPropagation();
-
-  }
-);
-
-
-/* =========================================================
-   INITIAL VIEW
-========================================================= */
-
-function centerInitialWorld() {
-
-  const first =
-    nodes[0];
-
-
-  if (!first) {
-    return;
-  }
-
-
-  const rect =
-    canvas.getBoundingClientRect();
-
-
-  const nodeWidth =
-    168;
-
-
-  offsetX =
-    rect.width / 2 -
-    (
-      first.x +
-      nodeWidth / 2
-    ) *
-    scale;
-
-
-  offsetY =
-    90 -
-    first.y *
-    scale;
-
-}
-
-
-centerInitialWorld();
-
-render();
 
 </script>
 
