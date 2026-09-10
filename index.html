@@ -9,32 +9,3260 @@
 <title>AI Visual Programming</title>
 
 <style>
-:root {
-  color-scheme: light;
-
-  --bg: #f5f5f3;
-  --canvas: #f7f7f5;
-
-  --glass: rgba(255,255,255,.72);
-  --glass-strong: rgba(255,255,255,.90);
-
-  --text: #202020;
-  --text-sub: #777;
-  --text-faint: #a5a5a5;
-
-  --line: rgba(30,30,30,.19);
-  --line-soft: rgba(30,30,30,.09);
-
-  --node-bg: rgba(255,255,255,.73);
-  --node-border: rgba(0,0,0,.095);
-
-  --composer-bg: rgba(255,255,255,.80);
-
+:root{
+  color-scheme:light;
+  --bg:#f3f3f1;
+  --canvas:#f7f7f5;
+  --glass:rgba(255,255,255,.72);
+  --glass2:rgba(255,255,255,.9);
+  --text:#202020;
+  --sub:#777;
+  --faint:#aaa;
+  --line:rgba(25,25,25,.18);
+  --soft:rgba(25,25,25,.07);
+  --node:rgba(255,255,255,.78);
+  --border:rgba(0,0,0,.09);
+  --accent:#6b4cff;
+  --accent-soft:rgba(107,76,255,.11);
   --shadow:
-    0 8px 28px rgba(0,0,0,.055),
+    0 12px 34px rgba(0,0,0,.07),
     0 1px 2px rgba(0,0,0,.035);
 }
 
+html.dark{
+  color-scheme:dark;
+  --bg:#141414;
+  --canvas:#171717;
+  --glass:rgba(32,32,32,.72);
+  --glass2:rgba(38,38,38,.94);
+  --text:#f1f1f1;
+  --sub:#999;
+  --faint:#666;
+  --line:rgba(255,255,255,.22);
+  --soft:rgba(255,255,255,.075);
+  --node:rgba(34,34,34,.84);
+  --border:rgba(255,255,255,.1);
+  --accent:#8b73ff;
+  --accent-soft:rgba(139,115,255,.15);
+  --shadow:
+    0 15px 36px rgba(0,0,0,.28),
+    0 1px 2px rgba(0,0,0,.18);
+}
+
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html,
+body{
+  width:100%;
+  height:100%;
+  margin:0;
+  overflow:hidden;
+  font-family:
+    Pretendard,
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    sans-serif;
+  color:var(--text);
+  background:var(--bg);
+}
+
+button,
+textarea{
+  font:inherit;
+}
+
+button{
+  border:0;
+}
+
+#app{
+  position:fixed;
+  inset:0;
+  overflow:hidden;
+  background:var(--canvas);
+}
+
+.canvas{
+  position:absolute;
+  inset:0;
+  overflow:hidden;
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+  cursor:grab;
+}
+
+.canvas.dragging{
+  cursor:grabbing;
+}
+
+.world{
+  position:absolute;
+  left:0;
+  top:0;
+  width:3000px;
+  height:3000px;
+  transform-origin:0 0;
+}
+
+.world:before{
+  content:"";
+  position:absolute;
+  inset:-1000px;
+  background-image:
+    radial-gradient(
+      circle,
+      var(--soft) 1px,
+      transparent 1px
+    );
+  background-size:28px 28px;
+  opacity:.65;
+  pointer-events:none;
+}
+
+.world-svg{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  overflow:visible;
+  z-index:1;
+  pointer-events:none;
+}
+
+.nodes-layer{
+  position:absolute;
+  inset:0;
+  z-index:10;
+}
+
+.node{
+  position:absolute;
+  width:190px;
+  min-height:50px;
+  height:50px;
+  padding:10px 12px;
+
+  background:var(--node);
+  border:1px solid var(--border);
+  border-radius:15px;
+
+  box-shadow:var(--shadow);
+
+  backdrop-filter:blur(20px);
+  -webkit-backdrop-filter:blur(20px);
+
+  cursor:grab;
+  overflow:visible;
+
+  transition:
+    height .32s cubic-bezier(.22,.8,.25,1),
+    box-shadow .18s ease,
+    border-color .18s ease,
+    background .18s ease,
+    transform .18s cubic-bezier(.22,.8,.25,1);
+}
+
+.node.start-node{
+  border-top-color:
+    color-mix(
+      in srgb,
+      var(--accent) 48%,
+      var(--border)
+    );
+
+  box-shadow:
+    0 12px 34px rgba(0,0,0,.07),
+    0 1px 2px rgba(0,0,0,.035),
+    0 -1px 0
+      color-mix(
+        in srgb,
+        var(--accent) 25%,
+        transparent
+      );
+}
+
+.node.start-node .node-icon{
+  color:var(--accent);
+  background:var(--accent-soft);
+
+  border-color:
+    color-mix(
+      in srgb,
+      var(--accent) 20%,
+      transparent
+    );
+}
+
+.node.start-node .node-icon::after{
+  content:"";
+  position:absolute;
+  width:4px;
+  height:4px;
+  border-radius:50%;
+  background:var(--accent);
+  opacity:.7;
+  transform:translate(7px,-7px);
+}
+
+.node:hover{
+  box-shadow:
+    0 15px 38px rgba(0,0,0,.09),
+    0 1px 2px rgba(0,0,0,.04);
+}
+
+.node.selected,
+.node.expanded{
+  border-color:
+    color-mix(
+      in srgb,
+      var(--accent) 48%,
+      transparent
+    );
+
+  box-shadow:
+    0 16px 40px rgba(0,0,0,.11),
+    0 0 0 3px var(--accent-soft);
+
+  transform:translateY(-2px);
+}
+
+.node.dragging{
+  cursor:grabbing;
+  transition:none;
+}
+
+.node-head{
+  height:28px;
+  display:flex;
+  align-items:center;
+  gap:9px;
+}
+
+.node-icon{
+  position:relative;
+
+  width:28px;
+  height:28px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:10px;
+
+  background:
+    linear-gradient(
+      145deg,
+      var(--soft),
+      color-mix(
+        in srgb,
+        var(--soft) 45%,
+        transparent
+      )
+    );
+
+  border:
+    1px solid
+    color-mix(
+      in srgb,
+      var(--text) 7%,
+      transparent
+    );
+
+  color:var(--sub);
+
+  flex:0 0 28px;
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.14),
+    0 2px 6px rgba(0,0,0,.035);
+}
+
+.node-icon svg{
+  width:15px;
+  height:15px;
+  display:block;
+}
+
+.node.selected .node-icon,
+.node.expanded .node-icon{
+  background:var(--accent-soft);
+
+  border-color:
+    color-mix(
+      in srgb,
+      var(--accent) 22%,
+      transparent
+    );
+
+  color:var(--accent);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    0 4px 12px
+      color-mix(
+        in srgb,
+        var(--accent) 13%,
+        transparent
+      );
+}
+
+.node-title{
+  min-width:0;
+  flex:1;
+
+  font-size:13px;
+  font-weight:700;
+  letter-spacing:-.025em;
+
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.node-toggle{
+  width:28px;
+  height:28px;
+  flex:0 0 28px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  padding:0;
+  border-radius:9px;
+
+  color:var(--sub);
+  background:transparent;
+
+  cursor:pointer;
+
+  transition:
+    background .2s ease,
+    color .2s ease,
+    transform .2s cubic-bezier(.22,.8,.25,1);
+}
+
+.node-toggle:hover{
+  background:var(--soft);
+  color:var(--text);
+}
+
+.node-toggle:active{
+  transform:scale(.88);
+}
+
+.node-toggle svg{
+  width:14px;
+  height:14px;
+  display:block;
+
+  transition:
+    transform .32s cubic-bezier(.22,.8,.25,1);
+}
+
+.node.expanded .node-toggle{
+  color:var(--accent);
+  background:var(--accent-soft);
+}
+
+.node.expanded .node-toggle svg{
+  transform:rotate(180deg);
+}
+
+.node-body{
+  height:0;
+  overflow:hidden;
+  opacity:0;
+
+  transition:
+    height .32s cubic-bezier(.22,.8,.25,1),
+    opacity .18s ease;
+}
+
+.node.expanded .node-body{
+  opacity:1;
+}
+
+.node-description{
+  margin-top:11px;
+  color:var(--sub);
+  font-size:11px;
+  line-height:1.5;
+  letter-spacing:-.015em;
+}
+
+.node-param{
+  display:flex;
+  align-items:center;
+  gap:5px;
+
+  max-width:100%;
+  margin-top:9px;
+  padding:5px 8px;
+
+  border-radius:9px;
+
+  background:var(--soft);
+  color:var(--sub);
+
+  font-size:10px;
+  line-height:1.25;
+
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.node-param:before{
+  content:"";
+  width:4px;
+  height:4px;
+  border-radius:50%;
+  background:currentColor;
+  opacity:.45;
+  flex:none;
+}
+
+
+/* =========================
+   PORT
+========================= */
+
+.port-hit{
+  position:absolute;
+
+  /*
+    기존 top:25px 때문에
+    노드가 펼쳐져도 포트가 접힌 위치에 남았음.
+
+    노드 전체 높이의 정중앙을 따라가도록 변경.
+  */
+  top:50%;
+
+  width:52px;
+  height:52px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  transform:translateY(-50%);
+
+  z-index:40;
+  cursor:crosshair;
+
+  touch-action:none;
+  user-select:none;
+  -webkit-user-select:none;
+}
+
+.port-hit.input{
+  left:-26px;
+}
+
+.port-hit.output{
+  right:-26px;
+}
+
+.port-pill{
+  width:10px;
+  height:10px;
+
+  border-radius:50%;
+
+  background:var(--canvas);
+  border:1.5px solid var(--text);
+  opacity:.18;
+
+  transition:
+    opacity .15s ease,
+    transform .15s cubic-bezier(.22,.8,.25,1),
+    background .15s ease,
+    border-color .15s ease;
+}
+
+.node.selected .port-pill,
+.node.expanded .port-pill{
+  opacity:.9;
+  transform:scale(1.05);
+}
+
+.port-pill.connected{
+  background:var(--text);
+  opacity:.35;
+}
+
+.node.selected .port-pill.connected,
+.node.expanded .port-pill.connected{
+  opacity:1;
+}
+
+.port-hit:hover .port-pill{
+  opacity:1;
+  transform:scale(1.25);
+  background:var(--accent);
+  border-color:var(--accent);
+}
+
+
+/* =========================
+   CONNECTION
+========================= */
+
+.connection{
+  fill:none;
+  stroke:var(--text);
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  stroke-dasharray:2 5;
+  opacity:.18;
+  pointer-events:none;
+
+  transition:
+    opacity .18s ease,
+    stroke-width .18s ease,
+    stroke .18s ease;
+}
+
+.connection.active{
+  stroke:var(--accent);
+  stroke-dasharray:none;
+  opacity:.7;
+  stroke-width:2.2;
+}
+
+.connection-dot{
+  fill:var(--canvas);
+  stroke:var(--text);
+  stroke-width:1.2;
+  opacity:.35;
+}
+
+.drag-connection{
+  fill:none;
+  stroke:var(--accent);
+  stroke-width:2.2;
+  stroke-linecap:round;
+  opacity:.85;
+  pointer-events:none;
+}
+
+.drag-source-dot{
+  fill:var(--accent);
+}
+
+
+/* =========================
+   TOP CONTROLS
+========================= */
+
+.top-controls{
+  position:fixed;
+
+  top:max(14px,env(safe-area-inset-top));
+  right:14px;
+
+  z-index:100;
+
+  display:flex;
+  gap:7px;
+}
+
+.top-button{
+  width:40px;
+  height:40px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:50%;
+  cursor:pointer;
+
+  transition:
+    transform .18s cubic-bezier(.22,.8,.25,1),
+    background .18s ease;
+}
+
+.top-button:active{
+  transform:scale(.93);
+}
+
+.theme-button{
+  color:var(--text);
+  background:var(--glass);
+
+  border:1px solid var(--soft);
+
+  backdrop-filter:blur(18px);
+  -webkit-backdrop-filter:blur(18px);
+}
+
+.add-button{
+  color:#171717;
+  background:#fff;
+
+  border:1px solid rgba(0,0,0,.07);
+
+  box-shadow:
+    0 6px 18px rgba(0,0,0,.1);
+}
+
+html.dark .add-button{
+  background:#f4f4f4;
+}
+
+.add-node-icon{
+  width:19px;
+  height:19px;
+  display:block;
+
+  transition:
+    transform .28s cubic-bezier(.22,.8,.25,1),
+    opacity .18s ease;
+}
+
+.add-button:hover .add-node-icon{
+  transform:scale(1.04);
+}
+
+.add-button.open .add-node-icon{
+  transform:rotate(90deg) scale(.96);
+}
+
+.add-menu{
+  position:fixed;
+
+  top:
+    calc(
+      max(14px,env(safe-area-inset-top))
+      + 48px
+    );
+
+  right:14px;
+
+  z-index:101;
+
+  width:218px;
+  padding:6px;
+
+  border:1px solid var(--soft);
+  border-radius:16px;
+
+  background:var(--glass2);
+
+  box-shadow:
+    0 16px 42px rgba(0,0,0,.12);
+
+  backdrop-filter:blur(24px);
+  -webkit-backdrop-filter:blur(24px);
+
+  opacity:0;
+
+  transform:
+    translateY(-5px)
+    scale(.98);
+
+  pointer-events:none;
+
+  transition:
+    opacity .16s ease,
+    transform .18s cubic-bezier(.22,.8,.25,1);
+}
+
+.add-menu.open{
+  opacity:1;
+  transform:none;
+  pointer-events:auto;
+}
+
+.menu-item{
+  width:100%;
+
+  display:flex;
+  align-items:center;
+  gap:10px;
+
+  padding:9px;
+
+  border-radius:10px;
+
+  color:var(--text);
+  background:transparent;
+
+  text-align:left;
+  cursor:pointer;
+}
+
+.menu-item:hover{
+  background:var(--soft);
+}
+
+.menu-icon{
+  width:26px;
+  height:26px;
+
+  flex:0 0 26px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:8px;
+
+  background:var(--soft);
+
+  border:
+    1px solid
+    color-mix(
+      in srgb,
+      var(--text) 6%,
+      transparent
+    );
+
+  color:var(--sub);
+}
+
+.menu-icon svg{
+  width:15px;
+  height:15px;
+  display:block;
+}
+
+.menu-name{
+  font-size:11.5px;
+  font-weight:600;
+}
+
+.menu-desc{
+  margin-left:auto;
+  color:var(--faint);
+  font-size:9px;
+}
+
+
+/* =========================
+   COMPOSER
+========================= */
+
+.chat-composer-wrap{
+  position:fixed;
+
+  left:50%;
+  right:auto;
+
+  bottom:
+    max(
+      10px,
+      env(safe-area-inset-bottom)
+    );
+
+  width:min(
+    calc(100% - 28px),
+    540px
+  );
+
+  transform:translateX(-50%);
+
+  z-index:200;
+  pointer-events:none;
+}
+
+.chat-composer{
+  position:relative;
+
+  left:50%;
+  transform:translateX(-50%);
+
+  pointer-events:auto;
+
+  width:100%;
+  min-height:42px;
+
+  display:flex;
+  align-items:center;
+
+  gap:3px;
+
+  padding:4px;
+
+  border:
+    1px solid
+    var(--soft);
+
+  border-radius:24px;
+
+  background:var(--glass2);
+
+  box-shadow:
+    0 10px 32px rgba(0,0,0,.09),
+    0 1px 2px rgba(0,0,0,.04);
+
+  backdrop-filter:blur(26px);
+  -webkit-backdrop-filter:blur(26px);
+
+  transition:
+    width .28s cubic-bezier(.22,.8,.25,1),
+    min-height .22s ease,
+    padding .22s ease,
+    border-radius .22s ease,
+    box-shadow .22s ease,
+    opacity .22s ease;
+}
+
+.chat-composer:not(.is-active){
+  width:290px;
+  min-height:36px;
+
+  padding:2px 3px;
+
+  border-radius:20px;
+  opacity:.82;
+}
+
+.chat-composer:not(.is-active) .chat-input{
+  min-height:28px;
+
+  padding-top:5px;
+  padding-bottom:5px;
+}
+
+.chat-composer.has-text,
+.chat-composer:focus-within,
+.chat-composer.is-active{
+  min-height:48px;
+
+  padding:6px;
+
+  border-radius:25px;
+  opacity:1;
+}
+
+.composer-button{
+  width:34px;
+  height:34px;
+
+  flex:0 0 34px;
+  align-self:center;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  padding:0;
+
+  border-radius:50%;
+
+  color:var(--sub);
+  background:transparent;
+
+  cursor:pointer;
+}
+
+.composer-button:hover{
+  color:var(--text);
+  background:var(--soft);
+}
+
+.composer-button:active{
+  transform:scale(.92);
+}
+
+.attach-icon{
+  width:16px;
+  height:16px;
+  display:block;
+}
+
+.chat-input{
+  flex:1;
+
+  min-width:0;
+  min-height:34px;
+  max-height:115px;
+
+  resize:none;
+
+  padding:
+    7px
+    5px
+    6px;
+
+  border:0;
+  outline:0;
+
+  color:var(--text);
+  background:transparent;
+
+  font-size:13px;
+  line-height:1.4;
+
+  letter-spacing:-.015em;
+}
+
+.chat-input::placeholder{
+  color:var(--faint);
+}
+
+.send-button{
+  width:29px;
+  height:29px;
+
+  flex:0 0 29px;
+  align-self:center;
+
+  padding:0;
+
+  border-radius:50% !important;
+
+  color:#171717;
+  background:#fff;
+
+  border:
+    1px solid
+    rgba(0,0,0,.07);
+
+  box-shadow:
+    0 3px 9px rgba(0,0,0,.09),
+    inset 0 1px 0 rgba(255,255,255,.65);
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  line-height:0;
+}
+
+.send-button svg{
+  width:14px;
+  height:14px;
+  display:block;
+}
+
+.send-button:active{
+  transform:scale(.93);
+}
+
+html.dark .send-button{
+  background:#f4f4f4;
+}
+
+.zoom-indicator{
+  position:fixed;
+
+  left:14px;
+  top:max(14px,env(safe-area-inset-top));
+
+  z-index:90;
+
+  padding:7px 10px;
+
+  border-radius:10px;
+
+  background:var(--glass);
+  border:1px solid var(--soft);
+
+  color:var(--sub);
+  font-size:10px;
+
+  backdrop-filter:blur(18px);
+  opacity:.8;
+}
+
+@media(max-width:600px){
+
+  .node{
+    width:178px;
+    min-height:48px;
+    height:48px;
+    padding:10px 12px;
+    border-radius:16px;
+  }
+
+  .node-title{
+    font-size:12.5px;
+  }
+
+  .node-description{
+    font-size:10.5px;
+  }
+
+  .top-controls{
+    right:11px;
+  }
+
+  .add-menu{
+    right:11px;
+  }
+
+  .chat-composer-wrap{
+    left:50%;
+    right:auto;
+
+    width:
+      calc(
+        100% -
+        22px
+      );
+
+    bottom:
+      max(
+        9px,
+        env(safe-area-inset-bottom)
+      );
+
+    transform:translateX(-50%);
+  }
+
+  .chat-composer{
+    left:50%;
+    transform:translateX(-50%);
+  }
+
+  .chat-composer{
+    min-height:41px;
+    border-radius:22px;
+    padding:4px;
+  }
+
+  .chat-composer:not(.is-active){
+    width:250px;
+    min-height:34px;
+
+    border-radius:19px;
+    padding:2px 3px;
+  }
+
+  .chat-composer.has-text,
+  .chat-composer:focus-within,
+  .chat-composer.is-active{
+    min-height:46px;
+    border-radius:24px;
+    padding:5px;
+  }
+
+  .composer-button{
+    width:33px;
+    height:33px;
+    flex-basis:33px;
+  }
+
+  .send-button{
+    width:28px;
+    height:28px;
+    flex-basis:28px;
+    border-radius:50% !important;
+  }
+
+  .zoom-indicator{
+    left:11px;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div id="app">
+
+  <div id="canvas" class="canvas">
+
+    <div id="world" class="world">
+
+      <svg
+        id="connections"
+        class="world-svg"
+        viewBox="0 0 3000 3000"
+        preserveAspectRatio="none"
+      >
+
+        <defs>
+
+          <marker
+            id="arrow"
+            viewBox="0 0 10 10"
+            refX="8"
+            refY="5"
+            markerWidth="5"
+            markerHeight="5"
+            orient="auto"
+          >
+            <path
+              d="M1 1L8 5L1 9"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="1.5"
+            />
+          </marker>
+
+        </defs>
+
+        <g id="connectionLayer"></g>
+        <g id="dragConnectionLayer"></g>
+
+      </svg>
+
+      <div
+        id="nodesLayer"
+        class="nodes-layer"
+      ></div>
+
+    </div>
+
+  </div>
+
+  <div
+    class="zoom-indicator"
+    id="zoomIndicator"
+  >
+    100%
+  </div>
+
+  <div class="top-controls">
+
+    <button
+      id="themeButton"
+      class="top-button theme-button"
+      aria-label="다크 모드"
+      type="button"
+    >
+      ◐
+    </button>
+
+    <button
+      id="addButton"
+      class="top-button add-button"
+      aria-label="노드 추가"
+      aria-expanded="false"
+      type="button"
+    >
+
+      <svg
+        class="add-node-icon"
+        viewBox="0 0 20 20"
+        fill="none"
+      >
+
+        <rect
+          x="3.5"
+          y="3.5"
+          width="5"
+          height="5"
+          rx="1.5"
+          stroke="currentColor"
+          stroke-width="1.45"
+        />
+
+        <rect
+          x="11.5"
+          y="11.5"
+          width="5"
+          height="5"
+          rx="1.5"
+          stroke="currentColor"
+          stroke-width="1.45"
+        />
+
+        <path
+          d="M8.5 6h3M14 8.5v3"
+          stroke="currentColor"
+          stroke-width="1.45"
+          stroke-linecap="round"
+        />
+
+      </svg>
+
+    </button>
+
+  </div>
+
+  <div
+    id="addMenu"
+    class="add-menu"
+  ></div>
+
+  <div class="chat-composer-wrap">
+
+    <form
+      id="chatForm"
+      class="chat-composer"
+    >
+
+      <button
+        type="button"
+        id="attachButton"
+        class="composer-button"
+        aria-label="파일 추가"
+      >
+
+        <svg
+          class="attach-icon"
+          viewBox="0 0 20 20"
+          fill="none"
+        >
+
+          <path
+            d="M7.2 10.8l4.7-4.7a2.55 2.55 0 0 1 3.6 3.6l-5.9 5.9a4.05 4.05 0 0 1-5.7-5.7l6-6"
+            stroke="currentColor"
+            stroke-width="1.55"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+
+        </svg>
+
+      </button>
+
+      <textarea
+        id="chatInput"
+        rows="1"
+        class="chat-input"
+        placeholder="무엇을 만들까요?"
+      ></textarea>
+
+      <button
+        type="submit"
+        class="composer-button send-button"
+        aria-label="보내기"
+      >
+
+        <svg
+          viewBox="0 0 20 20"
+          fill="none"
+        >
+
+          <path
+            d="M10 15.5V4.5M5.8 8.7L10 4.5L14.2 8.7"
+            stroke="currentColor"
+            stroke-width="1.7"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+
+        </svg>
+
+      </button>
+
+    </form>
+
+  </div>
+
+</div>
+
+<script>
+
+const nodeTypes={
+
+  research:{
+    name:'조사하기',
+    desc:'필요한 정보를 찾아 수집합니다.',
+    param:'생성형 AI 시장의 최근 3년 변화',
+    tag:'RESEARCH'
+  },
+
+  organize:{
+    name:'정리하기',
+    desc:'자료를 기준에 따라 구조화합니다.',
+    param:'시장 규모 / 주요 기업',
+    tag:'ORGANIZE'
+  },
+
+  judge:{
+    name:'판단하기',
+    desc:'조건을 비교하고 결과를 판단합니다.',
+    param:'일치도 ≥ 70%',
+    tag:'JUDGE'
+  },
+
+  write:{
+    name:'작성하기',
+    desc:'주어진 정보를 문서 형태로 작성합니다.',
+    param:'2페이지 보고서',
+    tag:'WRITE'
+  },
+
+  convert:{
+    name:'변환하기',
+    desc:'자료의 형식이나 표현을 바꿉니다.',
+    param:'요약 → 표',
+    tag:'CONVERT'
+  },
+
+  file:{
+    name:'파일추가하기',
+    desc:'작업에 사용할 파일을 추가합니다.',
+    param:'발표자료 원본',
+    tag:'INPUT'
+  },
+
+  createFile:{
+    name:'파일만들기',
+    desc:'완성된 결과물을 파일로 생성합니다.',
+    param:'PDF',
+    tag:'OUTPUT'
+  }
+
+};
+
+let nodes=[
+
+  {
+    id:'n1',
+    type:'research',
+    x:780,
+    y:180,
+    start:true
+  },
+
+  {
+    id:'n2',
+    type:'organize',
+    x:780,
+    y:350
+  },
+
+  {
+    id:'n3',
+    type:'write',
+    x:780,
+    y:520
+  },
+
+  {
+    id:'n4',
+    type:'createFile',
+    x:780,
+    y:690
+  }
+
+];
+
+let connections=[
+
+  {
+    from:'n1',
+    to:'n2'
+  },
+
+  {
+    from:'n2',
+    to:'n3'
+  },
+
+  {
+    from:'n3',
+    to:'n4'
+  }
+
+];
+
+const canvas=
+  document.getElementById('canvas');
+
+const world=
+  document.getElementById('world');
+
+const nodesLayer=
+  document.getElementById('nodesLayer');
+
+const connectionLayer=
+  document.getElementById('connectionLayer');
+
+const dragConnectionLayer=
+  document.getElementById('dragConnectionLayer');
+
+const addButton=
+  document.getElementById('addButton');
+
+const addMenu=
+  document.getElementById('addMenu');
+
+const themeButton=
+  document.getElementById('themeButton');
+
+const chatForm=
+  document.getElementById('chatForm');
+
+const chatInput=
+  document.getElementById('chatInput');
+
+const zoomIndicator=
+  document.getElementById('zoomIndicator');
+
+let selectedNodeId=null;
+
+let scale=1;
+
+let offsetX=0;
+let offsetY=0;
+
+const MIN_SCALE=.12;
+const MAX_SCALE=3;
+
+const pointers=new Map();
+
+let nodeDrag=null;
+let canvasPan=null;
+let pinch=null;
+let connectionDrag=null;
+
+let expansionAnimation=null;
+
+const clamp=(v,a,b)=>
+  Math.min(
+    b,
+    Math.max(a,v)
+  );
+
+const distance=(a,b)=>
+  Math.hypot(
+    b.x-a.x,
+    b.y-a.y
+  );
+
+const midpoint=(a,b)=>({
+  x:(a.x+b.x)/2,
+  y:(a.y+b.y)/2
+});
+
+const getNode=id=>
+  nodes.find(
+    n=>n.id===id
+  );
+
+const getNodeElement=id=>
+  document.querySelector(
+    `.node[data-id="${CSS.escape(id)}"]`
+  );
+
+const screenToWorld=(x,y)=>({
+
+  x:
+    (x-offsetX)/scale,
+
+  y:
+    (y-offsetY)/scale
+
+});
+
+function renderTransform(){
+
+  world.style.transform=
+    `translate(${offsetX}px,${offsetY}px) scale(${scale})`;
+
+  zoomIndicator.textContent=
+    `${Math.round(scale*100)}%`;
+
+}
+
+const iconSvg={
+
+  research:
+  `<svg viewBox="0 0 20 20" fill="none">
+    <circle
+      cx="8.5"
+      cy="8.5"
+      r="4.5"
+      stroke="currentColor"
+      stroke-width="1.6"
+    />
+    <path
+      d="M12 12l4 4"
+      stroke="currentColor"
+      stroke-width="1.6"
+      stroke-linecap="round"
+    />
+  </svg>`,
+
+  organize:
+  `<svg viewBox="0 0 20 20" fill="none">
+    <path
+      d="M4 5h12M4 10h12M4 15h7"
+      stroke="currentColor"
+      stroke-width="1.6"
+      stroke-linecap="round"
+    />
+  </svg>`,
+
+  judge:
+  `<svg viewBox="0 0 20 20" fill="none">
+    <path
+      d="M5 4.5h10M5 10h7M5 15.5h10"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+    />
+    <circle
+      cx="14.5"
+      cy="10"
+      r="2"
+      stroke="currentColor"
+      stroke-width="1.5"
+    />
+  </svg>`,
+
+  write:
+  `<svg viewBox="0 0 20 20" fill="none">
+    <path
+      d="M5 4.5h10v11H5z"
+      stroke="currentColor"
+      stroke-width="1.5"
+    />
+    <path
+      d="M7.5 8h5M7.5 11h5M7.5 14h3"
+      stroke="currentColor"
+      stroke-width="1.4"
+      stroke-linecap="round"
+    />
+  </svg>`,
+
+  convert:
+  `<svg viewBox="0 0 20 20" fill="none">
+    <path
+      d="M4 6h8M4 6l2-2M4 6l2 2M16 14H8M16 14l-2-2M16 14l-2 2"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+    />
+  </svg>`,
+
+  file:
+  `<svg viewBox="0 0 20 20" fill="none">
+    <path
+      d="M4.5 5.5A1.5 1.5 0 0 1 6 4h4l2 2h2A1.5 1.5 0 0 1 15.5 7.5v7A1.5 1.5 0 0 1 14 16H6a1.5 1.5 0 0 1-1.5-1.5z"
+      stroke="currentColor"
+      stroke-width="1.5"
+    />
+    <path
+      d="M10 9v4M8 11h4"
+      stroke="currentColor"
+      stroke-width="1.5"
+      stroke-linecap="round"
+    />
+  </svg>`,
+
+  createFile:
+  `<svg viewBox="0 0 20 20" fill="none">
+    <path
+      d="M6 3.5h6l3 3v10H6z"
+      stroke="currentColor"
+      stroke-width="1.5"
+    />
+    <path
+      d="M12 3.5v3h3M8.5 11h4M8.5 14h4"
+      stroke="currentColor"
+      stroke-width="1.4"
+      stroke-linecap="round"
+    />
+  </svg>`
+
+};
+
+function renderNodes(){
+
+  nodesLayer.innerHTML='';
+
+  for(const n of nodes){
+
+    const t=nodeTypes[n.type];
+
+    const el=
+      document.createElement('div');
+
+    el.className='node';
+
+    if(n.start){
+      el.classList.add('start-node');
+    }
+
+    el.dataset.id=n.id;
+
+    el.style.left=
+      n.x+'px';
+
+    el.style.top=
+      n.y+'px';
+
+    el.innerHTML=`
+
+      <div class="node-head">
+
+        <span class="node-icon">
+          ${iconSvg[n.type]||''}
+        </span>
+
+        <span class="node-title">
+          ${t.name}
+        </span>
+
+        <button
+          type="button"
+          class="node-toggle"
+          data-action="toggle"
+          aria-label="상세 내용 열기"
+          aria-expanded="false"
+        >
+
+          <svg
+            viewBox="0 0 20 20"
+            fill="none"
+          >
+
+            <path
+              d="M6 8l4 4 4-4"
+              stroke="currentColor"
+              stroke-width="1.6"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            />
+
+          </svg>
+
+        </button>
+
+      </div>
+
+      <div class="node-body">
+
+        <div class="node-description">
+          ${t.desc}
+        </div>
+
+        <div class="node-param">
+          ${t.param}
+        </div>
+
+      </div>
+
+      <div
+        class="port-hit input"
+        data-port="input"
+      >
+        <span class="port-pill"></span>
+      </div>
+
+      <div
+        class="port-hit output"
+        data-port="output"
+      >
+        <span class="port-pill"></span>
+      </div>
+
+    `;
+
+    if(
+      connections.some(
+        c=>c.to===n.id
+      )
+    ){
+
+      el
+        .querySelector(
+          '.input .port-pill'
+        )
+        .classList
+        .add('connected');
+
+    }
+
+    if(
+      connections.some(
+        c=>c.from===n.id
+      )
+    ){
+
+      el
+        .querySelector(
+          '.output .port-pill'
+        )
+        .classList
+        .add('connected');
+
+    }
+
+    nodesLayer.appendChild(el);
+
+  }
+
+  updateNodeExpansion(true);
+
+  requestAnimationFrame(
+    renderConnections
+  );
+
+}
+
+function portPoint(id,dir){
+
+  const n=getNode(id);
+
+  const el=
+    getNodeElement(id);
+
+  if(!n||!el)
+    return null;
+
+  return{
+
+    x:
+      n.x+
+      (
+        dir==='output'
+          ?el.offsetWidth
+          :0
+      ),
+
+    y:
+      n.y+
+      el.offsetHeight/2
+
+  };
+
+}
+
+function curve(a,b){
+
+  const dx=
+    b.x-a.x;
+
+  const bend=
+    clamp(
+      Math.abs(dx)*.22+
+      Math.abs(b.y-a.y)*.05,
+      28,
+      85
+    );
+
+  return`
+    M ${a.x} ${a.y}
+    C
+    ${a.x+bend} ${a.y},
+    ${b.x-bend} ${b.y},
+    ${b.x} ${b.y}
+  `;
+
+}
+
+function svgEl(name,attrs={}){
+
+  const e=
+    document.createElementNS(
+      'http://www.w3.org/2000/svg',
+      name
+    );
+
+  for(
+    const[k,v]
+    of Object.entries(attrs)
+  ){
+
+    e.setAttribute(k,v);
+
+  }
+
+  return e;
+
+}
+
+function renderConnections(){
+
+  connectionLayer.innerHTML='';
+
+  for(const c of connections){
+
+    const a=
+      portPoint(
+        c.from,
+        'output'
+      );
+
+    const b=
+      portPoint(
+        c.to,
+        'input'
+      );
+
+    if(!a||!b)
+      continue;
+
+    const active=
+      selectedNodeId===c.from||
+      selectedNodeId===c.to;
+
+    const p=
+      svgEl(
+        'path',
+        {
+          d:curve(a,b)
+        }
+      );
+
+    p.classList.add(
+      'connection'
+    );
+
+    if(active){
+
+      p.classList.add(
+        'active'
+      );
+
+    }
+
+    connectionLayer.appendChild(p);
+
+    /*
+      선택/확장 상태에서는
+      연결선 끝의 장식용 힌트 원을 숨김.
+      실제 포트 원은 노드에 남아 있음.
+    */
+
+    if(!active){
+
+      for(
+        const q of [a,b]
+      ){
+
+        const d=
+          svgEl(
+            'circle',
+            {
+              cx:q.x,
+              cy:q.y,
+              r:2.8
+            }
+          );
+
+        d.classList.add(
+          'connection-dot'
+        );
+
+        connectionLayer.appendChild(d);
+
+      }
+
+    }
+
+  }
+
+}
+
+const resizeObserver=
+  new ResizeObserver(
+    ()=>{
+      renderConnections();
+    }
+  );
+
+function setNodeExpanded(
+  el,
+  expanded,
+  immediate=false
+){
+
+  const body=
+    el?.querySelector(
+      '.node-body'
+    );
+
+  const head=
+    el?.querySelector(
+      '.node-head'
+    );
+
+  const toggle=
+    el?.querySelector(
+      '.node-toggle'
+    );
+
+  if(!body||!head)
+    return;
+
+  el.classList.toggle(
+    'expanded',
+    expanded
+  );
+
+  el.classList.toggle(
+    'selected',
+    expanded &&
+    el.dataset.id===
+    selectedNodeId
+  );
+
+  toggle?.setAttribute(
+    'aria-expanded',
+    String(expanded)
+  );
+
+  toggle?.setAttribute(
+    'aria-label',
+    expanded
+      ?'상세 내용 닫기'
+      :'상세 내용 열기'
+  );
+
+  const collapsedHeight=
+    head.offsetHeight+
+    20;
+
+  if(immediate){
+
+    body.style.transition='none';
+    el.style.transition='none';
+
+    if(expanded){
+
+      const target=
+        body.scrollHeight;
+
+      body.style.height=
+        target+'px';
+
+      el.style.height=
+        (
+          collapsedHeight+
+          target
+        )+'px';
+
+    }else{
+
+      body.style.height=
+        '0px';
+
+      el.style.height=
+        collapsedHeight+'px';
+
+    }
+
+    requestAnimationFrame(()=>{
+
+      el.style.transition='';
+      body.style.transition='';
+
+    });
+
+    return;
+
+  }
+
+  const currentHeight=
+    el.getBoundingClientRect()
+      .height;
+
+  const targetBodyHeight=
+    expanded
+      ?body.scrollHeight
+      :0;
+
+  const targetHeight=
+    expanded
+      ?collapsedHeight+
+       targetBodyHeight
+      :collapsedHeight;
+
+  el.style.height=
+    currentHeight+'px';
+
+  body.style.height=
+    expanded
+      ?'0px'
+      :body.scrollHeight+'px';
+
+  void el.offsetHeight;
+
+  requestAnimationFrame(()=>{
+
+    el.style.height=
+      targetHeight+'px';
+
+    body.style.height=
+      targetBodyHeight+'px';
+
+    trackExpansion();
+
+  });
+
+}
+
+function trackExpansion(){
+
+  if(expansionAnimation){
+
+    cancelAnimationFrame(
+      expansionAnimation
+    );
+
+  }
+
+  const started=
+    performance.now();
+
+  const duration=340;
+
+  const tick=now=>{
+
+    renderConnections();
+
+    if(
+      now-started<
+      duration
+    ){
+
+      expansionAnimation=
+        requestAnimationFrame(
+          tick
+        );
+
+    }else{
+
+      expansionAnimation=null;
+
+      renderConnections();
+
+    }
+
+  };
+
+  expansionAnimation=
+    requestAnimationFrame(
+      tick
+    );
+
+}
+
+function updateNodeExpansion(
+  immediate=false
+){
+
+  document
+    .querySelectorAll('.node')
+    .forEach(
+      el=>
+        setNodeExpanded(
+          el,
+          el.dataset.id===
+          selectedNodeId,
+          immediate
+        )
+    );
+
+}
+
+function toggleNodeExpanded(id){
+
+  const el=
+    getNodeElement(id);
+
+  if(!el)
+    return;
+
+  const willExpand=
+    !el.classList.contains(
+      'expanded'
+    );
+
+  selectedNodeId=
+    willExpand
+      ?id
+      :null;
+
+  updateNodeExpansion();
+
+  renderConnections();
+
+  updateComposerState();
+
+}
+
+function selectNode(id){
+
+  selectedNodeId=id;
+
+  updateNodeExpansion();
+
+  renderConnections();
+
+  updateComposerState();
+
+}
+
+function setNodePosition(
+  n,
+  x,
+  y
+){
+
+  n.x=x;
+  n.y=y;
+
+  const el=
+    getNodeElement(n.id);
+
+  if(el){
+
+    el.style.left=
+      x+'px';
+
+    el.style.top=
+      y+'px';
+
+  }
+
+  renderConnections();
+
+}
+
+function findNewNodePosition(){
+
+  const base=
+    180+
+    nodes.length*
+    165;
+
+  const spots=[
+
+    {
+      x:780,
+      y:base
+    },
+
+    {
+      x:570,
+      y:base
+    },
+
+    {
+      x:990,
+      y:base
+    },
+
+    {
+      x:780,
+      y:base-165
+    },
+
+    {
+      x:570,
+      y:base-165
+    },
+
+    {
+      x:990,
+      y:base-165
+    }
+
+  ];
+
+  return spots.find(
+    p=>
+      !nodes.some(
+        n=>
+          Math.abs(n.x-p.x)<200&&
+          Math.abs(n.y-p.y)<130
+      )
+  )
+  ||
+  {
+    x:780,
+    y:base+170
+  };
+
+}
+
+function addNode(type){
+
+  if(!nodeTypes[type])
+    return;
+
+  const p=
+    findNewNodePosition();
+
+  const node={
+
+    id:
+      'n'+
+      Date.now()+
+      Math.random()
+        .toString(36)
+        .slice(2,6),
+
+    type,
+
+    x:p.x,
+    y:p.y
+
+  };
+
+  nodes.push(node);
+
+  renderNodes();
+
+  selectedNodeId=
+    node.id;
+
+  closeAddMenu();
+
+  requestAnimationFrame(()=>{
+
+    updateNodeExpansion();
+
+    renderConnections();
+
+    updateComposerState();
+
+  });
+
+}
+
+function renderMenu(){
+
+  addMenu.innerHTML='';
+
+  for(
+    const[k,t]
+    of Object.entries(nodeTypes)
+  ){
+
+    const b=
+      document.createElement(
+        'button'
+      );
+
+    b.type='button';
+
+    b.className=
+      'menu-item';
+
+    b.dataset.type=k;
+
+    b.innerHTML=`
+
+      <span class="menu-icon">
+        ${iconSvg[k]||''}
+      </span>
+
+      <span class="menu-name">
+        ${t.name}
+      </span>
+
+      <span class="menu-desc">
+        ${t.tag}
+      </span>
+
+    `;
+
+    b.addEventListener(
+      'click',
+      e=>{
+
+        e.preventDefault();
+        e.stopPropagation();
+
+        addNode(k);
+
+      }
+    );
+
+    addMenu.appendChild(b);
+
+  }
+
+}
+
+function openAddMenu(){
+
+  addMenu.classList.add(
+    'open'
+  );
+
+  addButton.classList.add(
+    'open'
+  );
+
+  addButton.setAttribute(
+    'aria-expanded',
+    'true'
+  );
+
+}
+
+function closeAddMenu(){
+
+  addMenu.classList.remove(
+    'open'
+  );
+
+  addButton.classList.remove(
+    'open'
+  );
+
+  addButton.setAttribute(
+    'aria-expanded',
+    'false'
+  );
+
+}
+
+function toggleAddMenu(){
+
+  addMenu.classList.contains(
+    'open'
+  )
+    ?closeAddMenu()
+    :openAddMenu();
+
+}
+
+renderMenu();
+
+addButton.addEventListener(
+  'click',
+  e=>{
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    toggleAddMenu();
+
+  }
+);
+
+nodesLayer.addEventListener(
+  'pointerdown',
+  e=>{
+
+    const toggle=
+      e.target.closest(
+        '.node-toggle'
+      );
+
+    if(toggle){
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const node=
+        toggle.closest(
+          '.node'
+        );
+
+      if(node){
+
+        toggleNodeExpanded(
+          node.dataset.id
+        );
+
+      }
+
+      return;
+
+    }
+
+  }
+);
+
+function setTheme(theme){
+
+  document.documentElement
+    .classList
+    .toggle(
+      'dark',
+      theme==='dark'
+    );
+
+  localStorage.setItem(
+    'visual-ai-theme',
+    theme
+  );
+
+}
+
+setTheme(
+  localStorage.getItem(
+    'visual-ai-theme'
+  )||'light'
+);
+
+themeButton.addEventListener(
+  'click',
+  e=>{
+
+    e.stopPropagation();
+
+    setTheme(
+      document.documentElement
+        .classList
+        .contains('dark')
+        ?'light'
+        :'dark'
+    );
+
+  }
+);
+
+canvas.addEventListener(
+  'pointerdown',
+  e=>{
+
+    pointers.set(
+      e.pointerId,
+      {
+        x:e.clientX,
+        y:e.clientY
+      }
+    );
+
+    if(pointers.size>=2){
+
+      if(nodeDrag){
+
+        getNodeElement(
+          nodeDrag.node.id
+        )?.classList.remove(
+          'dragging'
+        );
+
+      }
+
+      nodeDrag=null;
+      canvasPan=null;
+      connectionDrag=null;
+
+      const ps=[
+        ...pointers.values()
+      ];
+
+      const c=
+        midpoint(
+          ps[0],
+          ps[1]
+        );
+
+      const anchor=
+        screenToWorld(
+          c.x,
+          c.y
+        );
+
+      pinch={
+
+        d:
+          Math.max(
+            1,
+            distance(
+              ps[0],
+              ps[1]
+            )
+          ),
+
+        s:scale,
+
+        x:anchor.x,
+        y:anchor.y
+
+      };
+
+      dragConnectionLayer.innerHTML='';
+
+      return;
+
+    }
+
+    const port=
+      e.target.closest(
+        '.port-hit'
+      );
+
+    if(port){
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const nodeEl=
+        port.closest(
+          '.node'
+        );
+
+      const n=
+        nodeEl&&
+        getNode(
+          nodeEl.dataset.id
+        );
+
+      if(!n)
+        return;
+
+      if(
+        port.dataset.port===
+        'output'
+      ){
+
+        connectionDrag={
+
+          pointerId:e.pointerId,
+
+          from:n.id,
+
+          x:e.clientX,
+          y:e.clientY
+
+        };
+
+        try{
+
+          canvas.setPointerCapture(
+            e.pointerId
+          );
+
+        }catch{}
+
+        renderDragConnection();
+
+      }
+
+      return;
+
+    }
+
+    const nodeEl=
+      e.target.closest(
+        '.node'
+      );
+
+    if(nodeEl){
+
+      e.preventDefault();
+      e.stopPropagation();
+
+      const n=
+        getNode(
+          nodeEl.dataset.id
+        );
+
+      if(!n)
+        return;
+
+      selectNode(n.id);
+
+      nodeDrag={
+
+        pointerId:e.pointerId,
+
+        node:n,
+
+        startX:e.clientX,
+        startY:e.clientY,
+
+        nodeX:n.x,
+        nodeY:n.y,
+
+        moved:false
+
+      };
+
+      try{
+
+        canvas.setPointerCapture(
+          e.pointerId
+        );
+
+      }catch{}
+
+      return;
+
+    }
+
+    selectNode(null);
+
+    canvasPan={
+
+      pointerId:e.pointerId,
+
+      startX:e.clientX,
+      startY:e.clientY,
+
+      startOffsetX:offsetX,
+      startOffsetY:offsetY,
+
+      moved:false
+
+    };
+
+    canvas.classList.add(
+      'dragging'
+    );
+
+    try{
+
+      canvas.setPointerCapture(
+        e.pointerId
+      );
+
+    }catch{}
+
+  }
+);
+
+canvas.addEventListener(
+  'pointermove',
+  e=>{
+
+    if(
+      !pointers.has(
+        e.pointerId
+      )
+    )
+      return;
+
+    pointers.set(
+      e.pointerId,
+      {
+        x:e.clientX,
+        y:e.clientY
+      }
+    );
+
+    if(
+      pointers.size>=2
+    ){
+
+      nodeDrag=null;
+      canvasPan=null;
+
+      const ps=[
+        ...pointers.values()
+      ];
+
+      if(!pinch){
+
+        const c=
+          midpoint(
+            ps[0],
+            ps[1]
+          );
+
+        const anchor=
+          screenToWorld(
+            c.x,
+            c.y
+          );
+
+        pinch={
+
+          d:
+            Math.max(
+              1,
+              distance(
+                ps[0],
+                ps[1]
+              )
+            ),
+
+          s:scale,
+
+          x:anchor.x,
+          y:anchor.y
+
+        };
+
+      }
+
+      const d=
+        distance(
+          ps[0],
+          ps[1]
+        );
+
+      scale=
+        clamp(
+          pinch.s*
+          (d/pinch.d),
+          MIN_SCALE,
+          MAX_SCALE
+        );
+
+      const c=
+        midpoint(
+          ps[0],
+          ps[1]
+        );
+
+      offsetX=
+        c.x-
+        pinch.x*
+        scale;
+
+      offsetY=
+        c.y-
+        pinch.y*
+        scale;
+
+      renderTransform();
+      renderConnections();
+
+      return;
+
+    }
+
+    if(
+      connectionDrag?.pointerId===
+      e.pointerId
+    ){
+
+      e.preventDefault();
+
+      connectionDrag.x=
+        e.clientX;
+
+      connectionDrag.y=
+        e.clientY;
+
+      renderDragConnection();
+
+      return;
+
+    }
+
+    if(
+      nodeDrag?.pointerId===
+      e.pointerId
+    ){
+
+      const dx=
+        e.clientX-
+        nodeDrag.startX;
+
+      const dy=
+        e.clientY-
+        nodeDrag.startY;
+
+      if(
+        !nodeDrag.moved &&
+        Math.hypot(dx,dy)>7
+      ){
+
+        nodeDrag.moved=true;
+
+        getNodeElement(
+          nodeDrag.node.id
+        )?.classList.add(
+          'dragging'
+        );
+
+      }
+
+      if(!nodeDrag.moved)
+        return;
+
+      e.preventDefault();
+
+      setNodePosition(
+
+        nodeDrag.node,
+
+        nodeDrag.nodeX+
+          dx/scale,
+
+        nodeDrag.nodeY+
+          dy/scale
+
+      );
+
+      return;
+
+    }
+
+    if(
+      canvasPan?.pointerId===
+      e.pointerId
+    ){
+
+      const dx=
+        e.clientX-
+        canvasPan.startX;
+
+      const dy=
+        e.clientY-
+        canvasPan.startY;
+
+      if(
+        !canvasPan.moved &&
+        Math.hypot(dx,dy)>7
+      ){
+
+        canvasPan.moved=true;
+
+      }
+
+      if(!canvasPan.moved)
+        return;
+
+      e.preventDefault();
+
+      offsetX=
+        canvasPan.startOffsetX+
+        dx;
+
+      offsetY=
+        canvasPan.startOffsetY+
+        dy;
+
+      renderTransform();
+      renderConnections();
+
+    }
+
+  },
+  {
+    passive:false
+  }
+);
+
+
+/*
+  연결 토글
+
+  처음 연결:
+    A → B
+
+  같은 A → B에 다시 연결:
+    A → B 삭제
+
+  다른 대상:
+    기존 연결 유지 + 새 연결 추가
+*/
+function finishConnection(e){
+
+  dragConnectionLayer.innerHTML='';
+
+  if(!connectionDrag)
+    return;
+
+  const source=
+    connectionDrag.from;
+
+  const target=
+    document
+      .elementFromPoint(
+        e.clientX,
+        e.clientY
+      )
+      ?.closest(
+        '.port-hit.input'
+      );
+
+  const targetNode=
+    target?.closest(
+      '.node'
+    );
+
+  const to=
+    targetNode?.dataset.id;
+
+  if(
+    to&&
+    to!==source
+  ){
+
+    const existingIndex=
+      connections.findIndex(
+        c=>
+          c.from===source&&
+          c.to===to
+      );
+
+    if(existingIndex!==-1){
+
+      /*
+        이미 같은 곳에 연결되어 있으면
+        다시 연결하는 동작을 "해제"로 사용.
+      */
+      connections.splice(
+        existingIndex,
+        1
+      );
+
+    }else{
+
+      connections.push({
+
+        from:source,
+        to
+
+      });
+
+    }
+
+  }
+
+  connectionDrag=null;
+
+  renderNodes();
+
+  requestAnimationFrame(
+    renderConnections
+  );
+
+}
+
+function endPointer(e){
+
+  if(
+    connectionDrag?.pointerId===
+    e.pointerId
+  ){
+
+    finishConnection(e);
+
+  }
+
+  pointers.delete(
+    e.pointerId
+  );
+
+  if(
+    pointers.size<2
+  ){
+
+    pinch=null;
+
+  }
+
+  if(
+    pointers.size===0
+  ){
+
+    if(nodeDrag){
+
+      getNodeElement(
+        nodeDrag.node.id
+      )?.classList.remove(
+        'dragging'
+      );
+
+    }
+
+    nodeDrag=null;
+    canvasPan=null;
+    connectionDrag=null;
+
+    canvas.classList.remove(
+      'dragging'
+    );
+
+    dragConnectionLayer.innerHTML='';
+
+  }
+
+}
+
+canvas.addEventListener(
+  'pointerup',
+  endPointer
+);
+
+canvas.addEventListener(
+  'pointercancel',
+  endPointer
+);
+
+function renderDragConnection(){
+
+  dragConnectionLayer.innerHTML='';
+
+  if(!connectionDrag)
+    return;
+
+  const a=
+    portPoint(
+      connectionDrag.from,
+      'output'
+    );
+
+  if(!a)
+    return;
+
+  const b=
+    screenToWorld(
+      connectionDrag.x,
+      connectionDrag.y
+    );
+
+  const p=
+    svgEl(
+      'path',
+      {
+        d:curve(a,b),
+        'marker-end':
+          'url(#arrow)'
+      }
+    );
+
+  p.classList.add(
+    'drag-connection'
+  );
+
+  dragConnectionLayer.appendChild(p);
+
+  dragConnectionLayer.appendChild(
+
+    svgEl(
+      'circle',
+      {
+        cx:a.x,
+        cy:a.y,
+        r:4,
+        class:'drag-source-dot'
+      }
+    )
+
+  );
+
+}
+
+canvas.addEventListener(
+  'wheel',
+  e=>{
+
+    e.preventDefault();
+
+    const before=
+      screenToWorld(
+        e.clientX,
+        e.clientY
+      );
+
+    const factor=
+      Math.exp(
+        -e.deltaY*.0015
+      );
+
+    scale=
+      clamp(
+        scale*factor,
+        MIN_SCALE,
+        MAX_SCALE
+      );
+
+    offsetX=
+      e.clientX-
+      before.x*
+      scale;
+
+    offsetY=
+      e.clientY-
+      before.y*
+      scale;
+
+    renderTransform();
+    renderConnections();
+
+  },
+  {
+    passive:false
+  }
+);
+
+function updateComposerState(){
+
+  const hasText=
+    chatInput.value
+      .trim()
+      .length>0;
+
+  const active=
+    hasText||
+    selectedNodeId!==null;
+
+  chatForm.classList.toggle(
+    'has-text',
+    hasText
+  );
+
+  chatForm.classList.toggle(
+    'is-active',
+    active
+  );
+
+  chatInput.style.height=
+    'auto';
+
+  chatInput.style.height=
+    Math.min(
+      chatInput.scrollHeight,
+      115
+    )+'px';
+
+}
+
+chatInput.addEventListener(
+  'input',
+  updateComposerState
+);
+
+chatInput.addEventListener(
+  'focus',
+  updateComposerState
+);
+
+chatInput.addEventListener(
+  'keydown',
+  e=>{
+
+    if(
+      e.key==='Enter'&&
+      !e.shiftKey
+    ){
+
+      e.preventDefault();
+
+      chatForm.requestSubmit();
+
+    }
+
+  }
+);
+
+chatForm.addEventListener(
+  'submit',
+  e=>{
+
+    e.preventDefault();
+
+    if(
+      !chatInput.value.trim()
+    )
+      return;
+
+    chatInput.value='';
+
+    updateComposerState();
+
+    chatInput.focus();
+
+  }
+);
+
+document
+  .getElementById(
+    'attachButton'
+  )
+  .addEventListener(
+    'click',
+    e=>{
+      e.stopPropagation();
+    }
+  );
+
+document.addEventListener(
+  'pointerdown',
+  e=>{
+
+    if(
+      !addMenu.contains(e.target)&&
+      !addButton.contains(e.target)
+    ){
+
+      closeAddMenu();
+
+    }
+
+  }
+);
+
+document
+  .querySelector(
+    '.chat-composer-wrap'
+  )
+  .addEventListener(
+    'pointerdown',
+    e=>{
+      e.stopPropagation();
+    }
+  );
+
+document
+  .querySelector(
+    '.top-controls'
+  )
+  .addEventListener(
+    'pointerdown',
+    e=>{
+      e.stopPropagation();
+    }
+  );
+
+addMenu.addEventListener(
+  'pointerdown',
+  e=>{
+    e.stopPropagation();
+  }
+);
+
+resizeObserver.observe(
+  nodesLayer
+);
+
+function centerInitial(){
+
+  const r=
+    canvas.getBoundingClientRect();
+
+  const n=
+    nodes[0];
+
+  const w=
+    window.innerWidth<=600
+      ?178
+      :190;
+
+  offsetX=
+    r.width/2-
+    (
+      n.x+
+      w/2
+    )*
+    scale;
+
+  offsetY=
+    Math.max(
+      90,
+      r.height*.16
+    )-
+    n.y*
+    scale;
+
+}
+
+function render(){
+
+  renderTransform();
+
+  renderNodes();
+
+  renderConnections();
+
+}
+
+centerInitial();
+
+render();
+
+updateComposerState();
+
+</script>
+
+</body>
+</html>
 html.dark {
   color-scheme: dark;
 
