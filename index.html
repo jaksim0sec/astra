@@ -1414,6 +1414,512 @@ listen(nodesLayer,'click',e=>{
   });
   window.visualCanvas=canvas;
 })();
+
+function playTutorial(){
+  if(localStorage.getItem('vc-tutorial-done')==='1')return;
+
+  const steps=[
+    {
+      target:'.vc-add-button',
+      title:'노드를 추가하세요',
+      desc:'원하는 작업을 캔버스에 추가해 워크플로우를 만들 수 있어요.',
+      visual:`
+        <div class="vt-flow">
+          <div class="vt-mini-node vt-green">조사</div>
+          <div class="vt-flow-arrow">→</div>
+          <div class="vt-mini-node vt-blue">정리</div>
+          <div class="vt-flow-arrow">→</div>
+          <div class="vt-mini-node vt-red">작성</div>
+        </div>
+      `
+    },
+
+    {
+      target:'.vc-node',
+      title:'작업을 연결하세요',
+      desc:'노드의 출력과 다음 노드의 입력을 연결하면 데이터가 전달돼요.',
+      visual:`
+        <div class="vt-connect-demo">
+          <div class="vt-port vt-blue"></div>
+          <div class="vt-connect-line"></div>
+          <div class="vt-port vt-purple"></div>
+        </div>
+      `
+    },
+
+    {
+      target:'.vc-node-body',
+      title:'작업 내용을 설정하세요',
+      desc:'노드를 펼치면 주제, 기간, 조건 같은 값을 직접 설정할 수 있어요.',
+      visual:`
+        <div class="vt-demo-node">
+          <div class="vt-demo-head"></div>
+          <div class="vt-demo-input"></div>
+          <div class="vt-demo-input"></div>
+          <div class="vt-demo-input vt-small"></div>
+        </div>
+      `
+    },
+
+    {
+      target:'.vc-chat-input',
+      title:'자연어로 요청하세요',
+      desc:'원하는 작업을 평소처럼 입력하면 AI가 워크플로우를 구성하는 데 활용할 수 있어요.',
+      visual:`
+        <div class="vt-chat-demo">
+          <div class="vt-bubble vt-user">
+            AI 시장 조사하고 보고서 만들어줘
+          </div>
+          <div class="vt-down">↓</div>
+          <div class="vt-bubble vt-ai">
+            조사 → 정리 → 작성
+          </div>
+        </div>
+      `
+    }
+  ];
+
+  const style=document.createElement('style');
+
+  style.textContent=`
+    .vc-tutorial{
+      position:fixed;
+      inset:0;
+      z-index:99999;
+      pointer-events:none;
+      opacity:0;
+      transition:opacity .2s ease;
+    }
+
+    .vc-tutorial.open{
+      opacity:1;
+      pointer-events:auto;
+    }
+
+    .vc-tutorial-shade{
+      position:fixed;
+      inset:0;
+      background:rgba(0,0,0,.34);
+      backdrop-filter:blur(1.5px);
+      -webkit-backdrop-filter:blur(1.5px);
+    }
+
+    .vc-tutorial-focus{
+      position:fixed;
+      z-index:100000;
+      pointer-events:none;
+      border-radius:14px;
+      box-shadow:
+        0 0 0 9999px rgba(0,0,0,.34),
+        0 0 0 3px rgba(255,255,255,.96),
+        0 0 0 6px var(--accent),
+        0 14px 40px rgba(0,0,0,.18);
+      transition:
+        left .16s ease,
+        top .16s ease,
+        width .16s ease,
+        height .16s ease;
+    }
+
+    .vc-tutorial-card{
+      position:fixed;
+      left:0;
+      top:0;
+      z-index:100001;
+      width:310px;
+      padding:17px;
+      border:1px solid rgba(255,255,255,.18);
+      border-radius:18px;
+      background:var(--glass2);
+      box-shadow:
+        0 20px 60px rgba(0,0,0,.2),
+        0 2px 8px rgba(0,0,0,.06);
+      backdrop-filter:blur(24px);
+      -webkit-backdrop-filter:blur(24px);
+      will-change:left,top;
+      transition:
+        left .16s ease,
+        top .16s ease;
+    }
+
+    .vc-tutorial-title{
+      font-size:14px;
+      font-weight:750;
+      letter-spacing:-.025em;
+    }
+
+    .vc-tutorial-desc{
+      margin-top:6px;
+      color:var(--sub);
+      font-size:11px;
+      line-height:1.55;
+      letter-spacing:-.015em;
+    }
+
+    .vc-tutorial-visual{
+      min-height:58px;
+      margin-top:13px;
+      padding:10px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-radius:11px;
+      background:var(--soft);
+      overflow:hidden;
+    }
+
+    .vc-tutorial-bottom{
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      margin-top:14px;
+    }
+
+    .vc-tutorial-page{
+      color:var(--faint);
+      font-size:9px;
+      font-variant-numeric:tabular-nums;
+    }
+
+    .vc-tutorial-buttons{
+      display:flex;
+      gap:5px;
+    }
+
+    .vc-tutorial-buttons button{
+      height:30px;
+      padding:0 10px;
+      border:0;
+      border-radius:9px;
+      font-size:10px;
+      cursor:pointer;
+    }
+
+    .vc-tutorial-skip{
+      color:var(--sub);
+      background:transparent;
+    }
+
+    .vc-tutorial-skip:hover{
+      background:var(--soft);
+    }
+
+    .vc-tutorial-next{
+      color:#fff;
+      background:var(--accent);
+      box-shadow:
+        0 4px 12px
+        color-mix(in srgb,var(--accent) 25%,transparent);
+    }
+
+    .vt-flow{
+      width:100%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:7px;
+    }
+
+    .vt-mini-node{
+      padding:6px 8px;
+      border:1px solid var(--border);
+      border-radius:8px;
+      background:var(--node);
+      font-size:9px;
+      font-weight:650;
+    }
+
+    .vt-flow-arrow{
+      color:var(--sub);
+      font-size:11px;
+    }
+
+    .vt-green{color:#10B981}
+    .vt-blue{color:#3B82F6}
+    .vt-purple{color:#8B5CF6}
+    .vt-red{color:#EF4444}
+
+    .vt-connect-demo{
+      display:flex;
+      align-items:center;
+      width:100%;
+      justify-content:center;
+    }
+
+    .vt-port{
+      width:10px;
+      height:10px;
+      flex:none;
+      border-radius:50%;
+      background:currentColor;
+      box-shadow:
+        0 0 0 4px
+        color-mix(in srgb,currentColor 15%,transparent);
+    }
+
+    .vt-connect-line{
+      width:80px;
+      height:2px;
+      margin:0 8px;
+      border-radius:999px;
+      background:var(--line);
+    }
+
+    .vt-demo-node{
+      width:135px;
+      padding:9px;
+      border:1px solid var(--border);
+      border-radius:10px;
+      background:var(--node);
+      box-shadow:var(--shadow);
+    }
+
+    .vt-demo-head{
+      width:45%;
+      height:7px;
+      margin-bottom:8px;
+      border-radius:999px;
+      background:var(--soft);
+    }
+
+    .vt-demo-input{
+      height:14px;
+      margin-top:5px;
+      border:1px solid var(--border);
+      border-radius:5px;
+      background:var(--canvas);
+    }
+
+    .vt-demo-input.vt-small{
+      width:65%;
+    }
+
+    .vt-chat-demo{
+      width:100%;
+      display:flex;
+      flex-direction:column;
+      gap:5px;
+    }
+
+    .vt-bubble{
+      max-width:88%;
+      padding:6px 9px;
+      border-radius:9px;
+      font-size:9px;
+      line-height:1.4;
+    }
+
+    .vt-user{
+      align-self:flex-end;
+      background:var(--accent-soft);
+    }
+
+    .vt-ai{
+      align-self:flex-start;
+      border:1px solid var(--border);
+      background:var(--node);
+    }
+
+    .vt-down{
+      align-self:center;
+      color:var(--faint);
+      font-size:10px;
+    }
+
+    @media(max-width:600px){
+      .vc-tutorial-card{
+        width:calc(100vw - 28px);
+      }
+    }
+  `;
+
+  const layer=document.createElement('div');
+  layer.className='vc-tutorial';
+
+  layer.innerHTML=`
+    <div class="vc-tutorial-shade"></div>
+
+    <div class="vc-tutorial-focus"></div>
+
+    <div class="vc-tutorial-card">
+      <div class="vc-tutorial-title"></div>
+      <div class="vc-tutorial-desc"></div>
+      <div class="vc-tutorial-visual"></div>
+
+      <div class="vc-tutorial-bottom">
+        <span class="vc-tutorial-page"></span>
+
+        <div class="vc-tutorial-buttons">
+          <button type="button" class="vc-tutorial-skip">
+            건너뛰기
+          </button>
+
+          <button type="button" class="vc-tutorial-next">
+            다음
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  document.head.appendChild(style);
+  document.body.appendChild(layer);
+
+  const focus=layer.querySelector('.vc-tutorial-focus');
+  const card=layer.querySelector('.vc-tutorial-card');
+  const title=layer.querySelector('.vc-tutorial-title');
+  const desc=layer.querySelector('.vc-tutorial-desc');
+  const visual=layer.querySelector('.vc-tutorial-visual');
+  const page=layer.querySelector('.vc-tutorial-page');
+  const next=layer.querySelector('.vc-tutorial-next');
+  const skip=layer.querySelector('.vc-tutorial-skip');
+
+  let index=0;
+  let running=true;
+  let rafId=0;
+
+  function finish(){
+    if(!running)return;
+
+    running=false;
+
+    if(rafId){
+      cancelAnimationFrame(rafId);
+      rafId=0;
+    }
+
+    localStorage.setItem('vc-tutorial-done','1');
+
+    layer.classList.remove('open');
+
+    setTimeout(()=>{
+      layer.remove();
+      style.remove();
+    },220);
+  }
+
+  function getTarget(){
+    return document.querySelector(steps[index].target);
+  }
+
+  function positionTutorial(){
+    if(!running)return;
+
+    const target=getTarget();
+
+    if(!target){
+      finish();
+      return;
+    }
+
+    const r=target.getBoundingClientRect();
+    const pad=7;
+
+    focus.style.left=`${r.left-pad}px`;
+    focus.style.top=`${r.top-pad}px`;
+    focus.style.width=`${r.width+pad*2}px`;
+    focus.style.height=`${r.height+pad*2}px`;
+
+    const cardWidth=card.offsetWidth;
+    const cardHeight=card.offsetHeight;
+    const gap=18;
+
+    let x=r.left+(r.width-cardWidth)/2;
+    let y=r.bottom+gap;
+
+    if(y+cardHeight>window.innerHeight-14){
+      y=r.top-cardHeight-gap;
+    }
+
+    x=clamp(
+      x,
+      14,
+      window.innerWidth-cardWidth-14
+    );
+
+    y=clamp(
+      y,
+      14,
+      window.innerHeight-cardHeight-14
+    );
+
+    card.style.left=`${x}px`;
+    card.style.top=`${y}px`;
+
+    rafId=requestAnimationFrame(positionTutorial);
+  }
+
+  function renderStep(){
+    const step=steps[index];
+
+    const target=document.querySelector(step.target);
+
+    if(!target){
+      if(index<steps.length-1){
+        index++;
+        renderStep();
+      }else{
+        finish();
+      }
+
+      return;
+    }
+
+    title.textContent=step.title;
+    desc.textContent=step.desc;
+    visual.innerHTML=step.visual;
+
+    page.textContent=
+      `${index+1} / ${steps.length}`;
+
+    next.textContent=
+      index===steps.length-1
+        ?'시작하기'
+        :'다음';
+
+    if(rafId){
+      cancelAnimationFrame(rafId);
+      rafId=0;
+    }
+
+    requestAnimationFrame(()=>{
+      positionTutorial();
+    });
+  }
+
+  next.addEventListener('click',e=>{
+    e.preventDefault();
+    e.stopPropagation();
+
+    if(index===steps.length-1){
+      finish();
+      return;
+    }
+
+    index++;
+    renderStep();
+  });
+
+  skip.addEventListener('click',e=>{
+    e.preventDefault();
+    e.stopPropagation();
+    finish();
+  });
+
+  layer.addEventListener('click',e=>{
+    e.stopPropagation();
+  });
+
+  window.addEventListener('resize',positionTutorial);
+
+  layer.classList.add('open');
+
+  requestAnimationFrame(()=>{
+    renderStep();
+  });
+}
+
+setTimeout(playTutorial,500);
 </script>
 </body>
 </html>
