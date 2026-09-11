@@ -131,17 +131,16 @@
     />
   </svg>
 `,
-
 createFile:`
   <svg viewBox="0 0 20 20" fill="none">
     <path
-      d="M10 3.5V13"
+      d="M10 13V3.5"
       stroke="currentColor"
       stroke-width="1.65"
       stroke-linecap="round"
     />
     <path
-      d="M6.8 9.8L10 13L13.2 9.8"
+      d="M6.8 6.7L10 3.5L13.2 6.7"
       stroke="currentColor"
       stroke-width="1.65"
       stroke-linecap="round"
@@ -154,7 +153,7 @@ createFile:`
       stroke-linecap="round"
     />
   </svg>
-`,
+`
 };
 
   const deleteIcon=`<svg viewBox="0 0 20 20" fill="none"><path d="M5.5 6.5h9M8 6.5V5h4v1.5M7 8.5v6.5h6V8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 9.5v3.5M11 9.5v3.5" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/></svg>`;
@@ -1777,16 +1776,22 @@ function playTutorial(){
   let index=0;
   let running=true;
   let rafId=0;
+  let lastTarget=null;
+
+  function stopPositionLoop(){
+    if(!rafId)return;
+
+    cancelAnimationFrame(rafId);
+    rafId=0;
+  }
 
   function finish(){
     if(!running)return;
 
     running=false;
+    stopPositionLoop();
 
-    if(rafId){
-      cancelAnimationFrame(rafId);
-      rafId=0;
-    }
+    window.removeEventListener('resize',handleResize);
 
     localStorage.setItem('vc-tutorial-done','1');
 
@@ -1799,21 +1804,25 @@ function playTutorial(){
   }
 
   function getTarget(){
-    return document.querySelector(steps[index].target);
+    const step=steps[index];
+    return step
+      ? document.querySelector(step.target)
+      : null;
   }
 
-  function positionTutorial(){
-    if(!running)return;
+  function updatePosition(){
+    if(!running)return false;
 
     const target=getTarget();
 
     if(!target){
-      finish();
-      return;
+      return false;
     }
 
     const r=target.getBoundingClientRect();
+
     const pad=7;
+    const gap=18;
 
     focus.style.left=`${r.left-pad}px`;
     focus.style.top=`${r.top-pad}px`;
@@ -1822,35 +1831,80 @@ function playTutorial(){
 
     const cardWidth=card.offsetWidth;
     const cardHeight=card.offsetHeight;
-    const gap=18;
+
+    if(!cardWidth || !cardHeight){
+      return true;
+    }
 
     let x=r.left+(r.width-cardWidth)/2;
     let y=r.bottom+gap;
 
-    if(y+cardHeight>window.innerHeight-14){
+    if(
+      y+cardHeight >
+      window.innerHeight-14
+    ){
       y=r.top-cardHeight-gap;
     }
 
-    x=clamp(
-      x,
+    const maxX=Math.max(
       14,
       window.innerWidth-cardWidth-14
     );
 
-    y=clamp(
-      y,
+    const maxY=Math.max(
       14,
       window.innerHeight-cardHeight-14
+    );
+
+    x=Math.min(
+      Math.max(x,14),
+      maxX
+    );
+
+    y=Math.min(
+      Math.max(y,14),
+      maxY
     );
 
     card.style.left=`${x}px`;
     card.style.top=`${y}px`;
 
-    rafId=requestAnimationFrame(positionTutorial);
+    return true;
+  }
+
+  function positionLoop(){
+    if(!running)return;
+
+    const exists=updatePosition();
+
+    if(!exists){
+      finish();
+      return;
+    }
+
+    rafId=requestAnimationFrame(positionLoop);
+  }
+
+  function restartPositionLoop(){
+    stopPositionLoop();
+
+    requestAnimationFrame(()=>{
+      if(!running)return;
+
+      updatePosition();
+      positionLoop();
+    });
   }
 
   function renderStep(){
+    if(!running)return;
+
     const step=steps[index];
+
+    if(!step){
+      finish();
+      return;
+    }
 
     const target=document.querySelector(step.target);
 
@@ -1874,22 +1928,25 @@ function playTutorial(){
 
     next.textContent=
       index===steps.length-1
-        ?'시작하기'
-        :'다음';
+        ? '시작하기'
+        : '다음';
 
-    if(rafId){
-      cancelAnimationFrame(rafId);
-      rafId=0;
-    }
+    restartPositionLoop();
+  }
+
+  function handleResize(){
+    if(!running)return;
 
     requestAnimationFrame(()=>{
-      positionTutorial();
+      updatePosition();
     });
   }
 
   next.addEventListener('click',e=>{
     e.preventDefault();
     e.stopPropagation();
+
+    if(!running)return;
 
     if(index===steps.length-1){
       finish();
@@ -1903,6 +1960,7 @@ function playTutorial(){
   skip.addEventListener('click',e=>{
     e.preventDefault();
     e.stopPropagation();
+
     finish();
   });
 
@@ -1910,7 +1968,7 @@ function playTutorial(){
     e.stopPropagation();
   });
 
-  window.addEventListener('resize',positionTutorial);
+  window.addEventListener('resize',handleResize);
 
   layer.classList.add('open');
 
