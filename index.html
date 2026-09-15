@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <title>Astra 아스트라</title>
 <link rel="stylesheet" href="/style.css">
+<script src="/functions.js"></script>
 </head>
 <body>
 <div id="app"></div>
@@ -272,59 +273,50 @@ createFile:`
   },
 
   judge: {
-    name: '판단하기',
-    desc: '조건이 참이면 참, 거짓이면 거짓의 통로가 열립니다',
-    tag: 'JUDGE',
-    color: '#8B5CF6',
+  name: '판단하기',
+  desc: '조건이 참이면 참, 거짓이면 거짓의 통로가 열립니다',
+  tag: 'JUDGE',
+  color: '#8B5CF6',
 
-    params: [
-      {
-        id: 'condition',
-        name: '조건',
-        placeholder: '판단 조건',
-        default: '일치도 ≥ 70%'
-      }
-    ],
+  params: [
+    {
+      id: 'condition',
+      name: '조건',
+      placeholder: '판단 조건',
+      default: '일치도 ≥ 70%'
+    }
+  ],
 
-    inputs: [
-      {
-        id: 'truePath',
-        name: '참 입구',
-        type: 'any',
-        required: false,
-        multiple: true,
-        accepts: ['any']
-      },
-      {
-        id: 'falsePath',
-        name: '거짓 입구',
-        type: 'any',
-        required: false,
-        multiple: true,
-        accepts: ['any']
-      }
-    ],
+  inputs: [
+    {
+      id: 'in',
+      name: '자료',
+      type: 'any',
+      required: false,
+      multiple: true,
+      accepts: ['any']
+    }
+  ],
 
-    outputs: [
-      {
-        id: 'true',
-        name: '참 출구',
-        type: 'decision',
-        required: false,
-        multiple: true,
-        accepts: ['decision', 'any']
-      },
-      {
-        id: 'false',
-        name: '거짓 출구',
-        type: 'decision',
-        required: false,
-        multiple: true,
-        accepts: ['decision', 'any']
-      }
-    ]
-  },
-
+  outputs: [
+    {
+      id: 'true',
+      name: '참 출구',
+      type: 'decision',
+      required: false,
+      multiple: true,
+      accepts: ['decision', 'any']
+    },
+    {
+      id: 'false',
+      name: '거짓 출구',
+      type: 'decision',
+      required: false,
+      multiple: true,
+      accepts: ['decision', 'any']
+    }
+  ]
+},
   write: {
     name: '작성하기',
     desc: '주어진 정보를 글 형태로 작성합니다.',
@@ -537,6 +529,7 @@ createFile:`
       destroyed:false,
       addMenuOpen:false,
       validationTimer:null,
+      aiBusy:false,
     };
 
     const registry=new Map(Object.entries(defaultNodeTypes).map(([k,v])=>[k,normalizeNodeType(k,v)]));
@@ -586,6 +579,43 @@ createFile:`
         <input class="vc-file-input" type="file" multiple hidden>
       </div>`;
     target.appendChild(root);
+
+    if(!document.getElementById('vc-ai-wait-style')){
+      const style=document.createElement('style');
+      style.id='vc-ai-wait-style';
+      style.textContent=`
+        .vc-composer.vc-ai-busy{
+          cursor:wait;
+        }
+
+        .vc-composer.vc-ai-busy .vc-chat-input{
+          opacity:.62;
+        }
+
+        .vc-composer.vc-ai-busy .vc-composer-button{
+          cursor:wait;
+        }
+
+        .vc-composer-button:disabled{
+          opacity:.55;
+        }
+
+        .vc-ai-spinner{
+          display:block;
+          width:15px;
+          height:15px;
+          border:1.7px solid currentColor;
+          border-right-color:transparent;
+          border-radius:50%;
+          animation:vc-ai-spin .72s linear infinite;
+        }
+
+        @keyframes vc-ai-spin{
+          to{transform:rotate(360deg)}
+        }
+      `;
+      document.head.appendChild(style);
+    }
 
     const qs=s=>root.querySelector(s);
     const canvas=qs('.vc-canvas');
@@ -1216,8 +1246,79 @@ createFile:`
     function setTheme(theme){document.documentElement.classList.toggle('dark',theme==='dark');try{localStorage.setItem('visual-ai-theme',theme)}catch{};emit('theme',theme)}
     function applySavedTheme(){let theme='light';try{theme=localStorage.getItem('visual-ai-theme')||'light'}catch{}setTheme(theme)}
     function updateComposerState(){
-      const hasText=chatInput.value.trim().length>0,active=hasText||state.selectedNode!==null;
-      chatForm.classList.toggle('vc-has-text',hasText);chatForm.classList.toggle('vc-active',active);chatInput.style.height='auto';chatInput.style.height=Math.min(chatInput.scrollHeight,115)+'px'
+      const hasText=chatInput.value.trim().length>0;
+      const active=hasText||state.selectedNode!==null||state.aiBusy;
+
+      chatForm.classList.toggle('vc-has-text',hasText);
+      chatForm.classList.toggle('vc-active',active);
+      chatForm.classList.toggle('vc-ai-busy',state.aiBusy);
+      chatForm.setAttribute('aria-busy',String(state.aiBusy));
+
+      chatInput.disabled=state.aiBusy;
+      attachButton.disabled=state.aiBusy;
+      qs('.vc-send-button').disabled=state.aiBusy;
+      chatInput.placeholder=state.aiBusy?'작업을 생성하는 중…':'무엇을 만들까요?';
+
+      chatInput.style.height='auto';
+      chatInput.style.height=Math.min(chatInput.scrollHeight,115)+'px';
+    }
+
+    function setAIWaiting(busy){
+      state.aiBusy=!!busy;
+
+      const sendButton=qs('.vc-send-button');
+      const attachButton=qs('.vc-attach-button');
+
+      if(state.aiBusy){
+        sendButton.innerHTML=`<span class="vc-ai-spinner" aria-hidden="true"></span>`;
+        sendButton.setAttribute('aria-label','작업 생성 중');
+        sendButton.setAttribute('title','작업 생성 중');
+        attachButton.setAttribute('aria-disabled','true');
+        chatInput.setAttribute('aria-busy','true');
+      }else{
+        sendButton.innerHTML=sendIcon;
+        sendButton.setAttribute('aria-label','보내기');
+        sendButton.removeAttribute('title');
+        attachButton.removeAttribute('aria-disabled');
+        chatInput.removeAttribute('aria-busy');
+      }
+
+      updateComposerState();
+    }
+
+    function animateWorkflowApplied(){
+      const nodeEls=[...nodesLayer.querySelectorAll('.vc-node')];
+      const connectionEls=[...connectionLayer.querySelectorAll('.vc-connection,.vc-connection-dot')];
+
+      nodeEls.forEach((el,index)=>{
+        el.animate(
+          [
+            {opacity:0,filter:'blur(5px)'},
+            {opacity:1,filter:'blur(0)'}
+          ],
+          {
+            duration:420,
+            delay:index*45,
+            easing:'cubic-bezier(.22,1,.36,1)',
+            fill:'both'
+          }
+        );
+      });
+
+      connectionEls.forEach((el,index)=>{
+        el.animate(
+          [
+            {opacity:0},
+            {opacity:1}
+          ],
+          {
+            duration:320,
+            delay:220+index*35,
+            easing:'ease-out',
+            fill:'both'
+          }
+        );
+      });
     }
 
     listen(addButton,'click',e=>{e.preventDefault();e.stopPropagation();toggleAddMenu()});
@@ -1255,9 +1356,34 @@ createFile:`
       fileInput.value='';
       emit('attach',{files});
     });
-    listen(chatInput,'input',updateComposerState);listen(chatInput,'focus',updateComposerState);
-    listen(chatInput,'keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();chatForm.requestSubmit()}});
-    listen(chatForm,'submit',e=>{e.preventDefault();const text=chatInput.value.trim();if(!text)return;emit('submit',{text,selectedNode:state.selectedNode});chatInput.value='';updateComposerState();chatInput.focus()});
+    listen(chatInput,'input',updateComposerState);
+    listen(chatInput,'focus',updateComposerState);
+
+    listen(chatInput,'keydown',e=>{
+      if(state.aiBusy)return;
+
+      if(e.key==='Enter'&&!e.shiftKey){
+        e.preventDefault();
+        chatForm.requestSubmit();
+      }
+    });
+
+    listen(chatForm,'submit',e=>{
+      e.preventDefault();
+
+      if(state.aiBusy)return;
+
+      const text=chatInput.value.trim();
+      if(!text)return;
+
+      state.aiBusy=true;
+      updateComposerState();
+
+      emit('submit',{
+        text,
+        selectedNode:state.selectedNode
+      });
+    });
 
     listen(nodesLayer,'pointerdown',e=>{
   const action=e.target.closest('[data-action]');
@@ -1356,6 +1482,23 @@ listen(nodesLayer,'click',e=>{
       off,
       selectNode,
       render,
+      __setAIWaiting(busy){
+        state.aiBusy=!!busy;
+        const sendButton=qs('.vc-send-button');
+        const attachButton=qs('.vc-attach-button');
+
+        if(state.aiBusy){
+          sendButton.innerHTML='<span class="vc-ai-spinner" aria-hidden="true"></span>';
+          sendButton.setAttribute('aria-label','작업 생성 중');
+          attachButton.setAttribute('aria-disabled','true');
+        }else{
+          sendButton.innerHTML=sendIcon;
+          sendButton.setAttribute('aria-label','보내기');
+          attachButton.removeAttribute('aria-disabled');
+        }
+
+        updateComposerState();
+      },
       destroy(){
         if(state.destroyed)return;
         state.destroyed=true;
@@ -1404,11 +1547,93 @@ listen(nodesLayer,'click',e=>{
     return api;
   };
 
+  function chatApplyResult(canvas,text){
+    const root=canvas.root;
+    const input=root.querySelector('.vc-chat-input');
+
+    if(input){
+      input.value='';
+    }
+
+    canvas.render();
+
+    requestAnimationFrame(()=>{
+      requestAnimationFrame(()=>{
+        const nodes=root.querySelectorAll('.vc-node');
+        nodes.forEach((el,index)=>{
+          el.animate(
+            [
+              {opacity:0,filter:'blur(5px)'},
+              {opacity:1,filter:'blur(0)'}
+            ],
+            {
+              duration:400,
+              delay:index*45,
+              easing:'cubic-bezier(.22,1,.36,1)',
+              fill:'both'
+            }
+          );
+        });
+      });
+    });
+  }
+
+  function chatApplyError(canvas,error){
+    const root=canvas.root;
+    const input=root.querySelector('.vc-chat-input');
+    const validation=root.querySelector('.vc-validation');
+
+    if(input){
+      input.value=input.value||'';
+      input.focus();
+    }
+
+    if(validation){
+      validation.textContent='';
+
+      const item=document.createElement('div');
+      item.className='vc-validation-item vc-error vc-show';
+      item.textContent=
+        error?.message||
+        '워크플로우 생성에 실패했습니다.';
+
+      validation.appendChild(item);
+
+      setTimeout(()=>{
+        item.classList.remove('vc-show');
+        setTimeout(()=>item.remove(),220);
+      },3000);
+    }
+  }
+
   const app=document.getElementById('app');
   const canvas=createVisualCanvas(app,{
     onConnect(){},
     onValidate(){},
-    onSubmit(){},
+    onSubmit:async({text})=>{
+      try{
+        const workflow=await workflowToCanvas(
+          text,
+          canvas
+        );
+
+        const validation=canvas.validate();
+
+        if(!validation.valid){
+          throw new Error(
+            validation.errors?.[0]?.message||
+            '생성된 워크플로우를 적용할 수 없습니다.'
+          );
+        }
+
+        chatApplyResult(canvas,text);
+      }catch(error){
+        console.error('Workflow ERROR:',error);
+        chatApplyError(canvas,error);
+      }finally{
+        canvas.__setAIWaiting?.(false);
+      }
+    },
     onAttach(){},
   });
   window.visualCanvas=canvas;
