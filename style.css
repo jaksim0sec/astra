@@ -322,17 +322,19 @@ html.dark .vc-world::before{
       var(--node)
     );
 
-  /*
-   * 아이콘 박스 배경과
-   * 선택/확장 상태 아웃라인에서
-   * 동일한 색조를 공유.
-   *
-   * 너무 진하지 않게 아주 옅은 컨셉 컬러.
-   */
-  --node-state-color:
+  /* 아이콘 박스 */
+  --node-icon-color:
     color-mix(
       in srgb,
       var(--node-color) 9%,
+      var(--node)
+    );
+
+  /* 선택/확장 아웃라인 */
+  --node-state-color:
+    color-mix(
+      in srgb,
+      var(--node-color) 12%,
       var(--node)
     );
 
@@ -345,11 +347,6 @@ html.dark .vc-world::before{
   padding:.625rem .75rem;
 
   background:var(--node);
-
-  /*
-   * 기본 상태에서는 컨셉 컬러 사용 안 함.
-   * 중립 border만 사용.
-   */
 
   border:1.5px solid var(--border);
 
@@ -407,12 +404,7 @@ html.dark .vc-node:hover{
    SELECTED / EXPANDED
    ========================================================= */
 
-/*
- * 확장:
- * 컨셉 컬러 아웃라인만 표시.
- * 추가 반투명 링 없음.
- */
-
+/* 확장: 아웃라인만 */
 .vc-node.vc-expanded{
 
   border:
@@ -426,12 +418,7 @@ html.dark .vc-node:hover{
 }
 
 
-/*
- * 선택:
- * 확장과 동일한 아웃라인 색상.
- * 선택 상태에서만 아주 약한 외곽 링 추가.
- */
-
+/* 선택: 아웃라인 + 약한 외곽 링 */
 .vc-node.vc-selected{
 
   border:
@@ -451,11 +438,7 @@ html.dark .vc-node:hover{
 }
 
 
-/*
- * 선택 + 확장:
- * 선택 상태이므로 외곽 링 유지.
- */
-
+/* 선택 + 확장 */
 .vc-node.vc-selected.vc-expanded{
 
   border:
@@ -489,11 +472,6 @@ html.dark .vc-node:hover{
 
 }
 
-
-/*
- * 드래그 중에도 선택 상태의 링만 유지.
- * 확장 상태만으로는 링을 만들지 않음.
- */
 
 .vc-node.vc-dragging.vc-selected{
 
@@ -556,12 +534,7 @@ html.dark .vc-node:hover{
 
   color:var(--node-color);
 
-  /*
-   * 기본 아이콘 박스와
-   * 선택/확장 아웃라인에
-   * 같은 색 사용.
-   */
-  background:var(--node-state-color);
+  background:var(--node-icon-color);
 
   transition:
     background .18s ease,
@@ -583,7 +556,7 @@ html.dark .vc-node:hover{
 
 .vc-node:hover .vc-node-icon{
 
-  background:var(--node-state-color);
+  background:var(--node-icon-color);
 
 }
 
@@ -591,7 +564,7 @@ html.dark .vc-node:hover{
 .vc-node.vc-selected .vc-node-icon,
 .vc-node.vc-expanded .vc-node-icon{
 
-  background:var(--node-state-color);
+  background:var(--node-icon-color);
 
 }
 
@@ -818,10 +791,6 @@ html.dark .vc-node:hover{
 
 .vc-slot-description{
 
-  /*
-   * 별도 z-index 층을 만들지 않음.
-   * 다른 노드 위로 떠서 보이는 문제 방지.
-   */
   position:static;
 
   z-index:auto;
@@ -864,11 +833,6 @@ html.dark .vc-node:hover{
     .1875rem
     .125rem
     .5625rem;
-
-  /*
-   * 컨셉 컬러 제거.
-   * 라벨 + 입력을 하나의 입력 컨트롤처럼 보이게 함.
-   */
 
   border:1px solid var(--line);
 
