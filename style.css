@@ -89,7 +89,10 @@ html.dark{
 html{
 
   width:100%;
+
   height:100%;
+
+  min-height:100svh;
 
   font-size:clamp(
     16px,
@@ -100,11 +103,25 @@ html{
 }
 
 
+@supports(height:100dvh){
+
+  html{
+
+    height:100dvh;
+
+  }
+
+}
+
+
 html,
 body{
 
   width:100%;
+
   height:100%;
+
+  min-height:100svh;
 
   margin:0;
 
@@ -120,6 +137,18 @@ body{
   color:var(--text);
 
   background:var(--bg);
+
+}
+
+
+@supports(height:100dvh){
+
+  html,
+  body{
+
+    height:100dvh;
+
+  }
 
 }
 
@@ -174,9 +203,26 @@ button{
 
   inset:0;
 
+  width:100%;
+
+  height:100%;
+
+  min-height:100svh;
+
   overflow:hidden;
 
   background:var(--canvas);
+
+}
+
+
+@supports(height:100dvh){
+
+  #app{
+
+    height:100dvh;
+
+  }
 
 }
 
@@ -194,6 +240,12 @@ button{
 
   inset:0;
 
+  width:100%;
+
+  height:100%;
+
+  min-height:100svh;
+
   overflow:hidden;
 
   touch-action:none;
@@ -202,6 +254,18 @@ button{
   -webkit-user-select:none;
 
   cursor:grab;
+
+}
+
+
+@supports(height:100dvh){
+
+  .vc-root,
+  .vc-canvas{
+
+    height:100dvh;
+
+  }
 
 }
 
@@ -300,10 +364,6 @@ button{
 
   position:absolute;
 
-  /*
-   * 기존 190px
-   * 16px 기준 = 11.875rem
-   */
   width:11.875rem;
 
   min-height:3.125rem;
@@ -517,8 +577,6 @@ html.dark .vc-node.vc-expanded{
 
 /* =========================================================
    TITLE
-
-   가장 강한 정보.
    ========================================================= */
 
 .vc-node-title{
@@ -701,9 +759,6 @@ html.dark .vc-node.vc-expanded{
 
 /* =========================================================
    NODE BODY
-
-   제목과 body 사이에는 선을 넣지 않는다.
-   여백으로 정보 계층만 나눈다.
    ========================================================= */
 
 .vc-node-body{
@@ -732,8 +787,6 @@ html.dark .vc-node.vc-expanded{
 
 /* =========================================================
    DESCRIPTION
-
-   가장 약한 정보.
    ========================================================= */
 
 .vc-slot-description{
@@ -755,9 +808,6 @@ html.dark .vc-node.vc-expanded{
 
 /* =========================================================
    PARAMETER GROUP
-
-   같은 그룹 내부는 밀착.
-   그룹끼리는 확실하게 분리.
    ========================================================= */
 
 .vc-param-group{
@@ -783,8 +833,6 @@ html.dark .vc-node.vc-expanded{
 
 /* =========================================================
    PARAMETER LABEL
-
-   작지만 input보다 먼저 읽히는 명칭.
    ========================================================= */
 
 .vc-param-label{
@@ -808,8 +856,6 @@ html.dark .vc-node.vc-expanded{
 
 /* =========================================================
    PARAMETER INPUT
-
-   실제 값은 명확하게 강조.
    ========================================================= */
 
 .vc-slot-param{
@@ -905,11 +951,15 @@ html.dark .vc-node.vc-expanded{
 
 /* =========================================================
    START
-   ========================================================= */
+   =========================================================
+
+   JS가 실제 노드 컨셉 컬러를 --node-color로 주도록
+   CSS에서 accent로 강제하지 않는다.
+   */
 
 .vc-start-node{
 
-  --node-color:var(--accent);
+  --node-color:var(--node-color, var(--accent));
 
 }
 
@@ -943,7 +993,12 @@ html.dark .vc-node.vc-expanded{
 
   color:var(--node-color);
 
-  background:var(--accent-soft);
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color) 11%,
+      transparent
+    );
 
   border:
     1px solid
@@ -1087,8 +1142,6 @@ html.dark .vc-node.vc-expanded{
 
 /* =========================================================
    IMAGE FILE NODE
-
-   기존 비율 유지.
    ========================================================= */
 
 .vc-image-file-node{
@@ -1199,13 +1252,11 @@ html.dark .vc-node.vc-expanded{
   display:flex;
 
   align-items:center;
-
   justify-content:center;
 
   gap:.375rem;
 
   margin:0;
-
   padding:0;
 
   border:0;
@@ -1329,7 +1380,6 @@ html.dark .vc-node.vc-expanded{
   display:flex;
 
   align-items:center;
-
   justify-content:center;
 
 }
@@ -1430,7 +1480,9 @@ html.dark .vc-node.vc-expanded{
 
   opacity:0;
 
-  transition:all .5s ease;
+  transition:
+    opacity .22s ease,
+    transform .22s cubic-bezier(.22,.8,.25,1);
 
 }
 
@@ -1457,11 +1509,10 @@ html.dark .vc-node.vc-expanded{
 }
 
 
-.vc-port-label:not(.vc-selected *){
-
-  opacity:0!important;
-
-}
+/*
+ * 잘못된 :not(.vc-selected *) 제거.
+ * 선택 상태 제어는 위의 부모 선택자로만 처리한다.
+ */
 
 
 .vc-start-node .vc-port-hit.vc-input{
@@ -1487,6 +1538,10 @@ html.dark .vc-node.vc-expanded{
 
   stroke-linejoin:round;
 
+  /*
+   * active에서도 같은 두 개의 값으로 유지해서
+   * stroke-dasharray 자체를 브라우저가 보간할 수 있게 한다.
+   */
   stroke-dasharray:2px 5px;
 
   opacity:.2;
@@ -1494,9 +1549,10 @@ html.dark .vc-node.vc-expanded{
   pointer-events:none;
 
   transition:
-    opacity .18s ease,
-    stroke-width .18s ease,
-    stroke .18s ease;
+    opacity .24s ease,
+    stroke-width .24s ease,
+    stroke .24s ease,
+    stroke-dasharray .28s cubic-bezier(.22,.8,.25,1);
 
 }
 
@@ -1505,7 +1561,11 @@ html.dark .vc-node.vc-expanded{
 
   stroke:var(--node-color,var(--accent));
 
-  stroke-dasharray:none;
+  /*
+   * 사실상 실선이 되는 긴 dash.
+   * none으로 바꾸지 않아서 전환이 끊기지 않는다.
+   */
+  stroke-dasharray:9999px 0px;
 
   opacity:.76;
 
@@ -1969,15 +2029,23 @@ html.dark .vc-add-button{
 }
 
 
+/* =========================================================
+   COMPOSER BUTTON
+
+   파일첨부 버튼은 너무 커진 경우를 고려해
+   기본 버튼을 조금 줄이고,
+   전송 버튼은 기존 크기를 별도로 유지한다.
+   ========================================================= */
+
 .vc-composer-button{
 
   appearance:none;
   -webkit-appearance:none;
 
-  width:2.25rem;
-  height:2.25rem;
+  width:1.875rem;
+  height:1.875rem;
 
-  flex:0 0 2.25rem;
+  flex:0 0 1.875rem;
 
   align-self:center;
 
@@ -2002,6 +2070,11 @@ html.dark .vc-add-button{
 
   cursor:pointer;
 
+  transition:
+    background .16s ease,
+    color .16s ease,
+    transform .16s cubic-bezier(.22,.8,.25,1);
+
 }
 
 
@@ -2023,10 +2096,32 @@ html.dark .vc-add-button{
 
 .vc-attach-icon{
 
-  width:1.0625rem;
-  height:1.0625rem;
+  width:.9375rem;
+  height:.9375rem;
 
   display:block;
+
+}
+
+
+/* 혹시 별도 attach class가 존재하는 경우에도
+   버튼 자체가 다시 커지지 않도록 고정 */
+.vc-attach-button{
+
+  width:1.875rem;
+
+  height:1.875rem;
+
+  flex:0 0 1.875rem;
+
+}
+
+
+.vc-attach-button .vc-attach-icon{
+
+  width:.9375rem;
+
+  height:.9375rem;
 
 }
 
@@ -2072,6 +2167,7 @@ html.dark .vc-add-button{
 .vc-send-button{
 
   width:2rem;
+
   height:2rem;
 
   flex:0 0 2rem;
@@ -2122,6 +2218,7 @@ html.dark .vc-add-button{
 .vc-send-button svg{
 
   width:.9375rem;
+
   height:.9375rem;
 
   display:block;
@@ -2285,9 +2382,6 @@ html.dark .vc-send-button{
 
   .vc-node{
 
-    /*
-     * 기존 178px 유지
-     */
     width:11.125rem;
 
     min-height:3rem;
@@ -2406,11 +2500,31 @@ html.dark .vc-send-button{
 
   .vc-composer-button{
 
-    width:2.125rem;
+    width:1.875rem;
 
-    height:2.125rem;
+    height:1.875rem;
 
-    flex-basis:2.125rem;
+    flex-basis:1.875rem;
+
+  }
+
+
+  .vc-attach-button{
+
+    width:1.875rem;
+
+    height:1.875rem;
+
+    flex-basis:1.875rem;
+
+  }
+
+
+  .vc-attach-icon{
+
+    width:.9375rem;
+
+    height:.9375rem;
 
   }
 
