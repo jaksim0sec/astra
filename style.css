@@ -197,6 +197,10 @@ button{
 }
 
 
+/* =========================================================
+   APP
+   ========================================================= */
+
 #app{
 
   position:fixed;
@@ -348,7 +352,14 @@ button{
 /* =========================================================
    NODE BASE
 
-   "Glass panel"보다 "실제 객체"에 가깝게.
+   컨셉 컬러는 HTML/JS가
+   --node-color로 주입한다.
+
+   ex)
+   element.style.setProperty(
+     '--node-color',
+     type.color
+   );
    ========================================================= */
 
 .vc-node{
@@ -359,7 +370,21 @@ button{
     color-mix(
       in srgb,
       var(--node-color) 10%,
-      transparent
+      var(--node)
+    );
+
+  --node-outline:
+    color-mix(
+      in srgb,
+      var(--node-color) 24%,
+      var(--border)
+    );
+
+  --node-outline-strong:
+    color-mix(
+      in srgb,
+      var(--node-color) 54%,
+      var(--border)
     );
 
   position:absolute;
@@ -372,9 +397,14 @@ button{
 
   background:var(--node);
 
+  /*
+   * 선택되지 않은 기본 상태에서도
+   * 노드의 정체성을 컨셉 컬러로 보여준다.
+   */
+
   border:
     1px solid
-    var(--border);
+    var(--node-outline);
 
   border-radius:var(--node-radius);
 
@@ -394,12 +424,35 @@ button{
 }
 
 
+html.dark .vc-node{
+
+  --node-outline:
+    color-mix(
+      in srgb,
+      var(--node-color) 32%,
+      var(--border)
+    );
+
+  --node-outline-strong:
+    color-mix(
+      in srgb,
+      var(--node-color) 62%,
+      var(--border)
+    );
+
+}
+
+
+/* =========================================================
+   NODE HOVER
+   ========================================================= */
+
 .vc-node:hover{
 
   border-color:
     color-mix(
       in srgb,
-      var(--node-color) 22%,
+      var(--node-color) 40%,
       var(--border)
     );
 
@@ -427,11 +480,7 @@ html.dark .vc-node:hover{
 .vc-node.vc-expanded{
 
   border-color:
-    color-mix(
-      in srgb,
-      var(--node-color) 42%,
-      var(--border)
-    );
+    var(--node-outline-strong);
 
   box-shadow:
     0 .8rem 1.8rem rgba(20,28,40,.09),
@@ -477,7 +526,21 @@ html.dark .vc-node.vc-expanded{
     0 0 0 .1rem
       color-mix(
         in srgb,
-        var(--node-color) 12%,
+        var(--node-color) 14%,
+        transparent
+      );
+
+}
+
+
+html.dark .vc-node.vc-dragging{
+
+  box-shadow:
+    0 1.1rem 2.4rem rgba(0,0,0,.38),
+    0 0 0 .1rem
+      color-mix(
+        in srgb,
+        var(--node-color) 18%,
         transparent
       );
 
@@ -504,7 +567,8 @@ html.dark .vc-node.vc-expanded{
 /* =========================================================
    ICON
 
-   컨셉 컬러가 아이콘의 "재질"이 되도록.
+   박스 크기는 기존 1.75rem 유지.
+   실제 SVG만 약간 키워서 아이콘 존재감을 준다.
    ========================================================= */
 
 .vc-node-icon{
@@ -536,19 +600,37 @@ html.dark .vc-node.vc-expanded{
     1px solid
     color-mix(
       in srgb,
-      var(--node-color) 30%,
+      var(--node-color) 31%,
       var(--border)
     );
+
+  transition:
+    background .18s ease,
+    border-color .18s ease,
+    color .18s ease,
+    transform .18s cubic-bezier(.22,.8,.25,1);
 
 }
 
 
 .vc-node-icon svg{
 
-  width:1em;
-  height:1em;
+  width:1.125rem;
+  height:1.125rem;
 
   display:block;
+
+}
+
+
+.vc-node:hover .vc-node-icon{
+
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color) 14%,
+      var(--node)
+    );
 
 }
 
@@ -561,14 +643,14 @@ html.dark .vc-node.vc-expanded{
   background:
     color-mix(
       in srgb,
-      var(--node-color) 17%,
+      var(--node-color) 18%,
       var(--node)
     );
 
   border-color:
     color-mix(
       in srgb,
-      var(--node-color) 44%,
+      var(--node-color) 46%,
       var(--border)
     );
 
@@ -680,7 +762,7 @@ html.dark .vc-node.vc-expanded{
     2px solid
     color-mix(
       in srgb,
-      var(--accent) 45%,
+      var(--node-color) 45%,
       transparent
     );
 
@@ -808,11 +890,57 @@ html.dark .vc-node.vc-expanded{
 
 /* =========================================================
    PARAMETER GROUP
+
+   기존:
+     label
+     input
+
+   변경:
+     [ label | input ]
+
+   DOM은 기존 그대로 유지한다.
+   렌더러도 수정할 필요가 없다.
    ========================================================= */
 
 .vc-param-group{
 
-  margin-top:.7rem;
+  display:flex;
+
+  align-items:center;
+
+  width:100%;
+
+  min-height:1.875rem;
+
+  margin-top:.625rem;
+
+  padding:
+    .125rem
+    .1875rem
+    .125rem
+    .5625rem;
+
+  border:
+    1px solid
+    color-mix(
+      in srgb,
+      var(--node-color) 19%,
+      var(--border)
+    );
+
+  border-radius:var(--input-radius);
+
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color) 4%,
+      var(--node-soft)
+    );
+
+  transition:
+    border-color .16s ease,
+    background .16s ease,
+    box-shadow .16s ease;
 
 }
 
@@ -826,104 +954,24 @@ html.dark .vc-node.vc-expanded{
 
 .vc-param-group + .vc-param-group{
 
-  margin-top:.7rem;
+  margin-top:.5rem;
 
 }
 
 
-/* =========================================================
-   PARAMETER LABEL
-   ========================================================= */
-
-.vc-param-label{
-
-  display:block;
-
-  margin:0 0 .2rem;
-
-  color:var(--sub);
-
-  font-size:.5625rem;
-
-  font-weight:650;
-
-  line-height:1.2;
-
-  letter-spacing:-.008em;
-
-}
-
-
-/* =========================================================
-   PARAMETER INPUT
-   ========================================================= */
-
-.vc-slot-param{
-
-  display:block;
-
-  width:100%;
-
-  min-height:1.875rem;
-
-  margin:0;
-
-  padding:.375rem .5625rem;
-
-  border:
-    1px solid
-    color-mix(
-      in srgb,
-      var(--node-color) 19%,
-      var(--border)
-    );
-
-  border-radius:var(--input-radius);
-
-  outline:none;
-
-  appearance:none;
-  -webkit-appearance:none;
-
-  background:
-    color-mix(
-      in srgb,
-      var(--node-color) 4%,
-      var(--node-soft)
-    );
-
-  color:var(--text);
-
-  box-shadow:none;
-
-  font-size:.625rem;
-
-  font-weight:550;
-
-  line-height:1.3;
-
-  letter-spacing:-.008em;
-
-  transition:
-    border-color .16s ease,
-    background .16s ease;
-
-}
-
-
-.vc-slot-param:hover{
+.vc-param-group:hover{
 
   border-color:
     color-mix(
       in srgb,
-      var(--node-color) 30%,
+      var(--node-color) 31%,
       var(--border)
     );
 
 }
 
 
-.vc-slot-param:focus{
+.vc-param-group:focus-within{
 
   border-color:
     color-mix(
@@ -939,6 +987,117 @@ html.dark .vc-node.vc-expanded{
       var(--node-soft)
     );
 
+  box-shadow:
+    0 0 0 .1rem
+      color-mix(
+        in srgb,
+        var(--node-color) 7%,
+        transparent
+      );
+
+}
+
+
+/* =========================================================
+   PARAMETER LABEL
+
+   독립된 라벨이 아니라
+   입력 컨트롤 내부의 "키" 역할
+   ========================================================= */
+
+.vc-param-label{
+
+  display:block;
+
+  flex:0 0 auto;
+
+  margin:0 .375rem 0 0;
+
+  color:
+    color-mix(
+      in srgb,
+      var(--node-color) 72%,
+      var(--sub)
+    );
+
+  font-size:.53125rem;
+
+  font-weight:700;
+
+  line-height:1;
+
+  letter-spacing:-.01em;
+
+  white-space:nowrap;
+
+}
+
+
+/* =========================================================
+   PARAMETER INPUT
+
+   바깥 .vc-param-group이
+   실제 입력 컨트롤의 재질을 담당한다.
+
+   input 자체는 투명하게 둔다.
+   ========================================================= */
+
+.vc-slot-param{
+
+  display:block;
+
+  flex:1;
+
+  min-width:0;
+
+  width:auto;
+
+  min-height:1.5rem;
+
+  margin:0;
+
+  padding:.25rem .3125rem;
+
+  border:0;
+
+  border-radius:.4rem;
+
+  outline:none;
+
+  appearance:none;
+  -webkit-appearance:none;
+
+  background:transparent;
+
+  color:var(--text);
+
+  box-shadow:none;
+
+  font-size:.625rem;
+
+  font-weight:550;
+
+  line-height:1.3;
+
+  letter-spacing:-.008em;
+
+  transition:
+    color .16s ease;
+
+}
+
+
+.vc-slot-param:hover,
+.vc-slot-param:focus{
+
+  border:0;
+
+  outline:none;
+
+  background:transparent;
+
+  box-shadow:none;
+
 }
 
 
@@ -951,18 +1110,7 @@ html.dark .vc-node.vc-expanded{
 
 /* =========================================================
    START
-   =========================================================
-
-   JS가 실제 노드 컨셉 컬러를 --node-color로 주도록
-   CSS에서 accent로 강제하지 않는다.
-   */
-
-.vc-start-node{
-
-  --node-color:var(--node-color, var(--accent));
-
-}
-
+   ========================================================= */
 
 .vc-start-node .vc-node-icon{
 
@@ -1004,7 +1152,7 @@ html.dark .vc-node.vc-expanded{
     1px solid
     color-mix(
       in srgb,
-      var(--node-color) 18%,
+      var(--node-color) 22%,
       transparent
     );
 
@@ -1022,13 +1170,6 @@ html.dark .vc-node.vc-expanded{
 /* =========================================================
    FILE NODE
    ========================================================= */
-
-.vc-file-node{
-
-  --node-color:var(--accent);
-
-}
-
 
 .vc-file-node .vc-node-head{
 
@@ -1397,9 +1538,9 @@ html.dark .vc-node.vc-expanded{
 
   border:
     1.5px solid
-    var(--text);
+    var(--node-color);
 
-  opacity:.2;
+  opacity:.42;
 
   box-shadow:none;
 
@@ -1407,7 +1548,8 @@ html.dark .vc-node.vc-expanded{
     opacity .15s ease,
     transform .15s cubic-bezier(.22,.8,.25,1),
     background .15s ease,
-    border-color .15s ease;
+    border-color .15s ease,
+    box-shadow .15s ease;
 
 }
 
@@ -1415,7 +1557,7 @@ html.dark .vc-node.vc-expanded{
 .vc-node.vc-selected .vc-port-pill,
 .vc-node.vc-expanded .vc-port-pill{
 
-  opacity:.9;
+  opacity:.92;
 
   transform:scale(1.05);
 
@@ -1424,9 +1566,11 @@ html.dark .vc-node.vc-expanded{
 
 .vc-port-pill.vc-connected{
 
-  background:var(--text);
+  background:var(--node-color);
 
-  opacity:.42;
+  border-color:var(--node-color);
+
+  opacity:.5;
 
 }
 
@@ -1509,12 +1653,6 @@ html.dark .vc-node.vc-expanded{
 }
 
 
-/*
- * 잘못된 :not(.vc-selected *) 제거.
- * 선택 상태 제어는 위의 부모 선택자로만 처리한다.
- */
-
-
 .vc-start-node .vc-port-hit.vc-input{
 
   display:none;
@@ -1538,10 +1676,6 @@ html.dark .vc-node.vc-expanded{
 
   stroke-linejoin:round;
 
-  /*
-   * active에서도 같은 두 개의 값으로 유지해서
-   * stroke-dasharray 자체를 브라우저가 보간할 수 있게 한다.
-   */
   stroke-dasharray:2px 5px;
 
   opacity:.2;
@@ -1561,10 +1695,6 @@ html.dark .vc-node.vc-expanded{
 
   stroke:var(--node-color,var(--accent));
 
-  /*
-   * 사실상 실선이 되는 긴 dash.
-   * none으로 바꾸지 않아서 전환이 끊기지 않는다.
-   */
   stroke-dasharray:9999px 0px;
 
   opacity:.76;
@@ -2031,10 +2161,6 @@ html.dark .vc-add-button{
 
 /* =========================================================
    COMPOSER BUTTON
-
-   파일첨부 버튼은 너무 커진 경우를 고려해
-   기본 버튼을 조금 줄이고,
-   전송 버튼은 기존 크기를 별도로 유지한다.
    ========================================================= */
 
 .vc-composer-button{
@@ -2104,8 +2230,6 @@ html.dark .vc-add-button{
 }
 
 
-/* 혹시 별도 attach class가 존재하는 경우에도
-   버튼 자체가 다시 커지지 않도록 고정 */
 .vc-attach-button{
 
   width:1.875rem;
@@ -2400,6 +2524,26 @@ html.dark .vc-send-button{
   }
 
 
+  .vc-node-icon{
+
+    width:1.75rem;
+
+    height:1.75rem;
+
+    flex-basis:1.75rem;
+
+  }
+
+
+  .vc-node-icon svg{
+
+    width:1.125rem;
+
+    height:1.125rem;
+
+  }
+
+
   .vc-slot-description{
 
     font-size:.65625rem;
@@ -2566,16 +2710,5 @@ html.dark .vc-send-button{
   width:9.375rem;
 
   height:9.375rem!important;
-
-}
-
-
-/* =========================================================
-   NON-DARK SEND BUTTON
-   ========================================================= */
-
-.vc-send-button:not(html.dark *){
-
-  filter:invert(1);
 
 }
