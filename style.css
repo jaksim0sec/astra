@@ -2,22 +2,18 @@
 
   color-scheme:light;
 
-  /* =========================================================
-     COLOR
-     ========================================================= */
+  --bg:#eef2f6;
+  --canvas:#f4f7fa;
 
-  --bg:#f3f6fa;
-  --canvas:#f7f9fc;
-
-  --glass:rgba(255,255,255,.76);
-  --glass2:rgba(255,255,255,.94);
+  --glass:rgba(255,255,255,.82);
+  --glass2:rgba(255,255,255,.96);
 
   --text:#181a1f;
-  --sub:#626772;
-  --faint:#9298a3;
+  --sub:#606670;
+  --faint:#969ca6;
 
-  --line:rgba(27,34,45,.09);
-  --soft:rgba(27,34,45,.055);
+  --line:rgba(27,34,45,.085);
+  --soft:rgba(27,34,45,.05);
 
   --node:#ffffff;
   --node-soft:#f6f8fb;
@@ -25,22 +21,17 @@
   --border:rgba(27,34,45,.14);
 
   --accent:#6b4cff;
-  --accent-soft:rgba(107,76,255,.11);
+  --accent-soft:rgba(107,76,255,.1);
 
   --danger:#e5484d;
   --danger-soft:rgba(229,72,77,.08);
-
-  /* =========================================================
-     SIZE TOKENS
-     ========================================================= */
 
   --node-radius:.95rem;
   --input-radius:.6rem;
 
   --shadow:
-    0 .65rem 1.55rem rgba(20,28,40,.065),
+    0 .65rem 1.55rem rgba(20,28,40,.06),
     0 .08rem .18rem rgba(20,28,40,.025);
-
 }
 
 
@@ -48,50 +39,44 @@ html.dark{
 
   color-scheme:dark;
 
-  --bg:#101317;
-  --canvas:#14171c;
+  --bg:#171b20;
+  --canvas:#1b2026;
 
-  --glass:rgba(28,31,37,.78);
-  --glass2:rgba(31,35,42,.96);
+  --glass:rgba(34,38,45,.84);
+  --glass2:rgba(38,43,50,.97);
 
-  --text:#f3f4f6;
-  --sub:#a1a6b0;
-  --faint:#6e737d;
+  --text:#f2f4f7;
+  --sub:#a7acb5;
+  --faint:#737983;
 
   --line:rgba(255,255,255,.08);
-  --soft:rgba(255,255,255,.05);
+  --soft:rgba(255,255,255,.045);
 
-  --node:#20242a;
-  --node-soft:#252a31;
+  --node:#242930;
+  --node-soft:#292f37;
 
-  --border:rgba(255,255,255,.12);
+  --border:rgba(255,255,255,.115);
 
   --accent:#8b73ff;
-  --accent-soft:rgba(139,115,255,.14);
+  --accent-soft:rgba(139,115,255,.13);
 
   --danger:#ff7379;
   --danger-soft:rgba(255,115,121,.1);
 
   --shadow:
-    0 .75rem 1.7rem rgba(0,0,0,.30),
-    0 .08rem .18rem rgba(0,0,0,.18);
-
+    0 .75rem 1.7rem rgba(0,0,0,.24),
+    0 .08rem .18rem rgba(0,0,0,.16);
 }
 
 
 /* =========================================================
-   ROOT SCALE
-
-   body 기준만 vw 반응형.
-   내부 UI는 rem을 사용.
+   ROOT
    ========================================================= */
 
 html{
 
   width:100%;
-
   height:100%;
-
   min-height:100svh;
 
   font-size:clamp(
@@ -106,9 +91,7 @@ html{
 @supports(height:100dvh){
 
   html{
-
     height:100dvh;
-
   }
 
 }
@@ -118,9 +101,7 @@ html,
 body{
 
   width:100%;
-
   height:100%;
-
   min-height:100svh;
 
   margin:0;
@@ -135,9 +116,7 @@ body{
     sans-serif;
 
   color:var(--text);
-
   background:var(--bg);
-
 }
 
 
@@ -145,18 +124,14 @@ body{
 
   html,
   body{
-
     height:100dvh;
-
   }
 
 }
 
 
 body{
-
   font-size:1rem;
-
 }
 
 
@@ -173,9 +148,7 @@ button,
 textarea,
 input,
 select{
-
   font:inherit;
-
 }
 
 
@@ -191,9 +164,7 @@ button{
   outline:0;
 
   background:none;
-
   box-shadow:none;
-
 }
 
 
@@ -204,28 +175,22 @@ button{
 #app{
 
   position:fixed;
-
   inset:0;
 
   width:100%;
-
   height:100%;
-
   min-height:100svh;
 
   overflow:hidden;
 
   background:var(--canvas);
-
 }
 
 
 @supports(height:100dvh){
 
   #app{
-
     height:100dvh;
-
   }
 
 }
@@ -233,21 +198,16 @@ button{
 
 /* =========================================================
    CANVAS
-
-   Gesture / world geometry preserved.
    ========================================================= */
 
 .vc-root,
 .vc-canvas{
 
   position:absolute;
-
   inset:0;
 
   width:100%;
-
   height:100%;
-
   min-height:100svh;
 
   overflow:hidden;
@@ -258,7 +218,6 @@ button{
   -webkit-user-select:none;
 
   cursor:grab;
-
 }
 
 
@@ -266,18 +225,14 @@ button{
 
   .vc-root,
   .vc-canvas{
-
     height:100dvh;
-
   }
 
 }
 
 
 .vc-canvas.vc-dragging{
-
   cursor:grabbing;
-
 }
 
 
@@ -292,7 +247,6 @@ button{
   height:3000px;
 
   transform-origin:0 0;
-
 }
 
 
@@ -313,17 +267,15 @@ button{
 
   background-size:28px 28px;
 
-  opacity:.65;
+  opacity:.62;
 
   pointer-events:none;
-
 }
 
 
 .vc-svg{
 
   position:absolute;
-
   inset:0;
 
   width:100%;
@@ -334,32 +286,20 @@ button{
   z-index:1;
 
   pointer-events:none;
-
 }
 
 
 .vc-nodes{
 
   position:absolute;
-
   inset:0;
 
   z-index:10;
-
 }
 
 
 /* =========================================================
-   NODE BASE
-
-   컨셉 컬러는 HTML/JS가
-   --node-color로 주입한다.
-
-   ex)
-   element.style.setProperty(
-     '--node-color',
-     type.color
-   );
+   NODE
    ========================================================= */
 
 .vc-node{
@@ -373,20 +313,6 @@ button{
       var(--node)
     );
 
-  --node-outline:
-    color-mix(
-      in srgb,
-      var(--node-color) 24%,
-      var(--border)
-    );
-
-  --node-outline-strong:
-    color-mix(
-      in srgb,
-      var(--node-color) 54%,
-      var(--border)
-    );
-
   position:absolute;
 
   width:11.875rem;
@@ -398,13 +324,11 @@ button{
   background:var(--node);
 
   /*
-   * 선택되지 않은 기본 상태에서도
-   * 노드의 정체성을 컨셉 컬러로 보여준다.
+   * 외곽선은 컨셉 컬러를 사용하지 않는다.
+   * 노드 자체의 구조를 또렷하게 보여주는 중립 outline.
    */
 
-  border:
-    1px solid
-    var(--node-outline);
+  border:1px solid var(--border);
 
   border-radius:var(--node-radius);
 
@@ -420,55 +344,29 @@ button{
     border-color .18s ease,
     background .18s ease,
     transform .18s cubic-bezier(.22,.8,.25,1);
-
 }
 
-
-html.dark .vc-node{
-
-  --node-outline:
-    color-mix(
-      in srgb,
-      var(--node-color) 32%,
-      var(--border)
-    );
-
-  --node-outline-strong:
-    color-mix(
-      in srgb,
-      var(--node-color) 62%,
-      var(--border)
-    );
-
-}
-
-
-/* =========================================================
-   NODE HOVER
-   ========================================================= */
 
 .vc-node:hover{
 
   border-color:
     color-mix(
       in srgb,
-      var(--node-color) 40%,
-      var(--border)
+      var(--border) 72%,
+      var(--text)
     );
 
   box-shadow:
-    0 .72rem 1.7rem rgba(20,28,40,.08),
+    0 .72rem 1.7rem rgba(20,28,40,.075),
     0 .08rem .18rem rgba(20,28,40,.025);
-
 }
 
 
 html.dark .vc-node:hover{
 
   box-shadow:
-    0 .8rem 1.8rem rgba(0,0,0,.34),
-    0 .08rem .18rem rgba(0,0,0,.18);
-
+    0 .8rem 1.8rem rgba(0,0,0,.28),
+    0 .08rem .18rem rgba(0,0,0,.16);
 }
 
 
@@ -479,20 +377,13 @@ html.dark .vc-node:hover{
 .vc-node.vc-selected,
 .vc-node.vc-expanded{
 
-  border-color:
-    var(--node-outline-strong);
+  border-color:var(--border);
 
   box-shadow:
     0 .8rem 1.8rem rgba(20,28,40,.09),
-    0 0 0 .1rem
-      color-mix(
-        in srgb,
-        var(--node-color) 9%,
-        transparent
-      );
+    0 0 0 .1rem rgba(27,34,45,.045);
 
   transform:translateY(-.1rem);
-
 }
 
 
@@ -500,14 +391,8 @@ html.dark .vc-node.vc-selected,
 html.dark .vc-node.vc-expanded{
 
   box-shadow:
-    0 .85rem 1.9rem rgba(0,0,0,.34),
-    0 0 0 .1rem
-      color-mix(
-        in srgb,
-        var(--node-color) 14%,
-        transparent
-      );
-
+    0 .85rem 1.9rem rgba(0,0,0,.3),
+    0 0 0 .1rem rgba(255,255,255,.035);
 }
 
 
@@ -522,28 +407,16 @@ html.dark .vc-node.vc-expanded{
   transition:none;
 
   box-shadow:
-    0 1.1rem 2.4rem rgba(20,28,40,.13),
-    0 0 0 .1rem
-      color-mix(
-        in srgb,
-        var(--node-color) 14%,
-        transparent
-      );
-
+    0 1.1rem 2.4rem rgba(20,28,40,.12),
+    0 0 0 .1rem rgba(27,34,45,.045);
 }
 
 
 html.dark .vc-node.vc-dragging{
 
   box-shadow:
-    0 1.1rem 2.4rem rgba(0,0,0,.38),
-    0 0 0 .1rem
-      color-mix(
-        in srgb,
-        var(--node-color) 18%,
-        transparent
-      );
-
+    0 1.1rem 2.4rem rgba(0,0,0,.34),
+    0 0 0 .1rem rgba(255,255,255,.045);
 }
 
 
@@ -560,15 +433,14 @@ html.dark .vc-node.vc-dragging{
   align-items:center;
 
   gap:.5625rem;
-
 }
 
 
 /* =========================================================
-   ICON
+   ICON BOX
 
-   박스 크기는 기존 1.75rem 유지.
-   실제 SVG만 약간 키워서 아이콘 존재감을 준다.
+   outline 없음.
+   배경만 컨셉 컬러.
    ========================================================= */
 
 .vc-node-icon{
@@ -587,6 +459,8 @@ html.dark .vc-node.vc-dragging{
 
   border-radius:.625rem;
 
+  border:0;
+
   color:var(--node-color);
 
   background:
@@ -596,20 +470,10 @@ html.dark .vc-node.vc-dragging{
       var(--node)
     );
 
-  border:
-    1px solid
-    color-mix(
-      in srgb,
-      var(--node-color) 31%,
-      var(--border)
-    );
-
   transition:
     background .18s ease,
-    border-color .18s ease,
     color .18s ease,
     transform .18s cubic-bezier(.22,.8,.25,1);
-
 }
 
 
@@ -619,7 +483,6 @@ html.dark .vc-node.vc-dragging{
   height:1.125rem;
 
   display:block;
-
 }
 
 
@@ -628,17 +491,14 @@ html.dark .vc-node.vc-dragging{
   background:
     color-mix(
       in srgb,
-      var(--node-color) 14%,
+      var(--node-color) 15%,
       var(--node)
     );
-
 }
 
 
 .vc-node.vc-selected .vc-node-icon,
 .vc-node.vc-expanded .vc-node-icon{
-
-  color:var(--node-color);
 
   background:
     color-mix(
@@ -646,14 +506,6 @@ html.dark .vc-node.vc-dragging{
       var(--node-color) 18%,
       var(--node)
     );
-
-  border-color:
-    color-mix(
-      in srgb,
-      var(--node-color) 46%,
-      var(--border)
-    );
-
 }
 
 
@@ -682,7 +534,6 @@ html.dark .vc-node.vc-dragging{
   overflow:hidden;
 
   text-overflow:ellipsis;
-
 }
 
 
@@ -699,7 +550,6 @@ html.dark .vc-node.vc-dragging{
   gap:.1875rem;
 
   flex:0 0 auto;
-
 }
 
 
@@ -736,7 +586,6 @@ html.dark .vc-node.vc-dragging{
     background .16s ease,
     color .16s ease,
     transform .16s cubic-bezier(.22,.8,.25,1);
-
 }
 
 
@@ -745,14 +594,12 @@ html.dark .vc-node.vc-dragging{
   color:var(--text);
 
   background:var(--soft);
-
 }
 
 
 .vc-node-action:active{
 
   transform:scale(.88);
-
 }
 
 
@@ -762,12 +609,11 @@ html.dark .vc-node.vc-dragging{
     2px solid
     color-mix(
       in srgb,
-      var(--node-color) 45%,
+      var(--text) 18%,
       transparent
     );
 
   outline-offset:2px;
-
 }
 
 
@@ -777,7 +623,40 @@ html.dark .vc-node.vc-dragging{
   height:.875rem;
 
   display:block;
+}
 
+
+/* =========================================================
+   TOGGLE
+   컨셉 컬러 제거
+   ========================================================= */
+
+.vc-node-toggle{
+
+  color:var(--sub);
+
+  background:transparent;
+}
+
+
+.vc-node.vc-expanded .vc-node-toggle{
+
+  color:var(--text);
+
+  background:var(--soft);
+}
+
+
+.vc-node-toggle svg{
+
+  transition:
+    transform .32s cubic-bezier(.22,.8,.25,1);
+}
+
+
+.vc-node.vc-expanded .vc-node-toggle svg{
+
+  transform:rotate(180deg);
 }
 
 
@@ -788,14 +667,12 @@ html.dark .vc-node.vc-dragging{
 .vc-node-delete{
 
   display:none;
-
 }
 
 
 .vc-node:not(.vc-start-node).vc-expanded .vc-node-delete{
 
   display:flex;
-
 }
 
 
@@ -804,43 +681,11 @@ html.dark .vc-node.vc-dragging{
   color:var(--danger)!important;
 
   background:var(--danger-soft)!important;
-
-}
-
-
-.vc-node-toggle{
-
-  color:var(--sub);
-
-}
-
-
-.vc-node.vc-expanded .vc-node-toggle{
-
-  color:var(--node-color);
-
-  background:var(--node-color-soft);
-
-}
-
-
-.vc-node-toggle svg{
-
-  transition:
-    transform .32s cubic-bezier(.22,.8,.25,1);
-
-}
-
-
-.vc-node.vc-expanded .vc-node-toggle svg{
-
-  transform:rotate(180deg);
-
 }
 
 
 /* =========================================================
-   NODE BODY
+   BODY
    ========================================================= */
 
 .vc-node-body{
@@ -856,14 +701,12 @@ html.dark .vc-node.vc-dragging{
   transition:
     height .32s cubic-bezier(.22,.8,.25,1),
     opacity .18s ease;
-
 }
 
 
 .vc-node.vc-expanded .vc-node-body{
 
   opacity:1;
-
 }
 
 
@@ -884,22 +727,13 @@ html.dark .vc-node.vc-dragging{
   line-height:1.45;
 
   letter-spacing:-.012em;
-
 }
 
 
 /* =========================================================
    PARAMETER GROUP
-
-   기존:
-     label
-     input
-
-   변경:
-     [ label | input ]
-
-   DOM은 기존 그대로 유지한다.
-   렌더러도 수정할 필요가 없다.
+   컨셉 컬러 완전 제거.
+   노드 배경에 자연스럽게 섞이는 입력 컨트롤.
    ========================================================= */
 
 .vc-param-group{
@@ -920,42 +754,39 @@ html.dark .vc-node.vc-dragging{
     .125rem
     .5625rem;
 
-  border:
-    1px solid
-    color-mix(
-      in srgb,
-      var(--node-color) 19%,
-      var(--border)
-    );
+  border:1px solid var(--line);
 
   border-radius:var(--input-radius);
 
   background:
-    color-mix(
-      in srgb,
-      var(--node-color) 4%,
-      var(--node-soft)
-    );
+    var(--node-soft);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.28);
 
   transition:
     border-color .16s ease,
     background .16s ease,
     box-shadow .16s ease;
+}
 
+
+html.dark .vc-param-group{
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.025);
 }
 
 
 .vc-param-group:first-child{
 
   margin-top:0;
-
 }
 
 
 .vc-param-group + .vc-param-group{
 
   margin-top:.5rem;
-
 }
 
 
@@ -964,10 +795,9 @@ html.dark .vc-node.vc-dragging{
   border-color:
     color-mix(
       in srgb,
-      var(--node-color) 31%,
-      var(--border)
+      var(--border) 82%,
+      var(--text)
     );
-
 }
 
 
@@ -976,33 +806,31 @@ html.dark .vc-node.vc-dragging{
   border-color:
     color-mix(
       in srgb,
-      var(--node-color) 58%,
-      var(--border)
+      var(--border) 72%,
+      var(--text)
     );
 
   background:
     color-mix(
       in srgb,
-      var(--node-color) 7%,
-      var(--node-soft)
+      var(--node-soft) 88%,
+      var(--node)
     );
 
   box-shadow:
-    0 0 0 .1rem
-      color-mix(
-        in srgb,
-        var(--node-color) 7%,
-        transparent
-      );
+    inset 0 1px 0 rgba(255,255,255,.24);
+}
 
+
+html.dark .vc-param-group:focus-within{
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.025);
 }
 
 
 /* =========================================================
    PARAMETER LABEL
-
-   독립된 라벨이 아니라
-   입력 컨트롤 내부의 "키" 역할
    ========================================================= */
 
 .vc-param-label{
@@ -1013,12 +841,7 @@ html.dark .vc-node.vc-dragging{
 
   margin:0 .375rem 0 0;
 
-  color:
-    color-mix(
-      in srgb,
-      var(--node-color) 72%,
-      var(--sub)
-    );
+  color:var(--sub);
 
   font-size:.53125rem;
 
@@ -1029,17 +852,11 @@ html.dark .vc-node.vc-dragging{
   letter-spacing:-.01em;
 
   white-space:nowrap;
-
 }
 
 
 /* =========================================================
    PARAMETER INPUT
-
-   바깥 .vc-param-group이
-   실제 입력 컨트롤의 재질을 담당한다.
-
-   input 자체는 투명하게 둔다.
    ========================================================= */
 
 .vc-slot-param{
@@ -1080,10 +897,6 @@ html.dark .vc-node.vc-dragging{
   line-height:1.3;
 
   letter-spacing:-.008em;
-
-  transition:
-    color .16s ease;
-
 }
 
 
@@ -1091,20 +904,17 @@ html.dark .vc-node.vc-dragging{
 .vc-slot-param:focus{
 
   border:0;
-
   outline:none;
 
   background:transparent;
 
   box-shadow:none;
-
 }
 
 
 .vc-slot-param::placeholder{
 
   color:var(--faint);
-
 }
 
 
@@ -1120,14 +930,6 @@ html.dark .vc-node.vc-dragging{
       var(--node-color) 15%,
       var(--node)
     );
-
-  border-color:
-    color-mix(
-      in srgb,
-      var(--node-color) 34%,
-      var(--border)
-    );
-
 }
 
 
@@ -1148,13 +950,7 @@ html.dark .vc-node.vc-dragging{
       transparent
     );
 
-  border:
-    1px solid
-    color-mix(
-      in srgb,
-      var(--node-color) 22%,
-      transparent
-    );
+  border:0;
 
   font-size:.5rem;
 
@@ -1163,7 +959,6 @@ html.dark .vc-node.vc-dragging{
   line-height:1;
 
   letter-spacing:.03em;
-
 }
 
 
@@ -1174,7 +969,6 @@ html.dark .vc-node.vc-dragging{
 .vc-file-node .vc-node-head{
 
   min-height:3.625rem;
-
 }
 
 
@@ -1186,14 +980,6 @@ html.dark .vc-node.vc-dragging{
       var(--node-color) 14%,
       var(--node)
     );
-
-  border-color:
-    color-mix(
-      in srgb,
-      var(--node-color) 34%,
-      var(--border)
-    );
-
 }
 
 
@@ -1206,7 +992,6 @@ html.dark .vc-node.vc-dragging{
   flex-direction:column;
 
   gap:.125rem;
-
 }
 
 
@@ -1225,7 +1010,6 @@ html.dark .vc-node.vc-dragging{
   text-overflow:ellipsis;
 
   max-width:11.875rem;
-
 }
 
 
@@ -1240,7 +1024,6 @@ html.dark .vc-node.vc-dragging{
   letter-spacing:.04em;
 
   text-transform:uppercase;
-
 }
 
 
@@ -1257,7 +1040,6 @@ html.dark .vc-node.vc-dragging{
   font-size:.5625rem;
 
   color:var(--sub);
-
 }
 
 
@@ -1270,19 +1052,16 @@ html.dark .vc-node.vc-dragging{
   text-overflow:ellipsis;
 
   white-space:nowrap;
-
 }
 
 
 .vc-file-node .vc-slot-description{
-
   display:none;
-
 }
 
 
 /* =========================================================
-   IMAGE FILE NODE
+   IMAGE NODE
    ========================================================= */
 
 .vc-image-file-node{
@@ -1300,7 +1079,6 @@ html.dark .vc-node.vc-dragging{
   position:absolute;
 
   background:var(--node);
-
 }
 
 
@@ -1325,7 +1103,6 @@ html.dark .vc-node.vc-dragging{
   opacity:.5;
 
   z-index:0;
-
 }
 
 
@@ -1347,7 +1124,6 @@ html.dark .vc-node.vc-dragging{
   z-index:0;
 
   pointer-events:none;
-
 }
 
 
@@ -1357,19 +1133,17 @@ html.dark .vc-node.vc-dragging{
   position:relative;
 
   z-index:2;
-
 }
 
 
 .vc-image-file-node .vc-port-hit{
 
   z-index:40;
-
 }
 
 
 /* =========================================================
-   DELETE BUTTON
+   DELETE ROW
    ========================================================= */
 
 .vc-node-delete-row{
@@ -1377,7 +1151,6 @@ html.dark .vc-node.vc-dragging{
   margin-top:.7rem;
 
   padding-top:0;
-
 }
 
 
@@ -1420,7 +1193,6 @@ html.dark .vc-node.vc-dragging{
   transition:
     background .16s ease,
     transform .16s cubic-bezier(.22,.8,.25,1);
-
 }
 
 
@@ -1432,14 +1204,12 @@ html.dark .vc-node.vc-dragging{
       var(--danger-soft) 72%,
       var(--danger) 8%
     );
-
 }
 
 
 .vc-node-delete-button:active{
 
   transform:scale(.97);
-
 }
 
 
@@ -1454,7 +1224,6 @@ html.dark .vc-node.vc-dragging{
     );
 
   outline-offset:2px;
-
 }
 
 
@@ -1462,7 +1231,6 @@ html.dark .vc-node.vc-dragging{
 
   width:.8125rem;
   height:.8125rem;
-
 }
 
 
@@ -1492,44 +1260,35 @@ html.dark .vc-node.vc-dragging{
   touch-action:none;
 
   user-select:none;
-
   -webkit-user-select:none;
-
 }
 
 
 .vc-port-hit.vc-input{
-
   left:-1rem;
-
 }
 
 
 .vc-port-hit.vc-output{
-
   right:-1rem;
-
 }
 
 
 .vc-port-anchor{
 
   width:.75rem;
-
   height:.75rem;
 
   display:flex;
 
   align-items:center;
   justify-content:center;
-
 }
 
 
 .vc-port-pill{
 
   width:.625rem;
-
   height:.625rem;
 
   border-radius:50%;
@@ -1550,7 +1309,6 @@ html.dark .vc-node.vc-dragging{
     background .15s ease,
     border-color .15s ease,
     box-shadow .15s ease;
-
 }
 
 
@@ -1560,7 +1318,6 @@ html.dark .vc-node.vc-dragging{
   opacity:.92;
 
   transform:scale(1.05);
-
 }
 
 
@@ -1571,7 +1328,6 @@ html.dark .vc-node.vc-dragging{
   border-color:var(--node-color);
 
   opacity:.5;
-
 }
 
 
@@ -1581,7 +1337,6 @@ html.dark .vc-node.vc-dragging{
 .vc-port-pill.vc-connected{
 
   opacity:1;
-
 }
 
 
@@ -1602,7 +1357,6 @@ html.dark .vc-node.vc-dragging{
         var(--node-color) 10%,
         transparent
       );
-
 }
 
 
@@ -1627,36 +1381,27 @@ html.dark .vc-node.vc-dragging{
   transition:
     opacity .22s ease,
     transform .22s cubic-bezier(.22,.8,.25,1);
-
 }
 
 
 .vc-input .vc-port-label{
-
   right:calc(100% - .5rem);
-
 }
 
 
 .vc-output .vc-port-label{
-
   left:calc(100% - .5rem);
-
 }
 
 
 .vc-node.vc-selected .vc-port-label,
 .vc-node.vc-expanded .vc-port-label{
-
   opacity:.75;
-
 }
 
 
 .vc-start-node .vc-port-hit.vc-input{
-
   display:none;
-
 }
 
 
@@ -1687,20 +1432,18 @@ html.dark .vc-node.vc-dragging{
     stroke-width .24s ease,
     stroke .24s ease,
     stroke-dasharray .28s cubic-bezier(.22,.8,.25,1);
-
 }
 
 
 .vc-connection.vc-active{
 
-  stroke:var(--node-color,var(--accent));
+  stroke:var(--accent);
 
   stroke-dasharray:9999px 0px;
 
   opacity:.76;
 
   stroke-width:2.2px;
-
 }
 
 
@@ -1713,7 +1456,6 @@ html.dark .vc-node.vc-dragging{
   stroke-width:1.2px;
 
   opacity:.38;
-
 }
 
 
@@ -1730,14 +1472,11 @@ html.dark .vc-node.vc-dragging{
   opacity:.88;
 
   pointer-events:none;
-
 }
 
 
 .vc-drag-source-dot{
-
   fill:var(--accent);
-
 }
 
 
@@ -1758,7 +1497,6 @@ html.dark .vc-node.vc-dragging{
   display:flex;
 
   gap:.4375rem;
-
 }
 
 
@@ -1799,18 +1537,12 @@ html.dark .vc-node.vc-dragging{
     transform .18s cubic-bezier(.22,.8,.25,1),
     background .18s ease,
     border-color .18s ease;
-
 }
 
 
 .vc-top-button:hover{
 
-  border-color:
-    color-mix(
-      in srgb,
-      var(--accent) 24%,
-      var(--border)
-    );
+  border-color:var(--border);
 
 }
 
@@ -1818,14 +1550,11 @@ html.dark .vc-node.vc-dragging{
 .vc-top-button:active{
 
   transform:scale(.93);
-
 }
 
 
 .vc-theme-button{
-
   color:var(--text);
-
 }
 
 
@@ -1835,18 +1564,15 @@ html.dark .vc-node.vc-dragging{
 
   background:#fff;
 
-  border-color:rgba(20,25,32,.12);
+  border-color:rgba(20,25,32,.1);
 
   box-shadow:
-    0 .45rem 1.15rem rgba(20,28,40,.1);
-
+    0 .45rem 1.15rem rgba(20,28,40,.09);
 }
 
 
 html.dark .vc-add-button{
-
   background:#f4f4f4;
-
 }
 
 
@@ -1860,21 +1586,16 @@ html.dark .vc-add-button{
   transition:
     transform .28s cubic-bezier(.22,.8,.25,1),
     opacity .18s ease;
-
 }
 
 
 .vc-add-button:hover .vc-add-node-icon{
-
   transform:scale(1.04);
-
 }
 
 
 .vc-add-button.vc-open .vc-add-node-icon{
-
   transform:rotate(90deg) scale(.96);
-
 }
 
 
@@ -1906,7 +1627,7 @@ html.dark .vc-add-button{
   background:var(--glass2);
 
   box-shadow:
-    0 1rem 2.4rem rgba(20,28,40,.12);
+    0 1rem 2.4rem rgba(20,28,40,.1);
 
   backdrop-filter:blur(1rem);
   -webkit-backdrop-filter:blur(1rem);
@@ -1922,7 +1643,6 @@ html.dark .vc-add-button{
   transition:
     opacity .16s ease,
     transform .18s cubic-bezier(.22,.8,.25,1);
-
 }
 
 
@@ -1933,7 +1653,6 @@ html.dark .vc-add-button{
   transform:none;
 
   pointer-events:auto;
-
 }
 
 
@@ -1955,7 +1674,6 @@ html.dark .vc-add-button{
   padding:.5625rem;
 
   border:0;
-
   outline:0;
 
   border-radius:.625rem;
@@ -1964,19 +1682,14 @@ html.dark .vc-add-button{
 
   background:transparent;
 
-  box-shadow:none;
-
   text-align:left;
 
   cursor:pointer;
-
 }
 
 
 .vc-menu-item:hover{
-
   background:var(--soft);
-
 }
 
 
@@ -1996,16 +1709,9 @@ html.dark .vc-add-button{
 
   background:var(--soft);
 
-  border:
-    1px solid
-    color-mix(
-      in srgb,
-      var(--text) 7%,
-      transparent
-    );
+  border:1px solid var(--line);
 
   color:var(--sub);
-
 }
 
 
@@ -2013,7 +1719,6 @@ html.dark .vc-add-button{
 
   width:.9375rem;
   height:.9375rem;
-
 }
 
 
@@ -2022,7 +1727,6 @@ html.dark .vc-add-button{
   font-size:.71875rem;
 
   font-weight:600;
-
 }
 
 
@@ -2033,7 +1737,6 @@ html.dark .vc-add-button{
   color:var(--faint);
 
   font-size:.5625rem;
-
 }
 
 
@@ -2064,7 +1767,6 @@ html.dark .vc-add-button{
   z-index:200;
 
   pointer-events:none;
-
 }
 
 
@@ -2097,8 +1799,8 @@ html.dark .vc-add-button{
   background:var(--glass2);
 
   box-shadow:
-    0 .625rem 2rem rgba(20,28,40,.09),
-    0 .06rem .125rem rgba(20,28,40,.04);
+    0 .625rem 2rem rgba(20,28,40,.08),
+    0 .06rem .125rem rgba(20,28,40,.035);
 
   backdrop-filter:blur(1.25rem);
   -webkit-backdrop-filter:blur(1.25rem);
@@ -2110,7 +1812,6 @@ html.dark .vc-add-button{
     border-radius .22s ease,
     box-shadow .22s ease,
     opacity .22s ease;
-
 }
 
 
@@ -2125,7 +1826,6 @@ html.dark .vc-add-button{
   border-radius:1.375rem;
 
   opacity:.86;
-
 }
 
 
@@ -2134,13 +1834,11 @@ html.dark .vc-add-button{
   min-height:2rem;
 
   padding-top:.375rem;
-
   padding-bottom:.375rem;
 
   font-size:.96875rem;
 
   font-weight:500;
-
 }
 
 
@@ -2155,7 +1853,6 @@ html.dark .vc-add-button{
   border-radius:1.75rem;
 
   opacity:1;
-
 }
 
 
@@ -2192,15 +1889,12 @@ html.dark .vc-add-button{
 
   background:transparent;
 
-  box-shadow:none;
-
   cursor:pointer;
 
   transition:
     background .16s ease,
     color .16s ease,
     transform .16s cubic-bezier(.22,.8,.25,1);
-
 }
 
 
@@ -2209,14 +1903,12 @@ html.dark .vc-add-button{
   color:var(--text);
 
   background:var(--soft);
-
 }
 
 
 .vc-composer-button:active{
 
   transform:scale(.92);
-
 }
 
 
@@ -2226,27 +1918,15 @@ html.dark .vc-add-button{
   height:.9375rem;
 
   display:block;
-
 }
 
 
 .vc-attach-button{
 
   width:1.875rem;
-
   height:1.875rem;
 
   flex:0 0 1.875rem;
-
-}
-
-
-.vc-attach-button .vc-attach-icon{
-
-  width:.9375rem;
-
-  height:.9375rem;
-
 }
 
 
@@ -2265,7 +1945,6 @@ html.dark .vc-add-button{
   padding:.5rem .375rem .4375rem;
 
   border:0;
-
   outline:0;
 
   color:var(--text);
@@ -2277,21 +1956,17 @@ html.dark .vc-add-button{
   line-height:1.45;
 
   letter-spacing:-.015em;
-
 }
 
 
 .vc-chat-input::placeholder{
-
   color:var(--faint);
-
 }
 
 
 .vc-send-button{
 
   width:2rem;
-
   height:2rem;
 
   flex:0 0 2rem;
@@ -2314,51 +1989,42 @@ html.dark .vc-add-button{
   border:1px solid rgba(20,25,32,.1);
 
   box-shadow:
-    0 .1875rem .5625rem rgba(20,28,40,.1);
+    0 .1875rem .5625rem rgba(20,28,40,.09);
 
   line-height:0;
 
   transition:
     opacity .18s ease,
     transform .16s cubic-bezier(.22,.8,.25,1);
-
 }
 
 
 .vc-send-button:hover{
-
   opacity:.78;
-
 }
 
 
 .vc-send-button:active{
-
   transform:scale(.93);
-
 }
 
 
 .vc-send-button svg{
 
   width:.9375rem;
-
   height:.9375rem;
 
   display:block;
-
 }
 
 
 html.dark .vc-send-button{
-
   background:#f4f4f4;
-
 }
 
 
 /* =========================================================
-   ZOOM INDICATOR
+   ZOOM
    ========================================================= */
 
 .vc-zoom-indicator{
@@ -2387,7 +2053,6 @@ html.dark .vc-send-button{
   -webkit-backdrop-filter:blur(.9rem);
 
   opacity:.8;
-
 }
 
 
@@ -2422,7 +2087,6 @@ html.dark .vc-send-button{
     );
 
   pointer-events:none;
-
 }
 
 
@@ -2437,7 +2101,7 @@ html.dark .vc-send-button{
   border:1px solid var(--border);
 
   box-shadow:
-    0 .5rem 1.3rem rgba(20,28,40,.08);
+    0 .5rem 1.3rem rgba(20,28,40,.07);
 
   font-size:.625rem;
 
@@ -2450,7 +2114,6 @@ html.dark .vc-send-button{
   transition:
     opacity .18s ease,
     transform .18s ease;
-
 }
 
 
@@ -2459,7 +2122,6 @@ html.dark .vc-send-button{
   opacity:1;
 
   transform:none;
-
 }
 
 
@@ -2473,7 +2135,6 @@ html.dark .vc-send-button{
     );
 
   color:var(--danger);
-
 }
 
 
@@ -2487,14 +2148,11 @@ html.dark .vc-send-button{
     );
 
   color:#9a6706;
-
 }
 
 
 .vc-validation-item.vc-ok{
-
   color:var(--sub);
-
 }
 
 
@@ -2513,41 +2171,32 @@ html.dark .vc-send-button{
     padding:.625rem .75rem;
 
     border-radius:1rem;
-
   }
 
 
   .vc-node-title{
-
     font-size:.78125rem;
-
   }
 
 
   .vc-node-icon{
 
     width:1.75rem;
-
     height:1.75rem;
 
     flex-basis:1.75rem;
-
   }
 
 
   .vc-node-icon svg{
 
     width:1.125rem;
-
     height:1.125rem;
-
   }
 
 
   .vc-slot-description{
-
     font-size:.65625rem;
-
   }
 
 
@@ -2556,21 +2205,16 @@ html.dark .vc-send-button{
     font-size:.46875rem;
 
     padding:.1875rem .3125rem;
-
   }
 
 
   .vc-top-controls{
-
     right:.6875rem;
-
   }
 
 
   .vc-add-menu{
-
     right:.6875rem;
-
   }
 
 
@@ -2588,7 +2232,6 @@ html.dark .vc-send-button{
       );
 
     transform:translateX(-50%);
-
   }
 
 
@@ -2603,7 +2246,6 @@ html.dark .vc-send-button{
     border-radius:1.5rem;
 
     padding:.25rem;
-
   }
 
 
@@ -2616,7 +2258,6 @@ html.dark .vc-send-button{
     border-radius:1.3125rem;
 
     padding:.1875rem .25rem;
-
   }
 
 
@@ -2625,7 +2266,6 @@ html.dark .vc-send-button{
     min-height:1.9375rem;
 
     font-size:.9375rem;
-
   }
 
 
@@ -2638,71 +2278,50 @@ html.dark .vc-send-button{
     border-radius:1.6875rem;
 
     padding:.375rem;
-
   }
 
 
   .vc-composer-button{
 
     width:1.875rem;
-
     height:1.875rem;
 
     flex-basis:1.875rem;
-
   }
 
 
   .vc-attach-button{
 
     width:1.875rem;
-
     height:1.875rem;
 
     flex-basis:1.875rem;
-
-  }
-
-
-  .vc-attach-icon{
-
-    width:.9375rem;
-
-    height:.9375rem;
-
   }
 
 
   .vc-send-button{
 
     width:1.875rem;
-
     height:1.875rem;
 
     flex-basis:1.875rem;
-
   }
 
 
   .vc-zoom-indicator{
-
     left:.6875rem;
-
   }
 
 
   .vc-image-file-node{
-
     width:13.90625rem;
-
   }
 
 }
 
 
 /* =========================================================
-   IMAGE NODE FINAL SIZE
-   Existing final override retained.
+   EXISTING IMAGE FINAL OVERRIDE
    ========================================================= */
 
 .vc-image-file-node{
