@@ -13,6 +13,7 @@ async function api(
         ...(body!=null?{
           "Content-Type":"application/json"
         }:{}),
+
         ...headers
       },
 
@@ -23,10 +24,21 @@ async function api(
     }
   );
 
-  const data=await res.json();
+  let data;
+
+  try{
+    data=await res.json();
+  }catch{
+    throw new Error(
+      `HTTP ${res.status}`
+    );
+  }
 
   if(print){
-    console.log(`/${path} res:`,data);
+    console.log(
+      `/${path} res:`,
+      data
+    );
   }
 
   if(!res.ok||data?.ok===false){
@@ -40,299 +52,645 @@ async function api(
 }
 
 
-function normalizeWorkflowParams(
-  type,
+/* =========================
+   Node Definitions
+========================= */
+
+let nodeDefinitionsCache=null;
+
+async function getNodeDefinitions(){
+
+  if(nodeDefinitionsCache){
+    return nodeDefinitionsCache;
+  }
+
+  const result=
+    await api(
+      "node-definitions"
+    );
+
+  if(
+    !result||
+    typeof result.nodes!=="object"||
+    result.nodes===null||
+    Array.isArray(result.nodes)
+  ){
+    throw new Error(
+      "노드 정의 응답이 올바르지 않습니다."
+    );
+  }
+
+  nodeDefinitionsCache=
+    result.nodes;
+
+  /*
+    index.html에서도 사용할 수 있도록
+    동일한 Canonical Definition을 노출한다.
+  */
+  window.nodeDefinitions=
+    nodeDefinitionsCache;
+
+  return nodeDefinitionsCache;
+}
+
+
+function getNodeDefinitionSync(
+  definitions,
+  type
+){
+
+  if(
+    !definitions||
+    typeof definitions!=="object"
+  ){
+    return null;
+  }
+
+  return definitions[type]||null;
+}
+
+
+/* =========================
+   Definition Helpers
+========================= */
+
+function getPortDefinition(
+  definition,
+  direction,
+  portId
+){
+
+  if(!definition){
+    return null;
+  }
+
+  const ports=
+    direction==="input"
+      ?(
+        Array.isArray(
+          definition.inputs
+        )
+          ?definition.inputs
+          :[]
+      )
+      :(
+        Array.isArray(
+          definition.outputs
+        )
+          ?definition.outputs
+          :[]
+      );
+
+  return ports.find(
+    port=>
+      String(port?.id)===String(portId)
+  )||null;
+}
+
+
+function getParamDefinition(
+  definition,
+  paramId
+){
+
+  if(!definition){
+    return null;
+  }
+
+  const params=
+    Array.isArray(
+      definition.params
+    )
+      ?definition.params
+      :[];
+
+  return params.find(
+    param=>
+      String(param?.id)===String(paramId)
+  )||null;
+}
+
+
+function normalizeParamsFromDefinition(
+  definition,
   params
 ){
-  const source=
-    params&&
-    typeof params==='object'&&
-    !Array.isArray(params)
-      ?params
-      :{};
+
+  if(
+    !params||
+    typeof params!=="object"||
+    Array.isArray(params)
+  ){
+    return {};
+  }
+
+  if(!definition){
+    return {};
+  }
 
   const result={};
 
+  for(
+    const [key,value]
+      of Object.entries(params)
+  ){
 
-  /*
-    research
-
-    LLM:
-    {
-      query:"고라니 개체수 변화"
-    }
-
-    Canvas:
-    {
-      topic:"고라니 개체수 변화"
-    }
-  */
-
-  if(type==='research'){
-
-    if(source.topic!=null){
-      result.topic=String(
-        source.topic
+    const param=
+      getParamDefinition(
+        definition,
+        key
       );
+
+    if(!param){
+      continue;
     }
 
-    if(source.query!=null){
-      result.topic=String(
-        source.query
-      );
+    if(
+      typeof value==="string"
+    ){
+
+      const trimmed=
+        value.trim();
+
+      if(trimmed){
+        result[key]=trimmed;
+      }
+
+      continue;
     }
 
-    if(source.filter!=null){
-      result.filter=String(
-        source.filter
-      );
-    }
-
+    /*
+      현재 Definition의 파라미터는
+      문자열 기반이므로 문자열 이외의 값은
+      Canonical Workflow에서 보존하지 않는다.
+    */
   }
-
-
-  /*
-    organize
-
-    Canvas:
-    criteria
-    format
-  */
-
-  else if(type==='organize'){
-
-    if(source.criteria!=null){
-      result.criteria=String(
-        source.criteria
-      );
-    }
-
-    if(source.format!=null){
-      result.format=String(
-        source.format
-      );
-    }
-
-    if(source.query!=null){
-      result.criteria=String(
-        source.query
-      );
-    }
-
-  }
-
-
-  /*
-    write
-
-    Canvas:
-    title
-    length
-    style
-    about
-  */
-
-  else if(type==='write'){
-
-    if(source.title!=null){
-      result.title=String(
-        source.title
-      );
-    }
-
-    if(source.length!=null){
-      result.length=String(
-        source.length
-      );
-    }
-
-    if(source.style!=null){
-      result.style=String(
-        source.style
-      );
-    }
-
-    if(source.about!=null){
-      result.about=String(
-        source.about
-      );
-    }
-
-    if(source.content!=null){
-      result.about=String(
-        source.content
-      );
-    }
-
-  }
-
-
-  /*
-    convert
-
-    Canvas:
-    instruction
-
-    LLM:
-    {
-      format:"pdf"
-    }
-
-    →
-    {
-      instruction:"PDF로 변환"
-    }
-  */
-
-  else if(type==='convert'){
-
-    if(source.instruction!=null){
-      result.instruction=String(
-        source.instruction
-      );
-    }
-
-    if(source.format!=null){
-
-      const format=
-        String(source.format);
-
-      result.instruction=
-        `${format.toUpperCase()}로 변환`;
-
-    }
-
-  }
-
-
-  /*
-    createFile
-
-    Canvas:
-    format
-    filename
-  */
-
-  else if(type==='createFile'){
-
-    if(source.format!=null){
-      result.format=String(
-        source.format
-      );
-    }
-
-    if(source.filename!=null){
-      result.filename=String(
-        source.filename
-      );
-    }
-
-    if(source.name!=null){
-      result.filename=String(
-        source.name
-      );
-    }
-
-  }
-
-
-  /*
-    기타 노드
-
-    정의되지 않은 params는
-    그대로 보존
-  */
-
-  else{
-
-    Object.assign(
-      result,
-      source
-    );
-
-  }
-
 
   return result;
 }
 
 
+/* =========================
+   Workflow Endpoint
+========================= */
+
+function parseWorkflowEndpoint(
+  value
+){
+
+  if(
+    typeof value!=="string"
+  ){
+
+    throw new Error(
+      "연결 endpoint가 문자열이 아닙니다."
+    );
+
+  }
+
+  const dot=
+    value.lastIndexOf(".");
+
+  if(dot===-1){
+
+    throw new Error(
+      `포트가 지정되지 않았습니다: ${value}`
+    );
+
+  }
+
+  const node=
+    value.slice(
+      0,
+      dot
+    );
+
+  const port=
+    value.slice(
+      dot+1
+    );
+
+  if(
+    !node||
+    !port
+  ){
+
+    throw new Error(
+      `잘못된 endpoint입니다: ${value}`
+    );
+
+  }
+
+  return {
+    node,
+    port
+  };
+}
+
+
+/* =========================
+   Workflow Validation
+========================= */
+
+function validateWorkflowForCanvas(
+  spec,
+  definitions
+){
+
+  if(
+    !spec||
+    typeof spec!=="object"||
+    Array.isArray(spec)
+  ){
+
+    throw new Error(
+      "워크플로우가 없습니다."
+    );
+
+  }
+
+  if(
+    !Array.isArray(spec.nodes)
+  ){
+
+    throw new Error(
+      "workflow nodes가 배열이 아닙니다."
+    );
+
+  }
+
+  if(
+    !Array.isArray(spec.links)
+  ){
+
+    throw new Error(
+      "workflow links가 배열이 아닙니다."
+    );
+
+  }
+
+  if(
+    !Array.isArray(spec.data)
+  ){
+
+    throw new Error(
+      "workflow data가 배열이 아닙니다."
+    );
+
+  }
+
+
+  const nodeMap=
+    new Map();
+
+
+  let startCount=0;
+
+
+  for(
+    const item of spec.nodes
+  ){
+
+    if(
+      !item||
+      typeof item!=="object"||
+      Array.isArray(item)||
+      typeof item.id!=="string"||
+      typeof item.type!=="string"
+    ){
+
+      throw new Error(
+        "잘못된 workflow 노드입니다."
+      );
+
+    }
+
+
+    if(
+      nodeMap.has(item.id)
+    ){
+
+      throw new Error(
+        `중복된 노드 ID: ${item.id}`
+      );
+
+    }
+
+
+    const definition=
+      getNodeDefinitionSync(
+        definitions,
+        item.type
+      );
+
+
+    if(!definition){
+
+      throw new Error(
+        `존재하지 않는 노드 타입: ${item.type}`
+      );
+
+    }
+
+
+    if(
+      item.type==="start"
+    ){
+
+      startCount++;
+
+    }
+
+
+    nodeMap.set(
+      item.id,
+      {
+        spec:item,
+        definition
+      }
+    );
+
+  }
+
+
+  if(
+    startCount!==1
+  ){
+
+    throw new Error(
+      "start 노드는 정확히 하나 있어야 합니다."
+    );
+
+  }
+
+
+  function validateEdges(
+    edges,
+    mode
+  ){
+
+    const seen=
+      new Set();
+
+
+    for(
+      const edge of edges
+    ){
+
+      if(
+        !Array.isArray(edge)||
+        edge.length!==2||
+        typeof edge[0]!=="string"||
+        typeof edge[1]!=="string"
+      ){
+
+        throw new Error(
+          `잘못된 ${mode} 연결입니다.`
+        );
+
+      }
+
+
+      const from=
+        parseWorkflowEndpoint(
+          edge[0]
+        );
+
+      const to=
+        parseWorkflowEndpoint(
+          edge[1]
+        );
+
+
+      const fromInfo=
+        nodeMap.get(
+          from.node
+        );
+
+      const toInfo=
+        nodeMap.get(
+          to.node
+        );
+
+
+      if(!fromInfo){
+
+        throw new Error(
+          `${mode}: 출발 노드가 없습니다: ${from.node}`
+        );
+
+      }
+
+
+      if(!toInfo){
+
+        throw new Error(
+          `${mode}: 도착 노드가 없습니다: ${to.node}`
+        );
+
+      }
+
+
+      const fromPort=
+        getPortDefinition(
+          fromInfo.definition,
+          "output",
+          from.port
+        );
+
+      if(!fromPort){
+
+        throw new Error(
+          `${mode}: ${fromInfo.spec.type}.${from.port}는 존재하지 않는 출력 포트입니다.`
+        );
+
+      }
+
+
+      const toPort=
+        getPortDefinition(
+          toInfo.definition,
+          "input",
+          to.port
+        );
+
+      if(!toPort){
+
+        throw new Error(
+          `${mode}: ${toInfo.spec.type}.${to.port}는 존재하지 않는 입력 포트입니다.`
+        );
+
+      }
+
+
+      const duplicateKey=
+        `${edge[0]}->${edge[1]}`;
+
+
+      if(
+        seen.has(
+          duplicateKey
+        )
+      ){
+
+        throw new Error(
+          `${mode}: 중복된 연결입니다: ${duplicateKey}`
+        );
+
+      }
+
+
+      seen.add(
+        duplicateKey
+      );
+
+    }
+
+  }
+
+
+  validateEdges(
+    spec.links,
+    "links"
+  );
+
+  validateEdges(
+    spec.data,
+    "data"
+  );
+
+
+  return spec;
+}
+
+
+/* =========================
+   Workflow API
+========================= */
+
 async function workflowToCanvas(
   text,
   canvasApi
 ){
-  if(!text||!canvasApi){
+
+  if(
+    !text||
+    !canvasApi
+  ){
+
     throw new TypeError(
-      '작업 내용과 canvas가 필요합니다.'
+      "작업 내용과 canvas가 필요합니다."
     );
+
   }
 
-  const result=await api(
-    "workflow",
-    {},
-    {text},
-    true
-  );
 
-  if(!result?.workflow){
+  /*
+    Canvas에 넣기 전에
+    서버와 동일한 Node Definition을
+    한 번 가져온다.
+  */
+  const definitions=
+    await getNodeDefinitions();
+
+
+  const result=
+    await api(
+      "workflow",
+      {},
+      {text},
+      true
+    );
+
+
+  if(
+    !result?.workflow
+  ){
+
     throw new Error(
-      '워크플로우 응답이 없습니다.'
+      "워크플로우 응답이 없습니다."
     );
+
   }
+
 
   return workflowIRToCanvas(
     result.workflow,
-    canvasApi
+    canvasApi,
+    definitions
   );
+
 }
 
 
+/* =========================
+   Workflow IR → Canvas
+========================= */
+
 function workflowIRToCanvas(
   spec,
-  canvasApi
+  canvasApi,
+  definitions
 ){
-  if(!spec||!canvasApi){
+
+  if(
+    !spec||
+    !canvasApi
+  ){
+
     throw new TypeError(
-      'workflow spec과 canvas가 필요합니다.'
+      "workflow spec과 canvas가 필요합니다."
     );
+
   }
 
-  if(!Array.isArray(spec.nodes)){
-    throw new TypeError(
-      'workflow nodes가 배열이 아닙니다.'
+
+  if(
+    !definitions||
+    typeof definitions!=="object"
+  ){
+
+    throw new Error(
+      "노드 정의가 없습니다."
     );
+
   }
+
+
+  validateWorkflowForCanvas(
+    spec,
+    definitions
+  );
 
 
   const nodes=[];
   const nodeMap=new Map();
 
+
+  /*
+    기존 캔버스 배치 방식 유지
+  */
   const spacingX=260;
   const spacingY=140;
   const maxColumns=5;
 
 
   /*
-    먼저 모든 노드 생성
+    먼저 모든 노드를 생성한다.
   */
-
   spec.nodes.forEach(
     (item,index)=>{
 
-      if(
-        !item||
-        typeof item.id!=='string'||
-        typeof item.type!=='string'
-      ){
-        throw new Error(
-          '잘못된 workflow 노드입니다.'
+      const definition=
+        getNodeDefinitionSync(
+          definitions,
+          item.type
         );
-      }
 
 
       const params=
-        normalizeWorkflowParams(
-          item.type,
+        normalizeParamsFromDefinition(
+          definition,
           item.params
         );
 
@@ -355,13 +713,6 @@ function workflowIRToCanvas(
 
         expanded:true,
 
-        /*
-          중요:
-
-          캔버스 renderSlotContent()가
-          n.data.params를 읽는다.
-        */
-
         data:{
           params
         }
@@ -369,16 +720,29 @@ function workflowIRToCanvas(
       };
 
 
-      if(item.type==='file'){
+      /*
+        파일 노드는
+        기존 캔버스의 표시용 name을 유지한다.
+
+        실제 업로드 파일명은
+        이후 file node 로직에서 따로
+        갱신할 수 있다.
+      */
+      if(
+        item.type==="file"
+      ){
 
         node.data.name=
+          params.filename||
           params.name||
-          '파일';
+          "파일";
 
       }
 
 
-      nodes.push(node);
+      nodes.push(
+        node
+      );
 
       nodeMap.set(
         item.id,
@@ -390,67 +754,9 @@ function workflowIRToCanvas(
 
 
   /*
-    convert의 format을
-    뒤의 createFile에도 전달
-
-    예:
-    convert1.params.format = "pdf"
-
-    →
-    convert1.data.params.instruction
-      = "PDF로 변환"
-
-    →
-    createFile1.data.params.format
-      = "pdf"
+    Canonical Definition 기반으로
+    연결을 생성한다.
   */
-
-  for(
-    let i=0;
-    i<nodes.length;
-    i++
-  ){
-
-    const node=nodes[i];
-
-    if(
-      node.type!=='convert'
-    ){
-      continue;
-    }
-
-
-    const instruction=
-      node.data?.params?.instruction||
-      '';
-
-
-    const format=
-      spec.nodes[i]?.params?.format;
-
-
-    if(!format){
-      continue;
-    }
-
-
-    const next=
-      nodes[i+1];
-
-
-    if(
-      next&&
-      next.type==='createFile'
-    ){
-
-      next.data.params.format=
-        String(format).toUpperCase();
-
-    }
-
-  }
-
-
   const connections=[];
 
   let connectionSeq=0;
@@ -465,77 +771,100 @@ function workflowIRToCanvas(
       !Array.isArray(edge)||
       edge.length!==2
     ){
+
       throw new Error(
-        '잘못된 연결입니다.'
+        "잘못된 연결입니다."
       );
+
     }
 
 
-    const [fromRaw,toRaw]=edge;
-
-
-    if(
-      typeof fromRaw!=='string'||
-      typeof toRaw!=='string'
-    ){
-      throw new Error(
-        '연결 endpoint가 문자열이 아닙니다.'
+    const from=
+      parseWorkflowEndpoint(
+        edge[0]
       );
-    }
 
-
-    const fromDot=
-      fromRaw.lastIndexOf('.');
-
-    const toDot=
-      toRaw.lastIndexOf('.');
-
-
-    if(
-      fromDot===-1||
-      toDot===-1
-    ){
-      throw new Error(
-        `포트를 찾을 수 없습니다: ${fromRaw} → ${toRaw}`
+    const to=
+      parseWorkflowEndpoint(
+        edge[1]
       );
-    }
 
 
     const fromNode=
-      fromRaw.slice(
-        0,
-        fromDot
+      nodeMap.get(
+        from.node
       );
-
-    const fromPort=
-      fromRaw.slice(
-        fromDot+1
-      );
-
 
     const toNode=
-      toRaw.slice(
-        0,
-        toDot
-      );
-
-    const toPort=
-      toRaw.slice(
-        toDot+1
+      nodeMap.get(
+        to.node
       );
 
 
-    if(!nodeMap.has(fromNode)){
+    if(!fromNode){
+
       throw new Error(
-        `출발 노드가 없습니다: ${fromNode}`
+        `출발 노드가 없습니다: ${from.node}`
       );
+
     }
 
 
-    if(!nodeMap.has(toNode)){
+    if(!toNode){
+
       throw new Error(
-        `도착 노드가 없습니다: ${toNode}`
+        `도착 노드가 없습니다: ${to.node}`
       );
+
+    }
+
+
+    /*
+      여기서 다시 한 번
+      실제 Definition 포트를 확인한다.
+      서버 검증과 frontend 변환이
+      같은 구조를 사용한다.
+    */
+    const fromDefinition=
+      getNodeDefinitionSync(
+        definitions,
+        fromNode.type
+      );
+
+    const toDefinition=
+      getNodeDefinitionSync(
+        definitions,
+        toNode.type
+      );
+
+
+    if(
+      !getPortDefinition(
+        fromDefinition,
+        "output",
+        from.port
+      )
+    ){
+
+      throw new Error(
+        `${fromNode.type}.${from.port}는 존재하지 않는 출력 포트입니다.`
+      );
+
+    }
+
+
+    if(
+      !getPortDefinition(
+        toDefinition,
+        "input",
+        to.port
+      )
+    ){
+
+      throw new Error(
+        `${toNode.type}.${to.port}는 존재하지 않는 입력 포트입니다.`
+      );
+
     }
 
 
@@ -545,13 +874,13 @@ function workflowIRToCanvas(
         `c-ir-${++connectionSeq}`,
 
       from:{
-        node:fromNode,
-        port:fromPort
+        node:from.node,
+        port:from.port
       },
 
       to:{
-        node:toNode,
-        port:toPort
+        node:to.node,
+        port:to.port
       },
 
       data:{
@@ -564,24 +893,24 @@ function workflowIRToCanvas(
 
 
   for(
-    const edge of spec.links||[]
+    const edge of spec.links
   ){
 
     createConnection(
       edge,
-      'flow'
+      "flow"
     );
 
   }
 
 
   for(
-    const edge of spec.data||[]
+    const edge of spec.data
   ){
 
     createConnection(
       edge,
-      'data'
+      "data"
     );
 
   }
@@ -597,9 +926,8 @@ function workflowIRToCanvas(
 
 
   /*
-    Canvas state에 적용
+    기존 Canvas API 그대로 사용
   */
-
   canvasApi.setState({
     workflow
   });
@@ -610,7 +938,7 @@ function workflowIRToCanvas(
 
 
   console.log(
-    'Canvas Workflow:',
+    "Canvas Workflow:",
     result
   );
 
@@ -625,7 +953,8 @@ function workflowIRToCanvas(
 
         params:
           JSON.stringify(
-            node.data?.params||{}
+            node.data?.params||
+            {}
           )
 
       })
@@ -636,6 +965,27 @@ function workflowIRToCanvas(
   return result;
 }
 
+
+/* =========================
+   Definition Cache Reset
+========================= */
+
+window.reloadNodeDefinitions=
+  function(){
+
+    nodeDefinitionsCache=
+      null;
+
+    delete window.nodeDefinitions;
+
+    return getNodeDefinitions();
+
+  };
+
+
+/* =========================
+   Test Workflow
+========================= */
 
 window.testWorkflow=async function(
 
@@ -648,6 +998,28 @@ PDF로 변환해서 파일로 만들어줘`
 
   try{
 
+    /*
+      visualCanvas가 아직 준비되지 않은 경우
+      명확한 에러를 반환한다.
+    */
+    if(
+      !window.visualCanvas
+    ){
+
+      throw new Error(
+        "visualCanvas가 아직 준비되지 않았습니다."
+      );
+
+    }
+
+
+    /*
+      Definition API가 정상적으로
+      동작하는지도 함께 확인한다.
+    */
+    await getNodeDefinitions();
+
+
     const workflow=
       await workflowToCanvas(
         text,
@@ -656,7 +1028,7 @@ PDF로 변환해서 파일로 만들어줘`
 
 
     console.log(
-      'Workflow:',
+      "Workflow:",
       workflow
     );
 
@@ -666,7 +1038,7 @@ PDF로 변환해서 파일로 만들어줘`
   }catch(error){
 
     console.error(
-      'Workflow ERROR:',
+      "Workflow ERROR:",
       error
     );
 
@@ -675,3 +1047,29 @@ PDF로 변환해서 파일로 만들어줘`
   }
 
 };
+
+
+/* =========================
+   Initial Definition Load
+========================= */
+
+(async function(){
+
+  try{
+
+    await getNodeDefinitions();
+
+  }catch(error){
+
+    /*
+      서버가 잠시 준비되지 않은 경우에도
+      기존 페이지 자체가 바로 죽지 않도록 한다.
+    */
+    console.warn(
+      "Node Definition loading failed:",
+      error
+    );
+
+  }
+
+})();
