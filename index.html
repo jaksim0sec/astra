@@ -2,2207 +2,8101 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover"
+>
 <title>Astra 아스트라</title>
 <link rel="stylesheet" href="/style.css">
 <script src="/functions.js"></script>
 </head>
+
 <body>
+
 <div id="app"></div>
+
 <script>
 (function(){
   'use strict';
 
   const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
   const distance=(a,b)=>Math.hypot(b.x-a.x,b.y-a.y);
-  const midpoint=(a,b)=>({x:(a.x+b.x)/2,y:(a.y+b.y)/2});
+  const midpoint=(a,b)=>({
+    x:(a.x+b.x)/2,
+    y:(a.y+b.y)/2
+  });
+
   const svgNS='http://www.w3.org/2000/svg';
+
   let instanceSeq=0;
 
-  const iconSvg={
-  start:`
-    <svg viewBox="0 0 20 20" fill="none">
-      <circle cx="10" cy="10" r="6.5"
-        stroke="currentColor" stroke-width="1.45"/>
-      <path d="M10 13.2V7"
-        stroke="currentColor" stroke-width="1.55"
-        stroke-linecap="round"/>
-      <path d="M7.8 9.1L10 7l2.2 2.1"
-        stroke="currentColor" stroke-width="1.55"
-        stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  `,
 
-  research:`
-    <svg viewBox="0 0 20 20" fill="none">
-      <circle cx="8" cy="8" r="5"
-        stroke="currentColor" stroke-width="1.55"/>
-      <path d="M11.6 11.6L15.8 15.8"
-        stroke="currentColor" stroke-width="1.6"
-        stroke-linecap="round"/>
-    </svg>
-  `,
+  /* =========================
+     UI-only Icons
+     
+     Node Definition의 일부가 아니라
+     캔버스 UI 전용 아이콘이다.
+  ========================= */
 
-  organize:`
-    <svg viewBox="0 0 20 20" fill="none">
-      <path d="M4 5h12M4 10h12M4 15h8"
-        stroke="currentColor"
-        stroke-width="1.6"
-        stroke-linecap="round"/>
-    </svg>
-  `,
-
-  judge:`
-  <svg viewBox="0 0 20 20" fill="none">
-    <path
-      d="M10 3
-         L11.5 8.5
-         L17 10
-         L11.5 11.5
-         L10 17
-         L8.5 11.5
-         L3 10
-         L8.5 8.5
-         Z"
-      stroke="currentColor"
-      stroke-width="1.45"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    />
-  </svg>
-`,
-  write:`
+  const deleteIcon=`
     <svg viewBox="0 0 20 20" fill="none">
       <path
-        d="M5.1 14.9L6.2 11.8L13.1 4.9
-           C13.7 4.3 14.7 4.3 15.3 4.9
-           L16 5.6C16.6 6.2 16.6 7.2 16 7.8
-           L9.1 14.7L5.1 14.9Z"
+        d="M5.5 6.5h9
+           M8 6.5V5h4v1.5
+           M7 8.5v6.5h6V8.5"
         stroke="currentColor"
-        stroke-width="1.45"
+        stroke-width="1.5"
+        stroke-linecap="round"
         stroke-linejoin="round"
       />
-      <path d="M12.4 5.6L15.1 8.3"
+      <path
+        d="M9 9.5v3.5M11 9.5v3.5"
         stroke="currentColor"
         stroke-width="1.35"
-        stroke-linecap="round"/>
-      <path d="M5.1 14.9L7.9 14.2"
-        stroke="currentColor"
-        stroke-width="1.45"
-        stroke-linecap="round"/>
+        stroke-linecap="round"
+      />
     </svg>
-  `,
+  `;
 
-  convert:`
+  const toggleIcon=`
     <svg viewBox="0 0 20 20" fill="none">
-      <path d="M4 6.5H14.5"
+      <path
+        d="M6 8l4 4 4-4"
         stroke="currentColor"
-        stroke-width="1.5"
-        stroke-linecap="round"/>
-      <path d="M11.8 3.9L14.5 6.5L11.8 9.1"
-        stroke="currentColor"
-        stroke-width="1.5"
+        stroke-width="1.6"
         stroke-linecap="round"
-        stroke-linejoin="round"/>
-      <path d="M16 13.5H5.5"
-        stroke="currentColor"
-        stroke-width="1.5"
-        stroke-linecap="round"/>
-      <path d="M8.2 10.9L5.5 13.5L8.2 16.1"
-        stroke="currentColor"
-        stroke-width="1.5"
-        stroke-linecap="round"
-        stroke-linejoin="round"/>
+        stroke-linejoin="round"
+      />
     </svg>
-  `,
+  `;
 
- file:`
-  <svg viewBox="0 0 20 20" fill="none">
-    <path
-      d="M7.2 10.8
-         l4.7-4.7
-         a2.55 2.55 0 0 1 3.6 3.6
-         l-5.9 5.9
-         a4.05 4.05 0 0 1-5.7-5.7
-         l6-6"
-      stroke="currentColor"
-      stroke-width="1.55"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    />
-  </svg>
-`,
-createFile:`
-  <svg viewBox="0 0 20 20" fill="none">
-    <path
-      d="M10 13V3.5"
-      stroke="currentColor"
-      stroke-width="1.65"
-      stroke-linecap="round"
-    />
-    <path
-      d="M6.8 6.7L10 3.5L13.2 6.7"
-      stroke="currentColor"
-      stroke-width="1.65"
-      stroke-linecap="round"
-      stroke-linejoin="round"
-    />
-    <path
-      d="M5 16H15"
-      stroke="currentColor"
-      stroke-width="1.5"
-      stroke-linecap="round"
-    />
-  </svg>
-`
-};
+  const attachIcon=`
+    <svg viewBox="0 0 20 20" fill="none">
+      <path
+        d="M7.2 10.8
+           l4.7-4.7
+           a2.55 2.55 0 0 1 3.6 3.6
+           l-5.9 5.9
+           a4.05 4.05 0 0 1-5.7-5.7
+           l6-6"
+        stroke="currentColor"
+        stroke-width="1.55"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  `;
 
-  const deleteIcon=`<svg viewBox="0 0 20 20" fill="none"><path d="M5.5 6.5h9M8 6.5V5h4v1.5M7 8.5v6.5h6V8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M9 9.5v3.5M11 9.5v3.5" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/></svg>`;
-  const toggleIcon=`<svg viewBox="0 0 20 20" fill="none"><path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-  const attachIcon=`<svg viewBox="0 0 20 20" fill="none"><path d="M7.2 10.8l4.7-4.7a2.55 2.55 0 0 1 3.6 3.6l-5.9 5.9a4.05 4.05 0 0 1-5.7-5.7l6-6" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-  const sendIcon=`<svg viewBox="0 0 20 20" fill="none"><path d="M10 15.5V4.5M5.8 8.7L10 4.5L14.2 8.7" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-  const addIcon=`<svg class="vc-add-node-icon" viewBox="0 0 20 20" fill="none"><path d="M10 4V16M4 10H16" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/></svg>`;
-  const defaultNodeTypes = {
+  const sendIcon=`
+    <svg viewBox="0 0 20 20" fill="none">
+      <path
+        d="M10 15.5V4.5
+           M5.8 8.7L10 4.5L14.2 8.7"
+        stroke="currentColor"
+        stroke-width="1.7"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+  `;
 
-  start: {
-    name: '시작하기',
-    desc: 'AI 작업을 시작하는 기준점입니다.',
-    tag: 'START',
-    color: '#10B981',
+  const addIcon=`
+    <svg
+      class="vc-add-node-icon"
+      viewBox="0 0 20 20"
+      fill="none"
+    >
+      <path
+        d="M10 4V16M4 10H16"
+        stroke="currentColor"
+        stroke-width="1.55"
+        stroke-linecap="round"
+      />
+    </svg>
+  `;
 
-    inputs: [],
 
-    outputs: [
-      {
-        id: 'out',
-        name: '실행 방향',
-        type: 'any',
-        required: false,
-        multiple: true,
-        accepts: ['any']
-      }
-    ]
-  },
+  /* =========================
+     Canonical Definition Loader
+  ========================= */
 
-  research: {
-    name: '조사하기',
-    desc: '필요한 정보를 찾아 수집합니다.',
-    tag: 'RESEARCH',
-    color: '#3B82F6',
+  async function loadNodeDefinitions(){
 
-    params: [
-      {
-        id: 'topic',
-        name: '주제',
-        placeholder: '조사할 주제',
-        default: '생성형 AI 시장'
-      },
-      {
-        id: 'filter',
-        name: '조건',
-        placeholder: '조사 조건',
-        default: '최근 3년'
-      }
-    ],
+    if(
+      window.nodeDefinitions &&
+      typeof window.nodeDefinitions==='object' &&
+      !Array.isArray(window.nodeDefinitions) &&
+      Object.keys(window.nodeDefinitions).length
+    ){
 
-    inputs: [
-      {
-        id: 'in',
-        name: '연결',
-        type: 'any',
-        required: false,
-        multiple: true,
-        accepts: ['any']
-      }
-    ],
+      return window.nodeDefinitions;
 
-    outputs: [
-      {
-        id: 'result',
-        name: '결과',
-        type: 'research',
-        required: false,
-        multiple: true,
-        accepts: ['research', 'any']
-      }
-    ]
-  },
-
-  organize: {
-    name: '정리하기',
-    desc: '자료를 기준에 따라 구조화합니다.',
-    tag: 'ORGANIZE',
-    color: '#F59E0B',
-
-    params: [
-      {
-        id: 'criteria',
-        name: '정리 기준',
-        placeholder: '정리할 기준',
-        default: '시장 규모 / 주요 기업'
-      },
-      {
-        id: 'format',
-        name: '출력 형식',
-        placeholder: '예: 표, 목록, 문단',
-        default: '표'
-      }
-    ],
-
-    inputs: [
-      {
-        id: 'in',
-        name: '데이터',
-        type: 'any',
-        required: false,
-        multiple: true,
-        accepts: ['any']
-      }
-    ],
-
-    outputs: [
-      {
-        id: 'result',
-        name: '결과',
-        type: 'structured',
-        required: false,
-        multiple: true,
-        accepts: ['structured', 'any']
-      }
-    ]
-  },
-
-  judge: {
-  name: '판단하기',
-  desc: '조건이 참이면 참, 거짓이면 거짓의 통로가 열립니다',
-  tag: 'JUDGE',
-  color: '#8B5CF6',
-
-  params: [
-    {
-      id: 'condition',
-      name: '조건',
-      placeholder: '판단 조건',
-      default: '일치도 ≥ 70%'
-    }
-  ],
-
-  inputs: [
-    {
-      id: 'in',
-      name: '자료',
-      type: 'any',
-      required: false,
-      multiple: true,
-      accepts: ['any']
-    }
-  ],
-
-  outputs: [
-    {
-      id: 'true',
-      name: '참 출구',
-      type: 'decision',
-      required: false,
-      multiple: true,
-      accepts: ['decision', 'any']
-    },
-    {
-      id: 'false',
-      name: '거짓 출구',
-      type: 'decision',
-      required: false,
-      multiple: true,
-      accepts: ['decision', 'any']
-    }
-  ]
-},
-  write: {
-    name: '작성하기',
-    desc: '주어진 정보를 글 형태로 작성합니다.',
-    tag: 'WRITE',
-    color: '#EF4444',
-
-    params: [
-      {
-        id: 'title',
-        name: '제목',
-        placeholder: '문서 제목',
-        default: 'AI 기술 보고서'
-      },
-      {
-        id: 'length',
-        name: '분량',
-        placeholder: '예: 2페이지',
-        default: '2페이지'
-      },
-      {
-        id: 'style',
-        name: '스타일',
-        placeholder: '예: 전문적, 간결한',
-        default: '전문적'
-      },
-      {
-        id: 'about',
-        name: '내용',
-        placeholder: '예: 관련 데이터에 대하여 서술',
-        default: ''
-      }
-    ],
-
-    inputs: [
-      {
-        id: 'in',
-        name: '자료',
-        type: 'any',
-        required: false,
-        multiple: true,
-        accepts: ['any']
-      }
-    ],
-
-    outputs: [
-      {
-        id: 'result',
-        name: '결과',
-        type: 'document',
-        required: false,
-        multiple: true,
-        accepts: ['document', 'any']
-      }
-    ]
-  },
-
-  convert: {
-    name: '변형하기',
-    desc: '자료의 형식이나 스타일을 변형합니다.',
-    tag: 'CONVERT',
-    color: '#EC4899',
-
-    params: [
-      {
-        id: 'instruction',
-        name: '변형 방식',
-        placeholder: '어떻게 변형할까요?',
-        default: '표로 바꿔줘'
-      }
-    ],
-
-    inputs: [
-      {
-        id: 'in',
-        name: '자료',
-        type: 'any',
-        required: false,
-        multiple: true,
-        accepts: ['any']
-      }
-    ],
-
-    outputs: [
-      {
-        id: 'result',
-        name: '결과',
-        type: 'any',
-        required: false,
-        multiple: true,
-        accepts: ['any']
-      }
-    ]
-  },
-
-  file: {
-    name: '파일추가하기',
-    desc: '작업에 사용할 파일을 추가합니다.',
-    tag: 'INPUT',
-    color: '#64748B',
-
-    inputs: [],
-
-    outputs: [
-      {
-        id: 'file',
-        name: '전달',
-        type: 'file',
-        required: false,
-        multiple: true,
-        accepts: ['file', 'any']
-      }
-    ]
-  },
-
-  createFile: {
-    hidden: true,
-    name: '내보내기',
-    desc: '완성된 결과물을 파일로 생성합니다.',
-    tag: 'OUTPUT',
-    color: '#F97316',
-
-    params: [
-      {
-        id: 'format',
-        name: '파일 형식',
-        placeholder: '예: PDF, DOCX',
-        default: 'PDF'
-      },
-      {
-        id: 'filename',
-        name: '파일명',
-        placeholder: '저장할 파일 이름',
-        default: '결과물'
-      }
-    ],
-
-    inputs: [
-      {
-        id: 'in',
-        name: '대상',
-        type: 'any',
-        required: false,
-        multiple: true,
-        accepts: ['any']
-      }
-    ],
-
-    outputs: []
-  },
-
-  /*
-  memo: {
-    name: '메모하기',
-    desc: '아무거나 기록해보세요',
-    tag: 'MEMO',
-    color: '#eaeaea',
-
-    params: [
-      {
-        id: 'content',
-        name: '내용',
-        placeholder: '아무 말이나 쓰세요',
-        default: ''
-      }
-    ],
-
-    inputs: [],
-    outputs: []
-  },
-  */
-
-};
-  function normalizePort(port,index,dir){
-    const p={...port};
-    p.id=String(p.id||`${dir}-${index}`);
-    p.name=p.name??p.id;
-    p.type=p.type||'any';
-    p.required=!!p.required;
-    p.multiple=p.multiple!==false;
-    p.accepts=Array.isArray(p.accepts)&&p.accepts.length?p.accepts.slice():['any'];
-    return p;
-  }
-  function normalizeNodeType(type,def){
-    const d={...def};
-    d.inputs=(d.inputs||[]).map((p,i)=>normalizePort(p,i,'input'));
-    d.outputs=(d.outputs||[]).map((p,i)=>normalizePort(p,i,'output'));
-    d.slots={description:true,param:true,body:true,footer:true,...(d.slots||{})};
-    d.tag=d.tag||type.toUpperCase();
-    d.color=d.color||'#888';
-    return d;
-  }
-
-  window.createVisualCanvas=function(target,options={}){
-    if(!(target instanceof Element)) throw new TypeError('target must be a DOM Element');
-
-    const uid=`vc-${++instanceSeq}-${Math.random().toString(36).slice(2,7)}`;
-    const state={
-      nodes:[],
-      connections:[],
-      selectedNode:null,
-      scale:1,
-      offset:{x:0,y:0},
-      pointers:new Map(),
-      nodeDrag:null,
-      canvasPan:null,
-      pinch:null,
-      connectionDrag:null,
-      expansionAnimation:null,
-      rafIds:new Set(),
-      destroyed:false,
-      addMenuOpen:false,
-      validationTimer:null,
-      aiBusy:false,
-    };
-
-    const registry=new Map(Object.entries(defaultNodeTypes).map(([k,v])=>[k,normalizeNodeType(k,v)]));
-    const events=new Map();
-    const listeners=[];
-    const observerHandles=[];
-    const nodeResizeObserver=new ResizeObserver(entries=>{
-      for(const entry of entries){
-        const el=entry.target;
-        const n=getNode(el.dataset.nodeId);
-        if(n) positionPorts(el,getNodeType(n));
-      }
-      renderConnections();
-    });
-
-    const root=document.createElement('div');
-    root.className='vc-root';
-    root.dataset.vcInstance=uid;
-    root.innerHTML=`
-      <div class="vc-canvas">
-        <div class="vc-world">
-          <svg class="vc-svg" viewBox="0 0 3000 3000" preserveAspectRatio="none">
-            <defs>
-              <marker class="vc-arrow-marker" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto">
-                <path d="M1 1L8 5L1 9" fill="none" stroke="currentColor" stroke-width="1.5"></path>
-              </marker>
-            </defs>
-            <g class="vc-connection-layer"></g>
-            <g class="vc-drag-connection-layer"></g>
-          </svg>
-          <div class="vc-nodes"></div>
-        </div>
-      </div>
-      <div class="vc-zoom-indicator">100%</div>
-      <div class="vc-validation"></div>
-      <div class="vc-top-controls">
-        <button type="button" class="vc-top-button vc-theme-button" aria-label="다크 모드">◐</button>
-        <button type="button" class="vc-top-button vc-add-button" aria-label="노드 추가" aria-expanded="false">${addIcon}</button>
-      </div>
-      <div class="vc-add-menu"></div>
-      <div class="vc-composer-wrap">
-        <form class="vc-composer">
-          <button type="button" class="vc-composer-button vc-attach-button" aria-label="파일 추가">${attachIcon}</button>
-          <textarea rows="1" class="vc-chat-input" placeholder="무엇을 만들까요?"></textarea>
-          <button type="submit" class="vc-composer-button vc-send-button" aria-label="보내기">${sendIcon}</button>
-        </form>
-        <input class="vc-file-input" type="file" multiple hidden>
-      </div>`;
-    target.appendChild(root);
-
-    if(!document.getElementById('vc-ai-wait-style')){
-      const style=document.createElement('style');
-      style.id='vc-ai-wait-style';
-      style.textContent=`
-        .vc-composer.vc-ai-busy{
-          cursor:wait;
-        }
-
-        .vc-composer.vc-ai-busy .vc-chat-input{
-          opacity:.62;
-        }
-
-        .vc-composer.vc-ai-busy .vc-composer-button{
-          cursor:wait;
-        }
-
-        .vc-composer-button:disabled{
-          opacity:.55;
-        }
-
-        .vc-ai-spinner{
-          display:block;
-          width:15px;
-          height:15px;
-          border:1.7px solid currentColor;
-          border-right-color:transparent;
-          border-radius:50%;
-          animation:vc-ai-spin .72s linear infinite;
-        }
-
-        @keyframes vc-ai-spin{
-          to{transform:rotate(360deg)}
-        }
-      `;
-      document.head.appendChild(style);
     }
 
-    const qs=s=>root.querySelector(s);
-    const canvas=qs('.vc-canvas');
-    const world=qs('.vc-world');
-    const nodesLayer=qs('.vc-nodes');
-    const connectionLayer=qs('.vc-connection-layer');
-    const dragConnectionLayer=qs('.vc-drag-connection-layer');
-    const zoomIndicator=qs('.vc-zoom-indicator');
-    const validationLayer=qs('.vc-validation');
-    const addButton=qs('.vc-add-button');
-    const addMenu=qs('.vc-add-menu');
-    const themeButton=qs('.vc-theme-button');
-    const chatForm=qs('.vc-composer');
-    const chatInput=qs('.vc-chat-input');
-    const attachButton=qs('.vc-attach-button');
-    const fileInput=qs('.vc-file-input');
 
-    const markerId=`${uid}-arrow`;
-    qs('.vc-arrow-marker').setAttribute('id',markerId);
-
-    function on(event,handler){
-      if(typeof handler!=='function') return ()=>{};
-      if(!events.has(event)) events.set(event,new Set());
-      events.get(event).add(handler);
-      return ()=>off(event,handler);
-    }
-    function off(event,handler){events.get(event)?.delete(handler)}
-    function emit(event,payload){for(const fn of events.get(event)||[]) try{fn(payload,api)}catch(error){console.error(error)}}
-    function listen(el,type,fn,opts){el.addEventListener(type,fn,opts);listeners.push(()=>el.removeEventListener(type,fn,opts))}
-    function raf(fn){const id=requestAnimationFrame(t=>{state.rafIds.delete(id);if(!state.destroyed) fn(t)});state.rafIds.add(id);return id}
-
-    function getNode(id){return state.nodes.find(n=>n.id===id)||null}
-    function getNodeElement(id){
-      return nodesLayer.querySelector(`.vc-node[data-node-id="${CSS.escape(String(id))}"]`)
-    }
-    function getNodeType(node){return node?registry.get(node.type):null}
-    function screenToWorld(x,y){return{x:(x-state.offset.x)/state.scale,y:(y-state.offset.y)/state.scale}}
-    function renderTransform(){
-      world.style.transform=`translate(${state.offset.x}px,${state.offset.y}px) scale(${state.scale})`;
-      zoomIndicator.textContent=`${Math.round(state.scale*100)}%`;
-    }
-    function svgEl(name,attrs={}){
-      const e=document.createElementNS(svgNS,name);
-      for(const [k,v] of Object.entries(attrs)) e.setAttribute(k,v);
-      return e;
-    }
-    function connectionKey(c){return `${c.from.node}:${c.from.port}->${c.to.node}:${c.to.port}`}
-    function portDef(nodeId,portId,dir){
-      const n=getNode(nodeId); const t=getNodeType(n); if(!n||!t)return null;
-      return (dir==='input'?t.inputs:t.outputs).find(p=>p.id===portId)||null;
-    }
-    function portEl(nodeId,portId,dir){
-      return nodesLayer.querySelector(`.vc-port-hit[data-node-id="${CSS.escape(String(nodeId))}"][data-port-id="${CSS.escape(String(portId))}"][data-port-dir="${dir}"]`)
-    }
-    function portPoint(nodeId,portId,dir){
-      const el=portEl(nodeId,portId,dir); if(!el) return null;
-      const anchor=el.querySelector('.vc-port-anchor')||el;
-      const r=anchor.getBoundingClientRect();
-      const cr=canvas.getBoundingClientRect();
-      return {x:(r.left+r.width/2-cr.left-state.offset.x)/state.scale,y:(r.top+r.height/2-cr.top-state.offset.y)/state.scale};
-    }
-    function curve(a,b){
-      const dx=b.x-a.x;
-      const bend=clamp(Math.abs(dx)*.22+Math.abs(b.y-a.y)*.05,28,85);
-      return `M ${a.x} ${a.y} C ${a.x+bend} ${a.y}, ${b.x-bend} ${b.y}, ${b.x} ${b.y}`;
-    }
-
-    function renderSlotContent(n,t){
-      const body=[];
-      if(t.slots.description!==false && (t.desc||t.description)) body.push(`<div class="vc-slot-description">${escapeHtml(t.desc||t.description||'')}</div>`);
-      if(t.slots.param!==false && Array.isArray(t.params)){
-        const values=n.data?.params||{};
-
-        for(const p of t.params){
-          const value=values[p.id]??'';
-
-          body.push(`
-            <div class="vc-param-group">
-              <label class="vc-param-label">${escapeHtml(p.name||p.id)}</label>
-              <input
-                class="vc-slot-param"
-                type="text"
-                data-param-id="${escapeHtml(p.id)}"
-                value="${escapeHtml(value)}"
-                placeholder="${escapeHtml(p.placeholder||'')}"
-              >
-            </div>
-          `);
-        }
-      }
-      if(typeof t.renderBody==='function'){
-        const custom=t.renderBody(n,{node:n,type:t,instance:api});
-        if(custom instanceof Node) body.push(custom.outerHTML); else if(typeof custom==='string') body.push(`<div class="vc-slot-custom">${custom}</div>`);
-      }
-      if(t.slots.footer!==false && t.footer) body.push(typeof t.footer==='function'?`<div class="vc-slot-custom">${t.footer(n,{node:n,type:t,instance:api})||''}</div>`:`<div class="vc-slot-custom">${t.footer}</div>`);
-      //if(n.type!=='start') body.push(`<div class="vc-node-delete-row"><button type="button" class="vc-node-delete-button" data-action="delete-expanded" aria-label="노드 삭제">${deleteIcon}<span>노드 삭제</span></button></div>`);
-      return body.join('');
-    }
-    function escapeHtml(value){return String(value).replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
-
-    function renderNodes(){
-      nodesLayer.textContent='';
-      for(const n of state.nodes){
-        const t=getNodeType(n); if(!t) continue;
-        const el=document.createElement('div');
-        const isImageFile=n.type==='file'&&n.data?.mime?.startsWith('image/');
-
-        el.className=
-            `vc-node${n.type==='start'?' vc-start-node':''}`+
-            `${n.type==='file'?' vc-file-node':''}`+
-            `${isImageFile?' vc-image-file-node':''}`;
-
-        if(isImageFile&&n.data?.previewUrl){
-            el.style.setProperty('--vc-file-bg',`url("${n.data.previewUrl}")`);
-        }
-        if(n.id===state.selectedNode) el.classList.add('vc-selected');
-        if(n.expanded) el.classList.add('vc-expanded');
-        el.dataset.nodeId=n.id;
-        el.style.left=`${n.x}px`;
-        el.style.top=`${n.y}px`;
-        el.style.setProperty('--node-color',t.color);
-        const fileName=n.type==='file'?(n.data?.name||'이름 없는 파일'):t.name;
-        const fileExt=n.type==='file'&&fileName.includes('.')?fileName.split('.').pop().toUpperCase():'FILE';
-        el.innerHTML=`
-          <div class="vc-node-head">
-            <span class="vc-node-icon">${iconSvg[n.type]||''}</span>
-            ${n.type==='file'?`<span class="vc-file-title-wrap"><span class="vc-file-title" title="${escapeHtml(fileName)}">${escapeHtml(fileName)}</span><span class="vc-file-type">${escapeHtml(fileExt)}</span></span>`:`<span class="vc-node-title">${escapeHtml(t.name)}</span>`}
-            ${n.type==='start'?'<span class="vc-start-badge">START</span>':''}
-            <div class="vc-node-actions">
-              ${n.type!=='start'?`<button type="button" class="vc-node-action vc-node-delete" data-action="delete" aria-label="노드 삭제">${deleteIcon}</button>`:''}
-              <button type="button" class="vc-node-action vc-node-toggle" data-action="toggle" aria-label="상세 내용 열기" aria-expanded="${!!n.expanded}">${toggleIcon}</button>
-            </div>
-          </div>
-          <div class="vc-node-body">${renderSlotContent(n,t)}</div>
-          ${t.inputs.map(p=>`<div class="vc-port-hit vc-input" data-port-dir="input" data-port-id="${escapeHtml(p.id)}" data-node-id="${escapeHtml(n.id)}"><span class="vc-port-anchor"><span class="vc-port-pill"></span></span><span class="vc-port-label">${escapeHtml(p.name)}</span></div>`).join('')}
-          ${t.outputs.map(p=>`<div class="vc-port-hit vc-output" data-port-dir="output" data-port-id="${escapeHtml(p.id)}" data-node-id="${escapeHtml(n.id)}"><span class="vc-port-anchor"><span class="vc-port-pill"></span></span><span class="vc-port-label">${escapeHtml(p.name)}</span></div>`).join('')}`;
-          nodesLayer.appendChild(el);
-          const paramInputs=el.querySelectorAll('.vc-slot-param');
-
-          paramInputs.forEach(paramInput=>{
-            paramInput.addEventListener('pointerdown',e=>{
-              e.stopPropagation();
-            });
-
-            paramInput.addEventListener('input',e=>{
-              n.data ||= {};
-              n.data.params ||= {};
-
-              n.data.params[e.target.dataset.paramId]=e.target.value;
-
-              emit('change',getWorkflow());
-            });
-          });
-
-          positionPorts(el,t);
-          nodeResizeObserver.observe(el);
-          setNodeExpanded(el,!!n.expanded,true);
-      }
-      markConnectedPorts();
-      raf(renderConnections);
-    }
-
-    function positionPorts(nodeEl,type){
-      const height=Math.max(50,nodeEl.offsetHeight);
-      const inputs=[...nodeEl.querySelectorAll('.vc-port-hit.vc-input')];
-      const outputs=[...nodeEl.querySelectorAll('.vc-port-hit.vc-output')];
-      function place(list,ports){
-        const count=Math.max(1,ports.length);
-        list.forEach((el,i)=>{const port=ports[i]; const y=((i+1)/(count+1))*height; el.style.height='32px'; el.style.top=`${y-16}px`; el.dataset.portId=port.id;});
-      }
-      place(inputs,type.inputs); place(outputs,type.outputs);
-    }
-    function markConnectedPorts(){
-      for(const c of state.connections){
-        portEl(c.from.node,c.from.port,'output')?.querySelector('.vc-port-pill')?.classList.add('vc-connected');
-        portEl(c.to.node,c.to.port,'input')?.querySelector('.vc-port-pill')?.classList.add('vc-connected');
-      }
-    }
-    function renderConnections(){
-      connectionLayer.textContent='';
-
-      for(const c of state.connections){
-        const a=portPoint(c.from.node,c.from.port,'output');
-        const b=portPoint(c.to.node,c.to.port,'input');
-
-        if(!a||!b) continue;
-
-        const active=
-          state.selectedNode===c.from.node ||
-          state.selectedNode===c.to.node;
-
-        const p=svgEl('path',{d:curve(a,b)});
-        p.classList.add('vc-connection');
-
-        if(active){
-          p.classList.add('vc-active');
-
-          const activeNode=getNode(
-            state.selectedNode===c.from.node
-              ? c.from.node
-              : c.to.node
-          );
-
-          const activeType=getNodeType(activeNode);
-
-          if(activeType?.color){
-            p.style.stroke=activeType.color;
+    const response=
+      await fetch(
+        '/api/node-definitions',
+        {
+          method:'GET',
+          headers:{
+            Accept:'application/json'
           }
         }
+      );
 
-        connectionLayer.appendChild(p);
 
-        if(!active){
-          connectionLayer.appendChild(
-            svgEl('circle',{
-              cx:a.x,
-              cy:a.y,
-              r:2.8,
-              class:'vc-connection-dot'
-            })
-          );
+    if(!response.ok){
 
-          connectionLayer.appendChild(
-            svgEl('circle',{
-              cx:b.x,
-              cy:b.y,
-              r:2.8,
-              class:'vc-connection-dot'
-            })
-          );
-        }
-      }
+      throw new Error(
+        `노드 정의를 불러오지 못했습니다. HTTP ${response.status}`
+      );
 
-      if(state.connectionDrag) renderDragConnection();
     }
-    function setNodeExpanded(el,expanded,immediate=false){
-      const n=getNode(el?.dataset.nodeId);
-      if(!el||!n)return;
 
-      const body=el.querySelector('.vc-node-body');
 
-      n.expanded=expanded;
-      el.classList.toggle('vc-expanded',expanded);
+    const result=
+      await response.json();
 
-      el.querySelector('.vc-node-toggle')?.setAttribute(
-        'aria-expanded',
-        String(expanded)
+
+    if(
+      !result||
+      result.ok===false||
+      !result.nodes||
+      typeof result.nodes!=='object'||
+      Array.isArray(result.nodes)
+    ){
+
+      throw new Error(
+        '노드 정의 응답이 올바르지 않습니다.'
       );
 
-      el.querySelector('.vc-node-toggle')?.setAttribute(
-        'aria-label',
-        expanded?'상세 내용 닫기':'상세 내용 열기'
-      );
+    }
 
-      positionPorts(el,getNodeType(n));
 
-      const head=el.querySelector('.vc-node-head');
-      const collapsedHeight=head.offsetHeight+20;
+    window.nodeDefinitions=
+      result.nodes;
 
-      if(immediate){
-        body.style.transition='none';
-        el.style.transition='none';
 
-        if(expanded){
-          body.style.height='auto';
-          el.style.height='auto';
-        }else{
-          body.style.height='0px';
-          el.style.height=`${collapsedHeight}px`;
-        }
+    return result.nodes;
+  }
 
-        positionPorts(el,getNodeType(n));
 
-        raf(()=>{
-          body.style.transition='';
-          el.style.transition='';
-          positionPorts(el,getNodeType(n));
-          renderConnections();
-        });
+  /* =========================
+     Client Renderers
+     
+     Definition 자체를 변경하지 않고
+     frontend가 표현만 담당한다.
+  ========================= */
 
-        return;
+  const clientNodeRenderers={
+
+    file(node){
+
+      const mime=
+        node.data?.mime||
+        '알 수 없는 형식';
+
+      const size=
+        Number(
+          node.data?.size||
+          0
+        );
+
+      const sizeText=
+        size<1024
+          ?`${size} B`
+          :size<1024*1024
+            ?`${(size/1024).toFixed(1)} KB`
+            :`${(size/1024/1024).toFixed(1)} MB`;
+
+      return `
+        <div class="vc-file-meta">
+          <span>${escapeHtml(mime)}</span>
+          <span>${escapeHtml(sizeText)}</span>
+        </div>
+      `;
+
+    }
+
+  };
+
+
+  /* =========================
+     Visual Canvas
+  ========================= */
+
+  window.createVisualCanvas=
+    function(
+      target,
+      options={}
+    ){
+
+      if(
+        !(target instanceof Element)
+      ){
+
+        throw new TypeError(
+          'target must be a DOM Element'
+        );
+
       }
 
-      if(expanded){
-        /*
-          auto 상태에서 현재 실제 높이를 먼저 확보한 뒤
-          목표 높이까지 애니메이션
-        */
-        body.style.height='0px';
-        el.style.height=`${collapsedHeight}px`;
 
-        const targetBody=body.scrollHeight;
-        const targetHeight=collapsedHeight+targetBody;
+      const uid=
+        `vc-${++instanceSeq}-${Math.random().toString(36).slice(2,7)}`;
 
-        void el.offsetHeight;
 
-        raf(()=>{
-          body.style.height=`${targetBody}px`;
-          el.style.height=`${targetHeight}px`;
-          trackExpansion();
+      const state={
 
-          setTimeout(()=>{
-            if(n.expanded){
-              body.style.height='auto';
-              el.style.height='auto';
-              positionPorts(el,getNodeType(n));
-              renderConnections();
-            }
-          },360);
-        });
+        nodes:[],
 
-        return;
-      }
+        connections:[],
+
+        selectedNode:null,
+
+        scale:1,
+
+        offset:{
+          x:0,
+          y:0
+        },
+
+        pointers:new Map(),
+
+        nodeDrag:null,
+
+        canvasPan:null,
+
+        pinch:null,
+
+        connectionDrag:null,
+
+        expansionAnimation:null,
+
+        rafIds:new Set(),
+
+        destroyed:false,
+
+        addMenuOpen:false,
+
+        validationTimer:null,
+
+        aiBusy:false
+
+      };
+
 
       /*
-        접을 때는 현재 auto 높이를 실제 px 값으로 고정한 뒤
-        0으로 애니메이션
+        서버에서 받은 Canonical Definition만 사용한다.
       */
-      const currentHeight=el.offsetHeight;
-      const currentBodyHeight=body.scrollHeight;
+      const definitions=
+        options.nodeDefinitions||
+        {};
 
-      el.style.height=`${currentHeight}px`;
-      body.style.height=`${currentBodyHeight}px`;
-
-      void el.offsetHeight;
-
-      raf(()=>{
-        el.style.height=`${collapsedHeight}px`;
-        body.style.height='0px';
-        trackExpansion();
-      });
-    }
-    function trackExpansion(){
-      if(state.expansionAnimation)cancelAnimationFrame(state.expansionAnimation);
-      const started=performance.now(),duration=340;
-      const tick=now=>{renderConnections();if(now-started<duration){state.expansionAnimation=requestAnimationFrame(tick)}else{state.expansionAnimation=null;renderConnections()}};
-      state.expansionAnimation=requestAnimationFrame(tick);
-    }
-
-    function uniqueId(prefix='n'){
-      let id;
-      do{id=`${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2,7)}`}while(getNode(id));
-      return id;
-    }
-    function normalizeNode(input){
-      return {id:String(input.id||uniqueId()),type:String(input.type),x:Number(input.x)||0,y:Number(input.y)||0,expanded:!!input.expanded,data:structuredCloneSafe(input.data||{})};
-    }
-    function structuredCloneSafe(v){try{return structuredClone(v)}catch{return JSON.parse(JSON.stringify(v))}}
-
-    function findNewNodePosition(){
-      const rect=canvas.getBoundingClientRect();
-      const mobile=window.innerWidth<=600;
-      const nodeWidth=mobile?178:190;
-      const marginScreen=28;
-      const leftWorld=(marginScreen-state.offset.x)/state.scale;
-      const topWorld=(marginScreen-state.offset.y)/state.scale;
-      const rightWorld=(rect.width-marginScreen-nodeWidth*state.scale-state.offset.x)/state.scale;
-      const bottomWorld=(rect.height-115-nodeWidth*0.4*state.scale-state.offset.y)/state.scale;
-      const minX=Math.min(leftWorld,rightWorld),maxX=Math.max(leftWorld,rightWorld),minY=Math.min(topWorld,bottomWorld),maxY=Math.max(topWorld,bottomWorld);
-      const centerX=(minX+maxX)/2,centerY=(minY+maxY)/2,gap=24;
-      const estimatedHeight=54;
-      const spots=[
-        {x:centerX-nodeWidth/2,y:centerY-estimatedHeight/2},
-        {x:centerX-nodeWidth/2,y:centerY-estimatedHeight/2+estimatedHeight+gap},
-        {x:centerX-nodeWidth/2,y:centerY-estimatedHeight/2-estimatedHeight-gap},
-        {x:centerX-nodeWidth/2-nodeWidth-gap,y:centerY-estimatedHeight/2},
-        {x:centerX-nodeWidth/2+nodeWidth+gap,y:centerY-estimatedHeight/2},
-        {x:minX,y:minY}
-      ];
-      const valid=spots.find(p=>{
-        if(p.x<minX||p.x>maxX||p.y<minY||p.y>maxY)return false;
-        return !state.nodes.some(n=>Math.abs(n.x-p.x)<nodeWidth+gap&&Math.abs(n.y-p.y)<estimatedHeight+gap);
-      });
-      return valid||{x:clamp(centerX-nodeWidth/2,minX,maxX),y:clamp(centerY-estimatedHeight/2,minY,maxY)};
-    }
-
-    function addNode(type,nodeData={}){
-      if(!registry.has(type)) throw new Error(`Unknown node type: ${type}`);
-      if(type==='start'){
-        const existing=state.nodes.find(n=>n.type==='start');
-        if(existing){selectNode(existing.id);closeAddMenu();return existing}
-      }
-      const p=nodeData.x!=null&&nodeData.y!=null?{x:nodeData.x,y:nodeData.y}:findNewNodePosition();
-      const node=normalizeNode({id:nodeData.id||uniqueId(),type,x:p.x,y:p.y,expanded:true,data:nodeData.data});
-      state.nodes.push(node);
-      state.selectedNode=node.id;
-      render();
-      closeAddMenu();
-      emit('change',getWorkflow());
-      return node;
-    }
-    function removeNode(id){
-      const node=getNode(id); if(!node||node.type==='start') return false;
-      state.connections=state.connections.filter(c=>c.from.node!==id&&c.to.node!==id);
-      const index=state.nodes.findIndex(n=>n.id===id); if(index<0)return false;
-      state.nodes.splice(index,1);
-      if(state.selectedNode===id)state.selectedNode=null;
-      render(); emit('change',getWorkflow()); return true;
-    }
-
-    function setNodePosition(n,x,y){
-      n.x=x;
-      n.y=y;
-
-      const el=getNodeElement(n.id);
-
-      if(el){
-        el.style.left=`${x}px`;
-        el.style.top=`${y}px`;
-      }
-
-      renderConnections();
-      emit('change',getWorkflow());
-    }
-    function selectNode(id){
-      if(id!==null&&!getNode(id)) id=null;
-      state.selectedNode=id;
-      nodesLayer.querySelectorAll('.vc-node').forEach(el=>el.classList.toggle('vc-selected',el.dataset.nodeId===id));
-      renderConnections();updateComposerState();emit('select',id);
-    }
-    function toggleNodeExpanded(id){const n=getNode(id),el=getNodeElement(id);if(!n||!el)return;setNodeExpanded(el,!n.expanded);selectNode(id);emit('change',getWorkflow())}
-
-    function connectionValid(sourceNodeId,sourcePortId,targetNodeId,targetPortId){
-      const errors=[],warnings=[];
-      if(sourceNodeId===targetNodeId) errors.push({code:'SELF_CONNECTION',message:'노드는 자기 자신에게 연결할 수 없습니다.'});
-      const source=getNode(sourceNodeId),target=getNode(targetNodeId);
-      if(!source) errors.push({code:'MISSING_SOURCE_NODE',message:`출발 노드 ${sourceNodeId}가 존재하지 않습니다.`});
-      if(!target) errors.push({code:'MISSING_TARGET_NODE',message:`대상 노드 ${targetNodeId}가 존재하지 않습니다.`});
-      const out=portDef(sourceNodeId,sourcePortId,'output'),input=portDef(targetNodeId,targetPortId,'input');
-      if(!out) errors.push({code:'MISSING_SOURCE_PORT',message:`출력 포트 ${sourcePortId}가 존재하지 않습니다.`});
-      if(!input) errors.push({code:'MISSING_TARGET_PORT',message:`입력 포트 ${targetPortId}가 존재하지 않습니다.`});
-      if(errors.length)return{ok:false,errors,warnings};
-      const duplicate=state.connections.find(c=>c.from.node===sourceNodeId&&c.from.port===sourcePortId&&c.to.node===targetNodeId&&c.to.port===targetPortId);
-      if(duplicate) errors.push({code:'DUPLICATE_CONNECTION',message:'동일한 연결이 이미 존재합니다.'});
-      const incoming=state.connections.filter(c=>c.to.node===targetNodeId&&c.to.port===targetPortId);
-      if(!input.multiple&&incoming.length) errors.push({code:'INPUT_MULTIPLE',message:`입력 포트 ${input.name}은 하나의 연결만 허용합니다.`});
-      const accepted=input.accepts.includes('any')||input.accepts.includes(out.type)||out.type==='any';
-      if(!accepted) errors.push({code:'TYPE_MISMATCH',message:`${out.type} → ${input.type} 타입을 연결할 수 없습니다.`});
-      if(wouldCreateCycle(sourceNodeId,targetNodeId)) errors.push({code:'CYCLE',message:'이 연결은 순환 구조(Cycle)를 만듭니다.'});
-      return{ok:errors.length===0,errors,warnings};
-    }
-    function wouldCreateCycle(fromId,toId){
-      if(fromId===toId)return true;
-      const adjacency=new Map();
-      for(const c of state.connections){if(!adjacency.has(c.from.node))adjacency.set(c.from.node,[]);adjacency.get(c.from.node).push(c.to.node)}
-      if(!adjacency.has(toId))return false;
-      const stack=[toId],seen=new Set();
-      while(stack.length){const cur=stack.pop();if(cur===fromId)return true;if(seen.has(cur))continue;seen.add(cur);for(const n of adjacency.get(cur)||[])stack.push(n)}
-      return false;
-    }
-    function canConnect(spec){
-      const result=connectionValid(spec.from.node,spec.from.port,spec.to.node,spec.to.port);
-      emit('validate',result);return result;
-    }
-    function connect(from,to,options={}){
-  const spec={from:{node:from.node,port:from.port},to:{node:to.node,port:to.port}};
-
-  const duplicate=state.connections.find(c=>
-    c.from.node===spec.from.node &&
-    c.from.port===spec.from.port &&
-    c.to.node===spec.to.node &&
-    c.to.port===spec.to.port
-  );
-
-  if(duplicate){
-    disconnect(duplicate.id);
-    return null;
-  }
-
-  const check=canConnect(spec);
-  if(!check.ok){
-    showValidation(check.errors,check.warnings);
-    return null;
-  }
-
-  const c={
-    id:uniqueConnectionId(),
-    from:spec.from,
-    to:spec.to,
-    ...(options.data?{data:structuredCloneSafe(options.data)}:{})
-  };
-
-  state.connections.push(c);
-  render();
-  emit('connect',c);
-  emit('change',getWorkflow());
-  return c;
-}
-    function uniqueConnectionId(){let id;do{id=`c${Date.now().toString(36)}${Math.random().toString(36).slice(2,7)}`}while(state.connections.some(c=>c.id===id));return id}
-    function disconnect(id){const i=state.connections.findIndex(c=>c.id===id);if(i<0)return false;state.connections.splice(i,1);render();emit('change',getWorkflow());return true}
-
-    function validate(){
-      const errors=[],warnings=[];
-      const ids=new Set();
-      for(const n of state.nodes){
-        if(ids.has(n.id))errors.push({code:'DUPLICATE_NODE_ID',node:n.id,message:`노드 ID ${n.id}가 중복됩니다.`});ids.add(n.id);
-        if(!registry.has(n.type))errors.push({code:'UNKNOWN_NODE_TYPE',node:n.id,message:`노드 타입 ${n.type}이 등록되어 있지 않습니다.`});
-      }
-      const nodeSet=new Set(state.nodes.map(n=>n.id));
-      const connectionKeys=new Set();
-      for(const c of state.connections){
-        if(!nodeSet.has(c.from.node))errors.push({code:'MISSING_SOURCE_NODE',connection:c.id,message:`연결 ${c.id}의 출발 노드가 없습니다.`});
-        if(!nodeSet.has(c.to.node))errors.push({code:'MISSING_TARGET_NODE',connection:c.id,message:`연결 ${c.id}의 대상 노드가 없습니다.`});
-        if(c.from.node===c.to.node)errors.push({code:'SELF_CONNECTION',connection:c.id,message:`연결 ${c.id}가 자기 자신을 가리킵니다.`});
-        const key=connectionKey(c);if(connectionKeys.has(key))errors.push({code:'DUPLICATE_CONNECTION',connection:c.id,message:`연결 ${c.id}가 중복됩니다.`});connectionKeys.add(key);
-        const out=portDef(c.from.node,c.from.port,'output'),input=portDef(c.to.node,c.to.port,'input');
-        if(!out)errors.push({code:'MISSING_SOURCE_PORT',connection:c.id,message:`연결 ${c.id}의 출력 포트가 없습니다.`});
-        if(!input)errors.push({code:'MISSING_TARGET_PORT',connection:c.id,message:`연결 ${c.id}의 입력 포트가 없습니다.`});
-        if(out&&input){if(!(input.accepts.includes('any')||input.accepts.includes(out.type)||out.type==='any'))errors.push({code:'TYPE_MISMATCH',connection:c.id,message:`${out.type} → ${input.type} 타입이 호환되지 않습니다.`})}
-      }
-      for(const n of state.nodes){
-        const t=getNodeType(n);if(!t)continue;
-        for(const p of t.inputs){const incoming=state.connections.filter(c=>c.to.node===n.id&&c.to.port===p.id);if(p.required&&!incoming.length)errors.push({code:'REQUIRED_INPUT',node:n.id,port:p.id,message:`${t.name}의 필수 입력 '${p.name}'이 연결되지 않았습니다.`});if(!p.multiple&&incoming.length>1)errors.push({code:'INPUT_MULTIPLE',node:n.id,port:p.id,message:`${t.name}의 '${p.name}'은 단일 입력만 허용합니다.`})}
-      }
-      const connectedNodes=new Set();for(const c of state.connections){connectedNodes.add(c.from.node);connectedNodes.add(c.to.node)}
-      const startNodes=state.nodes.filter(n=>n.type==='start');
-      for(const n of state.nodes){if(n.type!=='start'&&!connectedNodes.has(n.id))warnings.push({code:'ISOLATED_NODE',node:n.id,message:`노드 '${getNodeType(n)?.name||n.type}'가 그래프와 연결되지 않았습니다.`})}
-      if(startNodes.length===0)warnings.push({code:'NO_START_NODE',message:'시작 노드가 없습니다.'});
-      if(startNodes.length>1)warnings.push({code:'MULTIPLE_START_NODE',message:'시작 노드가 여러 개입니다.'});
-      const graph={nodes:state.nodes.map(n=>n.id),adjacency:new Map()};for(const c of state.connections){if(!graph.adjacency.has(c.from.node))graph.adjacency.set(c.from.node,[]);graph.adjacency.get(c.from.node).push(c.to.node)}
-      const cycleNodes=new Set();
-      for(const nodeId of graph.nodes){const visiting=new Set(),visited=new Set();if(hasCycleFrom(nodeId,graph.adjacency,visiting,visited))cycleNodes.add(nodeId)}
-      if(cycleNodes.size)errors.push({code:'CYCLE',nodes:[...cycleNodes],message:'워크플로우에 순환 구조(Cycle)가 존재합니다.'});
-      const result={valid:errors.length===0,errors,warnings};emit('validate',result);return result;
-    }
-    function hasCycleFrom(node,adj,visiting,visited){if(visiting.has(node))return true;if(visited.has(node))return false;visiting.add(node);for(const next of adj.get(node)||[])if(hasCycleFrom(next,adj,visiting,visited))return true;visiting.delete(node);visited.add(node);return false}
-
-    function getWorkflow(){return{nodes:structuredCloneSafe(state.nodes),connections:structuredCloneSafe(state.connections)}}
-    function getState(){return{workflow:getWorkflow(),viewport:{scale:state.scale,offset:{...state.offset}}}}
-    function setState(saved={}){
-      const workflow=saved.workflow||saved;
-      state.nodes=Array.isArray(workflow.nodes)?workflow.nodes.map(normalizeNode).filter(n=>registry.has(n.type)):[];
-      state.connections=Array.isArray(workflow.connections)?structuredCloneSafe(workflow.connections).map(c=>({id:String(c.id||uniqueConnectionId()),from:{node:String(c.from?.node??c.from),port:String(c.from?.port??'out')},to:{node:String(c.to?.node??c.to),port:String(c.to?.port??'in')}})):[];
-      if(saved.viewport){state.scale=clamp(Number(saved.viewport.scale)||1,.12,3);state.offset={x:Number(saved.viewport.offset?.x)||0,y:Number(saved.viewport.offset?.y)||0}}
-      state.selectedNode=null;render();emit('change',getWorkflow());return api;
-    }
-
-    function showValidation(errors,warnings){
-      validationLayer.textContent='';
-      const items=[...errors.slice(0,3).map(x=>({cls:'vc-error',text:x.message})),...warnings.slice(0,2).map(x=>({cls:'vc-warning',text:x.message}))];
-      if(!items.length)return;
-      for(const item of items){const el=document.createElement('div');el.className=`vc-validation-item ${item.cls}`;el.textContent=item.text;validationLayer.appendChild(el);raf(()=>el.classList.add('vc-show'))}
-      if(state.validationTimer)clearTimeout(state.validationTimer);state.validationTimer=setTimeout(()=>{validationLayer.querySelectorAll('.vc-validation-item').forEach(el=>el.classList.remove('vc-show'));setTimeout(()=>validationLayer.textContent='',200)},2800)
-    }
-
-    function render(){renderTransform();renderNodes();renderConnections();updateComposerState()}
-
-    function renderMenu(){
-      addMenu.textContent='';
-      for(const [key,t] of registry){
-        const b=document.createElement('button');b.type='button';b.className='vc-menu-item';b.dataset.nodeType=key;b.innerHTML=`
-  <span
-    class="vc-menu-icon"
-    style="color:${t.color||'var(--sub)'}"
-  >
-    ${iconSvg[key]||''}
-  </span>
-  <span class="vc-menu-name">${escapeHtml(t.name)}</span>
-  <span class="vc-menu-desc">${escapeHtml(t.tag)}</span>
-`;addMenu.appendChild(b)
-      }
-    }
-    function openAddMenu(){addMenu.classList.add('vc-open');addButton.classList.add('vc-open');addButton.setAttribute('aria-expanded','true');state.addMenuOpen=true}
-    function closeAddMenu(){addMenu.classList.remove('vc-open');addButton.classList.remove('vc-open');addButton.setAttribute('aria-expanded','false');state.addMenuOpen=false}
-    function toggleAddMenu(){state.addMenuOpen?closeAddMenu():openAddMenu()}
-
-    function startNodeDrag(){
-      if(!state.nodeDrag||state.nodeDrag.moved)return;
-      const el=getNodeElement(state.nodeDrag.node.id);if(!el)return;
-      state.nodeDrag.moved=true;state.nodeDrag.wasExpanded=!!state.nodeDrag.node.expanded;
-      if(state.nodeDrag.wasExpanded)setNodeExpanded(el,false);
-      el.classList.add('vc-dragging')
-    }
-    function finishNodeDrag(){
-      const d=state.nodeDrag;if(!d)return;
-      const el=getNodeElement(d.node.id);if(el){el.classList.remove('vc-dragging');if(d.wasExpanded)setNodeExpanded(el,true)}
-      state.nodeDrag=null;renderConnections();emit('change',getWorkflow())
-    }
-    function renderDragConnection(){
-      dragConnectionLayer.textContent='';
-
-      const d=state.connectionDrag;
-      if(!d) return;
-
-      const a=portPoint(d.from.node,d.from.port,'output');
-      if(!a) return;
-
-      const b=screenToWorld(d.x,d.y);
-
-      const sourceNode=getNode(d.from.node);
-      const sourceType=getNodeType(sourceNode);
-
-      const p=svgEl('path',{
-        d:curve(a,b),
-        'marker-end':`url(#${markerId})`
-      });
-
-      p.classList.add('vc-drag-connection');
-
-      if(sourceType?.color){
-        p.style.stroke=sourceType.color;
-      }
-
-      dragConnectionLayer.appendChild(p);
-
-      const dot=svgEl('circle',{
-        cx:a.x,
-        cy:a.y,
-        r:4,
-        class:'vc-drag-source-dot'
-      });
-
-      if(sourceType?.color){
-        dot.style.fill=sourceType.color;
-      }
-
-      dragConnectionLayer.appendChild(dot);
-    }
-    function finishConnection(e){
-      dragConnectionLayer.textContent='';const d=state.connectionDrag;if(!d)return;
-      const target=document.elementFromPoint(e.clientX,e.clientY)?.closest('.vc-port-hit.vc-input');
-      const targetNode=target?.closest('.vc-node');
-      const toNode=targetNode?.dataset.nodeId,toPort=target?.dataset.portId;
-      if(toNode&&toPort) connect(d.from,{node:toNode,port:toPort});
-      state.connectionDrag=null;renderConnections()
-    }
-
-    function setTheme(theme){document.documentElement.classList.toggle('dark',theme==='dark');try{localStorage.setItem('visual-ai-theme',theme)}catch{};emit('theme',theme)}
-    function applySavedTheme(){let theme='light';try{theme=localStorage.getItem('visual-ai-theme')||'light'}catch{}setTheme(theme)}
-    function updateComposerState(){
-      const hasText=chatInput.value.trim().length>0;
-      const active=hasText||state.selectedNode!==null||state.aiBusy;
-
-      chatForm.classList.toggle('vc-has-text',hasText);
-      chatForm.classList.toggle('vc-active',active);
-      chatForm.classList.toggle('vc-ai-busy',state.aiBusy);
-      chatForm.setAttribute('aria-busy',String(state.aiBusy));
-
-      chatInput.disabled=state.aiBusy;
-      attachButton.disabled=state.aiBusy;
-      qs('.vc-send-button').disabled=state.aiBusy;
-      chatInput.placeholder=state.aiBusy?'작업을 생성하는 중…':'무엇을 만들까요?';
-
-      chatInput.style.height='auto';
-      chatInput.style.height=Math.min(chatInput.scrollHeight,115)+'px';
-    }
-
-    function setAIWaiting(busy){
-      state.aiBusy=!!busy;
-
-      const sendButton=qs('.vc-send-button');
-      const attachButton=qs('.vc-attach-button');
-
-      if(state.aiBusy){
-        sendButton.innerHTML=`<span class="vc-ai-spinner" aria-hidden="true"></span>`;
-        sendButton.setAttribute('aria-label','작업 생성 중');
-        sendButton.setAttribute('title','작업 생성 중');
-        attachButton.setAttribute('aria-disabled','true');
-        chatInput.setAttribute('aria-busy','true');
-      }else{
-        sendButton.innerHTML=sendIcon;
-        sendButton.setAttribute('aria-label','보내기');
-        sendButton.removeAttribute('title');
-        attachButton.removeAttribute('aria-disabled');
-        chatInput.removeAttribute('aria-busy');
-      }
-
-      updateComposerState();
-    }
-
-    function animateWorkflowApplied(){
-      const nodeEls=[...nodesLayer.querySelectorAll('.vc-node')];
-      const connectionEls=[...connectionLayer.querySelectorAll('.vc-connection,.vc-connection-dot')];
-
-      nodeEls.forEach((el,index)=>{
-        el.animate(
-          [
-            {opacity:0,filter:'blur(5px)'},
-            {opacity:1,filter:'blur(0)'}
-          ],
-          {
-            duration:420,
-            delay:index*45,
-            easing:'cubic-bezier(.22,1,.36,1)',
-            fill:'both'
-          }
+      const registry=
+        new Map(
+          Object.entries(
+            definitions
+          ).map(
+            ([type,definition])=>[
+              type,
+              normalizeNodeType(
+                type,
+                definition
+              )
+            ]
+          )
         );
-      });
 
-      connectionEls.forEach((el,index)=>{
-        el.animate(
-          [
-            {opacity:0},
-            {opacity:1}
-          ],
-          {
-            duration:320,
-            delay:220+index*35,
-            easing:'ease-out',
-            fill:'both'
-          }
-        );
-      });
-    }
 
-    listen(addButton,'click',e=>{e.preventDefault();e.stopPropagation();toggleAddMenu()});
-    listen(addMenu,'pointerdown',e=>e.stopPropagation());
-    listen(addMenu,'click',e=>{const item=e.target.closest('.vc-menu-item');if(!item)return;addNode(item.dataset.nodeType)});
-    listen(root,'pointerdown',e=>{if(!addMenu.contains(e.target)&&!addButton.contains(e.target))closeAddMenu()});
-    listen(themeButton,'click',e=>{e.stopPropagation();setTheme(document.documentElement.classList.contains('dark')?'light':'dark')});
-    listen(attachButton,'click',e=>{
-      e.stopPropagation();
-      fileInput.click();
-    });
-    listen(fileInput,'change',e=>{
-      const files=[...e.target.files];
-      if(!files.length)return;
-      const rect=canvas.getBoundingClientRect();
-      const base=screenToWorld(rect.left+rect.width/2,rect.top+Math.min(rect.height/2,rect.height-180));
-      files.forEach((file,index)=>{
-          const previewUrl=file.type.startsWith('image/')
-              ?URL.createObjectURL(file)
-              :null;
+      const events=
+        new Map();
 
-          addNode('file',{
-              x:base.x+(index-(files.length-1)/2)*220,
-              y:base.y,
-              data:{
-                  file,
-                  name:file.name,
-                  mime:file.type||'application/octet-stream',
-                  size:file.size,
-                  lastModified:file.lastModified,
-                  previewUrl
+      const listeners=[];
+
+      const observerHandles=[];
+
+
+      const nodeResizeObserver=
+        new ResizeObserver(
+          entries=>{
+
+            for(
+              const entry of entries
+            ){
+
+              const el=
+                entry.target;
+
+              const n=
+                getNode(
+                  el.dataset.nodeId
+                );
+
+              if(n){
+
+                positionPorts(
+                  el,
+                  getNodeType(n)
+                );
+
               }
-          });
-      });
-      fileInput.value='';
-      emit('attach',{files});
-    });
-    listen(chatInput,'input',updateComposerState);
-    listen(chatInput,'focus',updateComposerState);
 
-    listen(chatInput,'keydown',e=>{
-      if(state.aiBusy)return;
+            }
 
-      if(e.key==='Enter'&&!e.shiftKey){
-        e.preventDefault();
-        chatForm.requestSubmit();
+            renderConnections();
+
+          }
+        );
+
+
+      const root=
+        document.createElement('div');
+
+      root.className=
+        'vc-root';
+
+      root.dataset.vcInstance=
+        uid;
+
+
+      root.innerHTML=`
+        <div class="vc-canvas">
+
+          <div class="vc-world">
+
+            <svg
+              class="vc-svg"
+              viewBox="0 0 3000 3000"
+              preserveAspectRatio="none"
+            >
+
+              <defs>
+
+                <marker
+                  class="vc-arrow-marker"
+                  viewBox="0 0 10 10"
+                  refX="8"
+                  refY="5"
+                  markerWidth="5"
+                  markerHeight="5"
+                  orient="auto"
+                >
+                  <path
+                    d="M1 1L8 5L1 9"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                  ></path>
+                </marker>
+
+              </defs>
+
+              <g class="vc-connection-layer"></g>
+
+              <g class="vc-drag-connection-layer"></g>
+
+            </svg>
+
+            <div class="vc-nodes"></div>
+
+          </div>
+
+        </div>
+
+        <div class="vc-zoom-indicator">
+          100%
+        </div>
+
+        <div class="vc-validation"></div>
+
+        <div class="vc-top-controls">
+
+          <button
+            type="button"
+            class="vc-top-button vc-theme-button"
+            aria-label="다크 모드"
+          >
+            ◐
+          </button>
+
+          <button
+            type="button"
+            class="vc-top-button vc-add-button"
+            aria-label="노드 추가"
+            aria-expanded="false"
+          >
+            ${addIcon}
+          </button>
+
+        </div>
+
+        <div class="vc-add-menu"></div>
+
+        <div class="vc-composer-wrap">
+
+          <form class="vc-composer">
+
+            <button
+              type="button"
+              class="vc-composer-button vc-attach-button"
+              aria-label="파일 추가"
+            >
+              ${attachIcon}
+            </button>
+
+            <textarea
+              rows="1"
+              class="vc-chat-input"
+              placeholder="무엇을 만들까요?"
+            ></textarea>
+
+            <button
+              type="submit"
+              class="vc-composer-button vc-send-button"
+              aria-label="보내기"
+            >
+              ${sendIcon}
+            </button>
+
+          </form>
+
+          <input
+            class="vc-file-input"
+            type="file"
+            multiple
+            hidden
+          >
+
+        </div>
+      `;
+
+
+      target.appendChild(root);
+
+
+      if(
+        !document.getElementById(
+          'vc-ai-wait-style'
+        )
+      ){
+
+        const style=
+          document.createElement('style');
+
+        style.id=
+          'vc-ai-wait-style';
+
+        style.textContent=`
+
+          .vc-composer.vc-ai-busy{
+            cursor:wait;
+          }
+
+          .vc-composer.vc-ai-busy
+          .vc-chat-input{
+            opacity:.62;
+          }
+
+          .vc-composer.vc-ai-busy
+          .vc-composer-button{
+            cursor:wait;
+          }
+
+          .vc-composer-button:disabled{
+            opacity:.55;
+          }
+
+          .vc-ai-spinner{
+            display:block;
+            width:15px;
+            height:15px;
+            border:1.7px solid currentColor;
+            border-right-color:transparent;
+            border-radius:50%;
+            animation:vc-ai-spin .72s linear infinite;
+          }
+
+          @keyframes vc-ai-spin{
+            to{
+              transform:rotate(360deg)
+            }
+          }
+
+        `;
+
+        document.head.appendChild(
+          style
+        );
+
       }
-    });
 
-    listen(chatForm,'submit',e=>{
-      e.preventDefault();
 
-      if(state.aiBusy)return;
+      const qs=
+        selector=>
+          root.querySelector(
+            selector
+          );
 
-      const text=chatInput.value.trim();
-      if(!text)return;
 
-      state.aiBusy=true;
-      updateComposerState();
+      const canvas=
+        qs(
+          '.vc-canvas'
+        );
 
-      emit('submit',{
-        text,
-        selectedNode:state.selectedNode
-      });
-    });
+      const world=
+        qs(
+          '.vc-world'
+        );
 
-    listen(nodesLayer,'pointerdown',e=>{
-  const action=e.target.closest('[data-action]');
-  if(!action) return;
+      const nodesLayer=
+        qs(
+          '.vc-nodes'
+        );
 
-  e.stopPropagation();
-});
+      const connectionLayer=
+        qs(
+          '.vc-connection-layer'
+        );
 
-listen(nodesLayer,'click',e=>{
-  const action=e.target.closest('[data-action]');
-  if(!action) return;
+      const dragConnectionLayer=
+        qs(
+          '.vc-drag-connection-layer'
+        );
 
-  e.preventDefault();
-  e.stopPropagation();
+      const zoomIndicator=
+        qs(
+          '.vc-zoom-indicator'
+        );
 
-  const node=action.closest('.vc-node');
-  if(!node) return;
+      const validationLayer=
+        qs(
+          '.vc-validation'
+        );
 
-  if(action.dataset.action==='toggle'){
-    toggleNodeExpanded(node.dataset.nodeId);
-    return;
-  }
+      const addButton=
+        qs(
+          '.vc-add-button'
+        );
 
-  if(
-    action.dataset.action==='delete' ||
-    action.dataset.action==='delete-expanded'
-  ){
-    removeNode(node.dataset.nodeId);
-  }
-});
-    listen(canvas,'pointerdown',e=>{
-      state.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-      if(state.pointers.size>=2){
-        if(state.nodeDrag)finishNodeDrag();state.canvasPan=null;state.connectionDrag=null;
-        const ps=[...state.pointers.values()],c=midpoint(ps[0],ps[1]),anchor=screenToWorld(c.x,c.y);
-        state.pinch={d:Math.max(1,distance(ps[0],ps[1])),s:state.scale,x:anchor.x,y:anchor.y};dragConnectionLayer.textContent='';return
-      }
-      const port=e.target.closest('.vc-port-hit');
-      if(port){
-        e.preventDefault();e.stopPropagation();const nodeId=port.dataset.nodeId,node=getNode(nodeId);if(!node)return;
-        if(port.dataset.portDir==='output'){state.connectionDrag={pointerId:e.pointerId,from:{node:node.id,port:port.dataset.portId},x:e.clientX,y:e.clientY};try{canvas.setPointerCapture(e.pointerId)}catch{}renderDragConnection()}return
-      }
-      const nodeEl=e.target.closest('.vc-node');
-      if(nodeEl){e.preventDefault();e.stopPropagation();const n=getNode(nodeEl.dataset.nodeId);if(!n)return;selectNode(n.id);state.nodeDrag={pointerId:e.pointerId,node:n,startX:e.clientX,startY:e.clientY,nodeX:n.x,nodeY:n.y,moved:false,wasExpanded:!!n.expanded};try{canvas.setPointerCapture(e.pointerId)}catch{}return}
-      selectNode(null);state.canvasPan={pointerId:e.pointerId,startX:e.clientX,startY:e.clientY,startOffsetX:state.offset.x,startOffsetY:state.offset.y,moved:false};canvas.classList.add('vc-dragging');try{canvas.setPointerCapture(e.pointerId)}catch{}
-    });
+      const addMenu=
+        qs(
+          '.vc-add-menu'
+        );
 
-    listen(canvas,'pointermove',e=>{
-      if(!state.pointers.has(e.pointerId))return;state.pointers.set(e.pointerId,{x:e.clientX,y:e.clientY});
-      if(state.pointers.size>=2){
-        if(state.nodeDrag){finishNodeDrag();state.nodeDrag=null}state.canvasPan=null;const ps=[...state.pointers.values()];
-        if(!state.pinch){const c=midpoint(ps[0],ps[1]),anchor=screenToWorld(c.x,c.y);state.pinch={d:Math.max(1,distance(ps[0],ps[1])),s:state.scale,x:anchor.x,y:anchor.y}}
-        const d=distance(ps[0],ps[1]),c=midpoint(ps[0],ps[1]);state.scale=clamp(state.pinch.s*(d/state.pinch.d),.12,3);state.offset.x=c.x-state.pinch.x*state.scale;state.offset.y=c.y-state.pinch.y*state.scale;renderTransform();renderConnections();return
-      }
-      if(state.connectionDrag?.pointerId===e.pointerId){e.preventDefault();state.connectionDrag.x=e.clientX;state.connectionDrag.y=e.clientY;renderDragConnection();return}
-      if(state.nodeDrag?.pointerId===e.pointerId){const d=e,drag=state.nodeDrag,dx=e.clientX-drag.startX,dy=e.clientY-drag.startY;if(!drag.moved&&Math.hypot(dx,dy)>7)startNodeDrag();if(!drag.moved)return;e.preventDefault();setNodePosition(drag.node,drag.nodeX+dx/state.scale,drag.nodeY+dy/state.scale);return}
-      if(state.canvasPan?.pointerId===e.pointerId){const pan=state.canvasPan,dx=e.clientX-pan.startX,dy=e.clientY-pan.startY;if(!pan.moved&&Math.hypot(dx,dy)>7)pan.moved=true;if(!pan.moved)return;e.preventDefault();state.offset.x=pan.startOffsetX+dx;state.offset.y=pan.startOffsetY+dy;renderTransform();renderConnections()}
-    },{passive:false});
+      const themeButton=
+        qs(
+          '.vc-theme-button'
+        );
 
-    function endPointer(e){
-      if(state.connectionDrag?.pointerId===e.pointerId)finishConnection(e);
-      if(state.nodeDrag?.pointerId===e.pointerId)finishNodeDrag();
-      state.pointers.delete(e.pointerId);if(state.pointers.size<2)state.pinch=null;
-      if(state.pointers.size===0){state.canvasPan=null;state.connectionDrag=null;canvas.classList.remove('vc-dragging');dragConnectionLayer.textContent=''}
-    }
-    listen(canvas,'pointerup',endPointer);listen(canvas,'pointercancel',endPointer);
-    listen(canvas,'wheel',e=>{e.preventDefault();const before=screenToWorld(e.clientX,e.clientY),factor=Math.exp(-e.deltaY*.0015);state.scale=clamp(state.scale*factor,.12,3);state.offset.x=e.clientX-before.x*state.scale;state.offset.y=e.clientY-before.y*state.scale;renderTransform();renderConnections()},{passive:false});
+      const chatForm=
+        qs(
+          '.vc-composer'
+        );
 
-    const resizeObserver=new ResizeObserver(()=>{renderConnections();emit('resize',canvas.getBoundingClientRect())});
-    resizeObserver.observe(canvas);
-    observerHandles.push(()=>resizeObserver.disconnect());
-    observerHandles.push(()=>nodeResizeObserver.disconnect());
+      const chatInput=
+        qs(
+          '.vc-chat-input'
+        );
 
-    function centerInitial(){
-      if(!state.nodes.length)return;const r=canvas.getBoundingClientRect(),n=state.nodes[0],w=window.innerWidth<=600?178:190;state.offset.x=r.width/2-(n.x+w/2)*state.scale;state.offset.y=Math.max(90,r.height*.12)-n.y*state.scale
-    }
+      const attachButton=
+        qs(
+          '.vc-attach-button'
+        );
 
-    function registerNodeType(type,definition){if(!type||typeof type!=='string')throw new TypeError('type must be a string');registry.set(type,normalizeNodeType(type,definition));renderMenu();return api}
-    function unregisterNodeType(type){if(type==='start')throw new Error('start node type cannot be removed');registry.delete(type);return api}
+      const fileInput=
+        qs(
+          '.vc-file-input'
+        );
 
-    const api={
-      root,
-      registerNodeType,
-      unregisterNodeType,
-      addNode,
-      removeNode,
-      connect,
-      disconnect,
-      canConnect,
-      validate,
-      getWorkflow,
-      getState,
-      setState,
-      getNode:id=>getNode(id),
-      on,
-      off,
-      selectNode,
-      render,
-      __setAIWaiting(busy){
-        state.aiBusy=!!busy;
-        const sendButton=qs('.vc-send-button');
-        const attachButton=qs('.vc-attach-button');
 
-        if(state.aiBusy){
-          sendButton.innerHTML='<span class="vc-ai-spinner" aria-hidden="true"></span>';
-          sendButton.setAttribute('aria-label','작업 생성 중');
-          attachButton.setAttribute('aria-disabled','true');
-        }else{
-          sendButton.innerHTML=sendIcon;
-          sendButton.setAttribute('aria-label','보내기');
-          attachButton.removeAttribute('aria-disabled');
+      const markerId=
+        `${uid}-arrow`;
+
+
+      qs(
+        '.vc-arrow-marker'
+      ).setAttribute(
+        'id',
+        markerId
+      );
+
+
+      /* =========================
+         Event System
+      ========================= */
+
+      function on(
+        event,
+        handler
+      ){
+
+        if(
+          typeof handler!=='function'
+        ){
+
+          return ()=>{};
+
         }
 
+
+        if(
+          !events.has(event)
+        ){
+
+          events.set(
+            event,
+            new Set()
+          );
+
+        }
+
+
+        events.get(event).add(
+          handler
+        );
+
+
+        return ()=>{
+          off(
+            event,
+            handler
+          );
+        };
+
+      }
+
+
+      function off(
+        event,
+        handler
+      ){
+
+        events
+          .get(event)
+          ?.delete(handler);
+
+      }
+
+
+      function emit(
+        event,
+        payload
+      ){
+
+        for(
+          const fn of
+          events.get(event)||[]
+        ){
+
+          try{
+
+            fn(
+              payload,
+              api
+            );
+
+          }catch(error){
+
+            console.error(
+              error
+            );
+
+          }
+
+        }
+
+      }
+
+
+      function listen(
+        el,
+        type,
+        fn,
+        opts
+      ){
+
+        el.addEventListener(
+          type,
+          fn,
+          opts
+        );
+
+        listeners.push(
+          ()=>{
+            el.removeEventListener(
+              type,
+              fn,
+              opts
+            );
+          }
+        );
+
+      }
+
+
+      function raf(
+        fn
+      ){
+
+        const id=
+          requestAnimationFrame(
+            t=>{
+
+              state.rafIds.delete(
+                id
+              );
+
+              if(
+                !state.destroyed
+              ){
+
+                fn(t);
+
+              }
+
+            }
+          );
+
+        state.rafIds.add(
+          id
+        );
+
+        return id;
+
+      }
+
+
+      /* =========================
+         Basic Helpers
+      ========================= */
+
+      function getNode(
+        id
+      ){
+
+        return state.nodes.find(
+          n=>n.id===id
+        )||null;
+
+      }
+
+
+      function getNodeElement(
+        id
+      ){
+
+        return nodesLayer.querySelector(
+          `.vc-node[data-node-id="${CSS.escape(String(id))}"]`
+        );
+
+      }
+
+
+      function getNodeType(
+        node
+      ){
+
+        return node
+          ?registry.get(node.type)||null
+          :null;
+
+      }
+
+
+      function screenToWorld(
+        x,
+        y
+      ){
+
+        return {
+
+          x:
+            (x-state.offset.x)/
+            state.scale,
+
+          y:
+            (y-state.offset.y)/
+            state.scale
+
+        };
+
+      }
+
+
+      function renderTransform(){
+
+        world.style.transform=
+          `translate(${state.offset.x}px,${state.offset.y}px) scale(${state.scale})`;
+
+        zoomIndicator.textContent=
+          `${Math.round(state.scale*100)}%`;
+
+      }
+
+
+      function svgEl(
+        name,
+        attrs={}
+      ){
+
+        const element=
+          document.createElementNS(
+            svgNS,
+            name
+          );
+
+        for(
+          const [key,value]
+            of Object.entries(attrs)
+        ){
+
+          element.setAttribute(
+            key,
+            value
+          );
+
+        }
+
+        return element;
+
+      }
+
+
+      function connectionKey(
+        connection
+      ){
+
+        return `
+          ${connection.from.node}
+          :
+          ${connection.from.port}
+          ->
+          ${connection.to.node}
+          :
+          ${connection.to.port}
+        `.replace(
+          /\s+/g,
+          ''
+        );
+
+      }
+
+
+      function portDef(
+        nodeId,
+        portId,
+        direction
+      ){
+
+        const node=
+          getNode(
+            nodeId
+          );
+
+        const type=
+          getNodeType(
+            node
+          );
+
+        if(
+          !node||
+          !type
+        ){
+
+          return null;
+
+        }
+
+
+        const ports=
+          direction==='input'
+            ?(
+              Array.isArray(type.inputs)
+                ?type.inputs
+                :[]
+            )
+            :(
+              Array.isArray(type.outputs)
+                ?type.outputs
+                :[]
+            );
+
+
+        return ports.find(
+          port=>
+            port.id===portId
+        )||null;
+
+      }
+
+
+      function portEl(
+        nodeId,
+        portId,
+        direction
+      ){
+
+        return nodesLayer.querySelector(
+          `.vc-port-hit[data-node-id="${CSS.escape(String(nodeId))}"][data-port-id="${CSS.escape(String(portId))}"][data-port-dir="${direction}"]`
+        );
+
+      }
+
+
+      function portPoint(
+        nodeId,
+        portId,
+        direction
+      ){
+
+        const element=
+          portEl(
+            nodeId,
+            portId,
+            direction
+          );
+
+        if(!element){
+
+          return null;
+
+        }
+
+
+        const anchor=
+          element.querySelector(
+            '.vc-port-anchor'
+          )||
+          element;
+
+
+        const rect=
+          anchor.getBoundingClientRect();
+
+        const canvasRect=
+          canvas.getBoundingClientRect();
+
+
+        return {
+
+          x:
+            (
+              rect.left+
+              rect.width/2-
+              canvasRect.left-
+              state.offset.x
+            )/
+            state.scale,
+
+          y:
+            (
+              rect.top+
+              rect.height/2-
+              canvasRect.top-
+              state.offset.y
+            )/
+            state.scale
+
+        };
+
+      }
+
+
+      function curve(
+        a,
+        b
+      ){
+
+        const dx=
+          b.x-a.x;
+
+        const bend=
+          clamp(
+            Math.abs(dx)*.22+
+            Math.abs(b.y-a.y)*.05,
+            28,
+            85
+          );
+
+
+        return `
+          M ${a.x} ${a.y}
+          C
+            ${a.x+bend} ${a.y},
+            ${b.x-bend} ${b.y},
+            ${b.x} ${b.y}
+        `.replace(
+          /\s+/g,
+          ' '
+        );
+
+      }
+
+
+      /* =========================
+         Definition Normalization
+      ========================= */
+
+      function normalizePort(
+        port,
+        index,
+        direction
+      ){
+
+        const p={
+          ...port
+        };
+
+        p.id=
+          String(
+            p.id||
+            `${direction}-${index}`
+          );
+
+        p.name=
+          p.name??
+          p.id;
+
+        p.type=
+          p.type||
+          'any';
+
+        p.required=
+          !!p.required;
+
+        p.multiple=
+          p.multiple!==false;
+
+        p.accepts=
+          Array.isArray(p.accepts)&&
+          p.accepts.length
+            ?p.accepts.slice()
+            :['any'];
+
+        return p;
+
+      }
+
+
+      function normalizeNodeType(
+        type,
+        definition
+      ){
+
+        const d={
+          ...(
+            definition||
+            {}
+          )
+        };
+
+        d.inputs=
+          (
+            d.inputs||
+            []
+          ).map(
+            (port,index)=>
+              normalizePort(
+                port,
+                index,
+                'input'
+              )
+          );
+
+        d.outputs=
+          (
+            d.outputs||
+            []
+          ).map(
+            (port,index)=>
+              normalizePort(
+                port,
+                index,
+                'output'
+              )
+          );
+
+        d.params=
+          Array.isArray(d.params)
+            ?d.params
+            :[];
+
+        d.slots={
+          description:true,
+          param:true,
+          body:true,
+          footer:true,
+          ...(d.slots||{})
+        };
+
+        d.tag=
+          d.tag||
+          type.toUpperCase();
+
+        d.color=
+          d.color||
+          '#888';
+
+        d.icon=
+          typeof d.icon==='string'
+            ?d.icon
+            :'';
+
+        return d;
+
+      }
+
+
+      /* =========================
+         Node Body Rendering
+      ========================= */
+
+      function renderSlotContent(
+        node,
+        type
+      ){
+
+        const body=[];
+
+
+        if(
+          type.slots.description!==false&&
+          (
+            type.desc||
+            type.description
+          )
+        ){
+
+          body.push(`
+            <div class="vc-slot-description">
+              ${escapeHtml(
+                type.desc||
+                type.description||
+                ''
+              )}
+            </div>
+          `);
+
+        }
+
+
+        if(
+          type.slots.param!==false&&
+          Array.isArray(
+            type.params
+          )
+        ){
+
+          const values=
+            node.data?.params||
+            {};
+
+
+          for(
+            const param of type.params
+          ){
+
+            const value=
+              values[param.id]??
+              '';
+
+
+            body.push(`
+              <div class="vc-param-group">
+
+                <label
+                  class="vc-param-label"
+                >
+                  ${escapeHtml(
+                    param.name||
+                    param.id
+                  )}
+                </label>
+
+                <input
+                  class="vc-slot-param"
+                  type="text"
+                  data-param-id="${escapeHtml(
+                    param.id
+                  )}"
+                  value="${escapeHtml(
+                    value
+                  )}"
+                  placeholder="${escapeHtml(
+                    param.placeholder||
+                    ''
+                  )}"
+                >
+
+              </div>
+            `);
+
+          }
+
+        }
+
+
+        /*
+          Renderer implementation은 frontend에만 둔다.
+          Node Definition 자체에는 JS function을 넣지 않는다.
+        */
+        const renderer=
+          clientNodeRenderers[
+            node.type
+          ];
+
+
+        if(
+          typeof renderer==='function'
+        ){
+
+          const custom=
+            renderer(
+              node,
+              {
+                node,
+                type,
+                instance:api
+              }
+            );
+
+
+          if(
+            custom instanceof Node
+          ){
+
+            body.push(
+              custom.outerHTML
+            );
+
+          }else if(
+            typeof custom==='string'
+          ){
+
+            body.push(
+              `<div class="vc-slot-custom">${custom}</div>`
+            );
+
+          }
+
+        }
+
+
+        if(
+          type.slots.footer!==false&&
+          type.footer
+        ){
+
+          if(
+            typeof type.footer==='function'
+          ){
+
+            body.push(`
+              <div class="vc-slot-custom">
+                ${
+                  type.footer(
+                    node,
+                    {
+                      node,
+                      type,
+                      instance:api
+                    }
+                  )||''
+                }
+              </div>
+            `);
+
+          }else{
+
+            body.push(`
+              <div class="vc-slot-custom">
+                ${type.footer}
+              </div>
+            `);
+
+          }
+
+        }
+
+
+        return body.join('');
+
+      }
+
+
+      function escapeHtml(
+        value
+      ){
+
+        return String(
+          value
+        ).replace(
+          /[&<>'"]/g,
+          character=>({
+
+            '&':'&amp;',
+
+            '<':'&lt;',
+
+            '>':'&gt;',
+
+            "'":'&#39;',
+
+            '"':'&quot;'
+
+          })[character]
+        );
+
+      }
+
+
+      /* =========================
+         Node Rendering
+      ========================= */
+
+      function renderNodes(){
+
+        nodesLayer.textContent='';
+
+
+        for(
+          const node of state.nodes
+        ){
+
+          const type=
+            getNodeType(
+              node
+            );
+
+
+          if(!type){
+
+            continue;
+
+          }
+
+
+          const element=
+            document.createElement(
+              'div'
+            );
+
+
+          const isImageFile=
+            node.type==='file'&&
+            node.data?.mime?.startsWith(
+              'image/'
+            );
+
+
+          element.className=
+            `vc-node`+
+            `${
+              node.type==='start'
+                ?' vc-start-node'
+                :''
+            }`+
+            `${
+              node.type==='file'
+                ?' vc-file-node'
+                :''
+            }`+
+            `${
+              isImageFile
+                ?' vc-image-file-node'
+                :''
+            }`;
+
+
+          if(
+            isImageFile&&
+            node.data?.previewUrl
+          ){
+
+            element.style.setProperty(
+              '--vc-file-bg',
+              `url("${node.data.previewUrl}")`
+            );
+
+          }
+
+
+          if(
+            node.id===
+            state.selectedNode
+          ){
+
+            element.classList.add(
+              'vc-selected'
+            );
+
+          }
+
+
+          if(
+            node.expanded
+          ){
+
+            element.classList.add(
+              'vc-expanded'
+            );
+
+          }
+
+
+          element.dataset.nodeId=
+            node.id;
+
+
+          element.style.left=
+            `${node.x}px`;
+
+          element.style.top=
+            `${node.y}px`;
+
+          element.style.setProperty(
+            '--node-color',
+            type.color
+          );
+
+
+          const fileName=
+            node.type==='file'
+              ?(
+                node.data?.name||
+                '이름 없는 파일'
+              )
+              :type.name;
+
+
+          const fileExt=
+            node.type==='file'&&
+            fileName.includes('.')
+              ?fileName
+                .split('.')
+                .pop()
+                .toUpperCase()
+              :'FILE';
+
+
+          const icon=
+            type.icon||
+            '';
+
+
+          element.innerHTML=`
+
+            <div class="vc-node-head">
+
+              <span class="vc-node-icon">
+                ${icon}
+              </span>
+
+              ${
+                node.type==='file'
+                  ?`
+                    <span class="vc-file-title-wrap">
+
+                      <span
+                        class="vc-file-title"
+                        title="${escapeHtml(
+                          fileName
+                        )}"
+                      >
+                        ${escapeHtml(
+                          fileName
+                        )}
+                      </span>
+
+                      <span class="vc-file-type">
+                        ${escapeHtml(
+                          fileExt
+                        )}
+                      </span>
+
+                    </span>
+                  `
+                  :`
+                    <span class="vc-node-title">
+                      ${escapeHtml(
+                        type.name||
+                        node.type
+                      )}
+                    </span>
+                  `
+              }
+
+              ${
+                node.type==='start'
+                  ?`
+                    <span class="vc-start-badge">
+                      START
+                    </span>
+                  `
+                  :''
+              }
+
+              <div class="vc-node-actions">
+
+                ${
+                  node.type!=='start'
+                    ?`
+                      <button
+                        type="button"
+                        class="vc-node-action vc-node-delete"
+                        data-action="delete"
+                        aria-label="노드 삭제"
+                      >
+                        ${deleteIcon}
+                      </button>
+                    `
+                    :''
+                }
+
+                <button
+                  type="button"
+                  class="vc-node-action vc-node-toggle"
+                  data-action="toggle"
+                  aria-label="상세 내용 열기"
+                  aria-expanded="${!!node.expanded}"
+                >
+                  ${toggleIcon}
+                </button>
+
+              </div>
+
+            </div>
+
+            <div class="vc-node-body">
+              ${renderSlotContent(
+                node,
+                type
+              )}
+            </div>
+
+            ${
+              type.inputs
+                .map(
+                  port=>`
+                    <div
+                      class="vc-port-hit vc-input"
+                      data-port-dir="input"
+                      data-port-id="${escapeHtml(
+                        port.id
+                      )}"
+                      data-node-id="${escapeHtml(
+                        node.id
+                      )}"
+                    >
+
+                      <span class="vc-port-anchor">
+                        <span class="vc-port-pill"></span>
+                      </span>
+
+                      <span class="vc-port-label">
+                        ${escapeHtml(
+                          port.name
+                        )}
+                      </span>
+
+                    </div>
+                  `
+                )
+                .join('')
+            }
+
+            ${
+              type.outputs
+                .map(
+                  port=>`
+                    <div
+                      class="vc-port-hit vc-output"
+                      data-port-dir="output"
+                      data-port-id="${escapeHtml(
+                        port.id
+                      )}"
+                      data-node-id="${escapeHtml(
+                        node.id
+                      )}"
+                    >
+
+                      <span class="vc-port-anchor">
+                        <span class="vc-port-pill"></span>
+                      </span>
+
+                      <span class="vc-port-label">
+                        ${escapeHtml(
+                          port.name
+                        )}
+                      </span>
+
+                    </div>
+                  `
+                )
+                .join('')
+            }
+
+          `;
+
+
+          nodesLayer.appendChild(
+            element
+          );
+
+
+          const paramInputs=
+            element.querySelectorAll(
+              '.vc-slot-param'
+            );
+
+
+          paramInputs.forEach(
+            paramInput=>{
+
+              paramInput.addEventListener(
+                'pointerdown',
+                event=>{
+                  event.stopPropagation();
+                }
+              );
+
+
+              paramInput.addEventListener(
+                'input',
+                event=>{
+
+                  node.data||={};
+
+                  node.data.params||={};
+
+
+                  node.data.params[
+                    event.target.dataset.paramId
+                  ]=
+                    event.target.value;
+
+
+                  emit(
+                    'change',
+                    getWorkflow()
+                  );
+
+                }
+              );
+
+            }
+          );
+
+
+          positionPorts(
+            element,
+            type
+          );
+
+
+          nodeResizeObserver.observe(
+            element
+          );
+
+
+          setNodeExpanded(
+            element,
+            !!node.expanded,
+            true
+          );
+
+        }
+
+
+        markConnectedPorts();
+
+        raf(
+          renderConnections
+        );
+
+      }
+
+
+      /* =========================
+         Port Position
+      ========================= */
+
+      function positionPorts(
+        nodeEl,
+        type
+      ){
+
+        if(!type){
+
+          return;
+
+        }
+
+
+        const height=
+          Math.max(
+            50,
+            nodeEl.offsetHeight
+          );
+
+
+        const inputs=[
+          ...nodeEl.querySelectorAll(
+            '.vc-port-hit.vc-input'
+          )
+        ];
+
+
+        const outputs=[
+          ...nodeEl.querySelectorAll(
+            '.vc-port-hit.vc-output'
+          )
+        ];
+
+
+        function place(
+          list,
+          ports
+        ){
+
+          const count=
+            Math.max(
+              1,
+              ports.length
+            );
+
+
+          list.forEach(
+            (element,index)=>{
+
+              const port=
+                ports[index];
+
+              const y=
+                (
+                  (index+1)/
+                  (count+1)
+                )*
+                height;
+
+
+              element.style.height=
+                '32px';
+
+              element.style.top=
+                `${y-16}px`;
+
+              element.dataset.portId=
+                port.id;
+
+            }
+          );
+
+        }
+
+
+        place(
+          inputs,
+          type.inputs||
+          []
+        );
+
+        place(
+          outputs,
+          type.outputs||
+          []
+        );
+
+      }
+
+
+      function markConnectedPorts(){
+
+        for(
+          const connection of
+          state.connections
+        ){
+
+          portEl(
+            connection.from.node,
+            connection.from.port,
+            'output'
+          )
+          ?.querySelector(
+            '.vc-port-pill'
+          )
+          ?.classList.add(
+            'vc-connected'
+          );
+
+
+          portEl(
+            connection.to.node,
+            connection.to.port,
+            'input'
+          )
+          ?.querySelector(
+            '.vc-port-pill'
+          )
+          ?.classList.add(
+            'vc-connected'
+          );
+
+        }
+
+      }
+
+
+      /* =========================
+         Connections
+      ========================= */
+
+      function renderConnections(){
+
+        connectionLayer.textContent='';
+
+
+        for(
+          const connection of
+          state.connections
+        ){
+
+          const a=
+            portPoint(
+              connection.from.node,
+              connection.from.port,
+              'output'
+            );
+
+
+          const b=
+            portPoint(
+              connection.to.node,
+              connection.to.port,
+              'input'
+            );
+
+
+          if(
+            !a||
+            !b
+          ){
+
+            continue;
+
+          }
+
+
+          const active=
+            state.selectedNode===
+              connection.from.node||
+            state.selectedNode===
+              connection.to.node;
+
+
+          const path=
+            svgEl(
+              'path',
+              {
+                d:curve(a,b)
+              }
+            );
+
+
+          path.classList.add(
+            'vc-connection'
+          );
+
+
+          if(active){
+
+            path.classList.add(
+              'vc-active'
+            );
+
+
+            const activeNode=
+              getNode(
+                state.selectedNode===
+                  connection.from.node
+                    ?connection.from.node
+                    :connection.to.node
+              );
+
+
+            const activeType=
+              getNodeType(
+                activeNode
+              );
+
+
+            if(
+              activeType?.color
+            ){
+
+              path.style.stroke=
+                activeType.color;
+
+            }
+
+          }
+
+
+          connectionLayer.appendChild(
+            path
+          );
+
+
+          if(!active){
+
+            connectionLayer.appendChild(
+              svgEl(
+                'circle',
+                {
+                  cx:a.x,
+                  cy:a.y,
+                  r:2.8,
+                  class:'vc-connection-dot'
+                }
+              )
+            );
+
+
+            connectionLayer.appendChild(
+              svgEl(
+                'circle',
+                {
+                  cx:b.x,
+                  cy:b.y,
+                  r:2.8,
+                  class:'vc-connection-dot'
+                }
+              )
+            );
+
+          }
+
+        }
+
+
+        if(
+          state.connectionDrag
+        ){
+
+          renderDragConnection();
+
+        }
+
+      }
+
+
+      /* =========================
+         Expand / Collapse
+      ========================= */
+
+      function setNodeExpanded(
+        element,
+        expanded,
+        immediate=false
+      ){
+
+        const node=
+          getNode(
+            element?.dataset.nodeId
+          );
+
+
+        if(
+          !element||
+          !node
+        ){
+
+          return;
+
+        }
+
+
+        const body=
+          element.querySelector(
+            '.vc-node-body'
+          );
+
+
+        node.expanded=
+          expanded;
+
+
+        element.classList.toggle(
+          'vc-expanded',
+          expanded
+        );
+
+
+        const toggle=
+          element.querySelector(
+            '.vc-node-toggle'
+          );
+
+
+        toggle?.setAttribute(
+          'aria-expanded',
+          String(expanded)
+        );
+
+
+        toggle?.setAttribute(
+          'aria-label',
+          expanded
+            ?'상세 내용 닫기'
+            :'상세 내용 열기'
+        );
+
+
+        positionPorts(
+          element,
+          getNodeType(node)
+        );
+
+
+        const head=
+          element.querySelector(
+            '.vc-node-head'
+          );
+
+
+        const collapsedHeight=
+          head.offsetHeight+
+          20;
+
+
+        if(immediate){
+
+          body.style.transition=
+            'none';
+
+          element.style.transition=
+            'none';
+
+
+          if(expanded){
+
+            body.style.height=
+              'auto';
+
+            element.style.height=
+              'auto';
+
+          }else{
+
+            body.style.height=
+              '0px';
+
+            element.style.height=
+              `${collapsedHeight}px`;
+
+          }
+
+
+          positionPorts(
+            element,
+            getNodeType(node)
+          );
+
+
+          raf(
+            ()=>{
+
+              body.style.transition=
+                '';
+
+              element.style.transition=
+                '';
+
+              positionPorts(
+                element,
+                getNodeType(node)
+              );
+
+              renderConnections();
+
+            }
+          );
+
+
+          return;
+
+        }
+
+
+        if(expanded){
+
+          body.style.height=
+            '0px';
+
+          element.style.height=
+            `${collapsedHeight}px`;
+
+
+          const targetBody=
+            body.scrollHeight;
+
+
+          const targetHeight=
+            collapsedHeight+
+            targetBody;
+
+
+          void element.offsetHeight;
+
+
+          raf(
+            ()=>{
+
+              body.style.height=
+                `${targetBody}px`;
+
+              element.style.height=
+                `${targetHeight}px`;
+
+
+              trackExpansion();
+
+
+              setTimeout(
+                ()=>{
+
+                  if(node.expanded){
+
+                    body.style.height=
+                      'auto';
+
+                    element.style.height=
+                      'auto';
+
+
+                    positionPorts(
+                      element,
+                      getNodeType(node)
+                    );
+
+                    renderConnections();
+
+                  }
+
+                },
+                360
+              );
+
+            }
+          );
+
+
+          return;
+
+        }
+
+
+        const currentHeight=
+          element.offsetHeight;
+
+        const currentBodyHeight=
+          body.scrollHeight;
+
+
+        element.style.height=
+          `${currentHeight}px`;
+
+        body.style.height=
+          `${currentBodyHeight}px`;
+
+
+        void element.offsetHeight;
+
+
+        raf(
+          ()=>{
+
+            element.style.height=
+              `${collapsedHeight}px`;
+
+            body.style.height=
+              '0px';
+
+            trackExpansion();
+
+          }
+        );
+
+      }
+
+
+      function trackExpansion(){
+
+        if(
+          state.expansionAnimation
+        ){
+
+          cancelAnimationFrame(
+            state.expansionAnimation
+          );
+
+        }
+
+
+        const started=
+          performance.now();
+
+        const duration=
+          340;
+
+
+        const tick=
+          now=>{
+
+            renderConnections();
+
+
+            if(
+              now-started<
+              duration
+            ){
+
+              state.expansionAnimation=
+                requestAnimationFrame(
+                  tick
+                );
+
+            }else{
+
+              state.expansionAnimation=
+                null;
+
+              renderConnections();
+
+            }
+
+          };
+
+
+        state.expansionAnimation=
+          requestAnimationFrame(
+            tick
+          );
+
+      }
+
+
+      /* =========================
+         Node Management
+      ========================= */
+
+      function uniqueId(
+        prefix='n'
+      ){
+
+        let id;
+
+
+        do{
+
+          id=
+            `${prefix}${Date.now().toString(36)}${Math.random().toString(36).slice(2,7)}`;
+
+        }while(
+          getNode(id)
+        );
+
+
+        return id;
+
+      }
+
+
+      function structuredCloneSafe(
+        value
+      ){
+
+        try{
+
+          return structuredClone(
+            value
+          );
+
+        }catch{
+
+          return JSON.parse(
+            JSON.stringify(value)
+          );
+
+        }
+
+      }
+
+
+      function normalizeNode(
+        input
+      ){
+
+        return {
+
+          id:
+            String(
+              input.id||
+              uniqueId()
+            ),
+
+          type:
+            String(
+              input.type
+            ),
+
+          x:
+            Number(input.x)||
+            0,
+
+          y:
+            Number(input.y)||
+            0,
+
+          expanded:
+            !!input.expanded,
+
+          data:
+            structuredCloneSafe(
+              input.data||
+              {}
+            )
+
+        };
+
+      }
+
+
+      function findNewNodePosition(){
+
+        const rect=
+          canvas.getBoundingClientRect();
+
+        const mobile=
+          window.innerWidth<=600;
+
+        const nodeWidth=
+          mobile
+            ?178
+            :190;
+
+        const marginScreen=
+          28;
+
+        const leftWorld=
+          (
+            marginScreen-
+            state.offset.x
+          )/
+          state.scale;
+
+        const topWorld=
+          (
+            marginScreen-
+            state.offset.y
+          )/
+          state.scale;
+
+        const rightWorld=
+          (
+            rect.width-
+            marginScreen-
+            nodeWidth*
+            state.scale-
+            state.offset.x
+          )/
+          state.scale;
+
+        const bottomWorld=
+          (
+            rect.height-
+            115-
+            nodeWidth*
+            0.4*
+            state.scale-
+            state.offset.y
+          )/
+          state.scale;
+
+
+        const minX=
+          Math.min(
+            leftWorld,
+            rightWorld
+          );
+
+        const maxX=
+          Math.max(
+            leftWorld,
+            rightWorld
+          );
+
+        const minY=
+          Math.min(
+            topWorld,
+            bottomWorld
+          );
+
+        const maxY=
+          Math.max(
+            topWorld,
+            bottomWorld
+          );
+
+
+        const centerX=
+          (minX+maxX)/2;
+
+        const centerY=
+          (minY+maxY)/2;
+
+        const gap=
+          24;
+
+        const estimatedHeight=
+          54;
+
+
+        const spots=[
+
+          {
+            x:
+              centerX-
+              nodeWidth/2,
+
+            y:
+              centerY-
+              estimatedHeight/2
+
+          },
+
+          {
+            x:
+              centerX-
+              nodeWidth/2,
+
+            y:
+              centerY-
+              estimatedHeight/2+
+              estimatedHeight+
+              gap
+
+          },
+
+          {
+            x:
+              centerX-
+              nodeWidth/2,
+
+            y:
+              centerY-
+              estimatedHeight/2-
+              estimatedHeight-
+              gap
+
+          },
+
+          {
+            x:
+              centerX-
+              nodeWidth/2-
+              nodeWidth-
+              gap,
+
+            y:
+              centerY-
+              estimatedHeight/2
+
+          },
+
+          {
+            x:
+              centerX-
+              nodeWidth/2+
+              nodeWidth+
+              gap,
+
+            y:
+              centerY-
+              estimatedHeight/2
+
+          },
+
+          {
+            x:minX,
+            y:minY
+          }
+
+        ];
+
+
+        const valid=
+          spots.find(
+            position=>{
+
+              if(
+                position.x<minX||
+                position.x>maxX||
+                position.y<minY||
+                position.y>maxY
+              ){
+
+                return false;
+
+              }
+
+
+              return !state.nodes.some(
+                node=>
+                  Math.abs(
+                    node.x-
+                    position.x
+                  )<
+                    nodeWidth+
+                    gap&&
+                  Math.abs(
+                    node.y-
+                    position.y
+                  )<
+                    estimatedHeight+
+                    gap
+              );
+
+            }
+          );
+
+
+        return(
+          valid||
+          {
+            x:
+              clamp(
+                centerX-
+                nodeWidth/2,
+                minX,
+                maxX
+              ),
+
+            y:
+              clamp(
+                centerY-
+                estimatedHeight/2,
+                minY,
+                maxY
+              )
+          }
+        );
+
+      }
+
+
+      function addNode(
+        type,
+        nodeData={}
+      ){
+
+        if(
+          !registry.has(type)
+        ){
+
+          throw new Error(
+            `Unknown node type: ${type}`
+          );
+
+        }
+
+
+        if(
+          type==='start'
+        ){
+
+          const existing=
+            state.nodes.find(
+              node=>
+                node.type==='start'
+            );
+
+
+          if(existing){
+
+            selectNode(
+              existing.id
+            );
+
+            closeAddMenu();
+
+            return existing;
+
+          }
+
+        }
+
+
+        const position=
+          nodeData.x!=null&&
+          nodeData.y!=null
+            ?{
+              x:nodeData.x,
+              y:nodeData.y
+            }
+            :findNewNodePosition();
+
+
+        const node=
+          normalizeNode({
+
+            id:
+              nodeData.id||
+              uniqueId(),
+
+            type,
+
+            x:position.x,
+
+            y:position.y,
+
+            expanded:true,
+
+            data:
+              nodeData.data
+
+          });
+
+
+        state.nodes.push(
+          node
+        );
+
+
+        state.selectedNode=
+          node.id;
+
+
+        render();
+
+        closeAddMenu();
+
+        emit(
+          'change',
+          getWorkflow()
+        );
+
+
+        return node;
+
+      }
+
+
+      function removeNode(
+        id
+      ){
+
+        const node=
+          getNode(id);
+
+
+        if(
+          !node||
+          node.type==='start'
+        ){
+
+          return false;
+
+        }
+
+
+        state.connections=
+          state.connections.filter(
+            connection=>
+              connection.from.node!==id&&
+              connection.to.node!==id
+          );
+
+
+        const index=
+          state.nodes.findIndex(
+            node=>
+              node.id===id
+          );
+
+
+        if(index<0){
+
+          return false;
+
+        }
+
+
+        state.nodes.splice(
+          index,
+          1
+        );
+
+
+        if(
+          state.selectedNode===id
+        ){
+
+          state.selectedNode=
+            null;
+
+        }
+
+
+        render();
+
+        emit(
+          'change',
+          getWorkflow()
+        );
+
+
+        return true;
+
+      }
+
+
+      function setNodePosition(
+        node,
+        x,
+        y
+      ){
+
+        node.x=
+          x;
+
+        node.y=
+          y;
+
+
+        const element=
+          getNodeElement(
+            node.id
+          );
+
+
+        if(element){
+
+          element.style.left=
+            `${x}px`;
+
+          element.style.top=
+            `${y}px`;
+
+        }
+
+
+        renderConnections();
+
+
+        emit(
+          'change',
+          getWorkflow()
+        );
+
+      }
+
+
+      function selectNode(
+        id
+      ){
+
+        if(
+          id!==null&&
+          !getNode(id)
+        ){
+
+          id=null;
+
+        }
+
+
+        state.selectedNode=
+          id;
+
+
+        nodesLayer
+          .querySelectorAll(
+            '.vc-node'
+          )
+          .forEach(
+            element=>
+              element.classList.toggle(
+                'vc-selected',
+                element.dataset.nodeId===id
+              )
+          );
+
+
+        renderConnections();
+
         updateComposerState();
-      },
-      destroy(){
-        if(state.destroyed)return;
-        state.destroyed=true;
-        listeners.splice(0).forEach(fn=>{try{fn()}catch{}});
-        observerHandles.splice(0).forEach(fn=>{try{fn()}catch{}});
-        if(state.expansionAnimation)cancelAnimationFrame(state.expansionAnimation);
-        state.rafIds.forEach(cancelAnimationFrame);state.rafIds.clear();
-        if(state.validationTimer)clearTimeout(state.validationTimer);
-        events.clear();state.pointers.clear();state.nodeDrag=null;state.canvasPan=null;state.connectionDrag=null;
-        root.remove();
+
+        emit(
+          'select',
+          id
+        );
+
       }
+
+
+      function toggleNodeExpanded(
+        id
+      ){
+
+        const node=
+          getNode(id);
+
+        const element=
+          getNodeElement(id);
+
+
+        if(
+          !node||
+          !element
+        ){
+
+          return;
+
+        }
+
+
+        setNodeExpanded(
+          element,
+          !node.expanded
+        );
+
+
+        selectNode(
+          id
+        );
+
+
+        emit(
+          'change',
+          getWorkflow()
+        );
+
+      }
+
+
+      /* =========================
+         Connection Validation
+      ========================= */
+
+      function connectionValid(
+        sourceNodeId,
+        sourcePortId,
+        targetNodeId,
+        targetPortId
+      ){
+
+        const errors=[];
+
+        const warnings=[];
+
+
+        if(
+          sourceNodeId===
+          targetNodeId
+        ){
+
+          errors.push({
+            code:'SELF_CONNECTION',
+            message:
+              '노드는 자기 자신에게 연결할 수 없습니다.'
+          });
+
+        }
+
+
+        const source=
+          getNode(
+            sourceNodeId
+          );
+
+        const target=
+          getNode(
+            targetNodeId
+          );
+
+
+        if(!source){
+
+          errors.push({
+            code:'MISSING_SOURCE_NODE',
+            message:
+              `출발 노드 ${sourceNodeId}가 존재하지 않습니다.`
+          });
+
+        }
+
+
+        if(!target){
+
+          errors.push({
+            code:'MISSING_TARGET_NODE',
+            message:
+              `대상 노드 ${targetNodeId}가 존재하지 않습니다.`
+          });
+
+        }
+
+
+        const output=
+          portDef(
+            sourceNodeId,
+            sourcePortId,
+            'output'
+          );
+
+        const input=
+          portDef(
+            targetNodeId,
+            targetPortId,
+            'input'
+          );
+
+
+        if(!output){
+
+          errors.push({
+            code:'MISSING_SOURCE_PORT',
+            message:
+              `출력 포트 ${sourcePortId}가 존재하지 않습니다.`
+          });
+
+        }
+
+
+        if(!input){
+
+          errors.push({
+            code:'MISSING_TARGET_PORT',
+            message:
+              `입력 포트 ${targetPortId}가 존재하지 않습니다.`
+          });
+
+        }
+
+
+        if(errors.length){
+
+          return {
+            ok:false,
+            errors,
+            warnings
+          };
+
+        }
+
+
+        const duplicate=
+          state.connections.find(
+            connection=>
+              connection.from.node===
+                sourceNodeId&&
+              connection.from.port===
+                sourcePortId&&
+              connection.to.node===
+                targetNodeId&&
+              connection.to.port===
+                targetPortId
+          );
+
+
+        if(duplicate){
+
+          errors.push({
+            code:'DUPLICATE_CONNECTION',
+            message:
+              '동일한 연결이 이미 존재합니다.'
+          });
+
+        }
+
+
+        const incoming=
+          state.connections.filter(
+            connection=>
+              connection.to.node===
+                targetNodeId&&
+              connection.to.port===
+                targetPortId
+          );
+
+
+        if(
+          !input.multiple&&
+          incoming.length
+        ){
+
+          errors.push({
+            code:'INPUT_MULTIPLE',
+            message:
+              `입력 포트 ${input.name}은 하나의 연결만 허용합니다.`
+          });
+
+        }
+
+
+        const accepts=
+          Array.isArray(
+            input.accepts
+          )
+            ?input.accepts
+            :['any'];
+
+
+        const accepted=
+          accepts.includes('any')||
+          accepts.includes(output.type)||
+          output.type==='any';
+
+
+        if(!accepted){
+
+          errors.push({
+            code:'TYPE_MISMATCH',
+            message:
+              `${output.type} → ${input.type} 타입을 연결할 수 없습니다.`
+          });
+
+        }
+
+
+        if(
+          wouldCreateCycle(
+            sourceNodeId,
+            targetNodeId
+          )
+        ){
+
+          errors.push({
+            code:'CYCLE',
+            message:
+              '이 연결은 순환 구조(Cycle)를 만듭니다.'
+          });
+
+        }
+
+
+        return {
+          ok:
+            errors.length===0,
+
+          errors,
+
+          warnings
+
+        };
+
+      }
+
+
+      function wouldCreateCycle(
+        fromId,
+        toId
+      ){
+
+        if(
+          fromId===toId
+        ){
+
+          return true;
+
+        }
+
+
+        const adjacency=
+          new Map();
+
+
+        for(
+          const connection of
+          state.connections
+        ){
+
+          if(
+            !adjacency.has(
+              connection.from.node
+            )
+          ){
+
+            adjacency.set(
+              connection.from.node,
+              []
+            );
+
+          }
+
+
+          adjacency
+            .get(
+              connection.from.node
+            )
+            .push(
+              connection.to.node
+            );
+
+        }
+
+
+        if(
+          !adjacency.has(
+            toId
+          )
+        ){
+
+          return false;
+
+        }
+
+
+        const stack=[
+          toId
+        ];
+
+        const seen=
+          new Set();
+
+
+        while(
+          stack.length
+        ){
+
+          const current=
+            stack.pop();
+
+
+          if(
+            current===fromId
+          ){
+
+            return true;
+
+          }
+
+
+          if(
+            seen.has(current)
+          ){
+
+            continue;
+
+          }
+
+
+          seen.add(
+            current
+          );
+
+
+          for(
+            const next of
+            adjacency.get(
+              current
+            )||[]
+          ){
+
+            stack.push(
+              next
+            );
+
+          }
+
+        }
+
+
+        return false;
+
+      }
+
+
+      function canConnect(
+        specification
+      ){
+
+        const result=
+          connectionValid(
+            specification.from.node,
+            specification.from.port,
+            specification.to.node,
+            specification.to.port
+          );
+
+
+        emit(
+          'validate',
+          result
+        );
+
+
+        return result;
+
+      }
+
+
+      function uniqueConnectionId(){
+
+        let id;
+
+
+        do{
+
+          id=
+            `c${Date.now().toString(36)}${Math.random().toString(36).slice(2,7)}`;
+
+        }while(
+          state.connections.some(
+            connection=>
+              connection.id===id
+          )
+        );
+
+
+        return id;
+
+      }
+
+
+      function connect(
+        from,
+        to,
+        options={}
+      ){
+
+        const specification={
+
+          from:{
+            node:from.node,
+            port:from.port
+          },
+
+          to:{
+            node:to.node,
+            port:to.port
+          }
+
+        };
+
+
+        const duplicate=
+          state.connections.find(
+            connection=>
+              connection.from.node===
+                specification.from.node&&
+              connection.from.port===
+                specification.from.port&&
+              connection.to.node===
+                specification.to.node&&
+              connection.to.port===
+                specification.to.port
+          );
+
+
+        if(duplicate){
+
+          disconnect(
+            duplicate.id
+          );
+
+          return null;
+
+        }
+
+
+        const check=
+          canConnect(
+            specification
+          );
+
+
+        if(!check.ok){
+
+          showValidation(
+            check.errors,
+            check.warnings
+          );
+
+          return null;
+
+        }
+
+
+        const connection={
+
+          id:
+            uniqueConnectionId(),
+
+          from:
+            specification.from,
+
+          to:
+            specification.to,
+
+          ...(options.data
+            ?{
+              data:
+                structuredCloneSafe(
+                  options.data
+                )
+            }
+            :{})
+
+        };
+
+
+        state.connections.push(
+          connection
+        );
+
+
+        render();
+
+        emit(
+          'connect',
+          connection
+        );
+
+        emit(
+          'change',
+          getWorkflow()
+        );
+
+
+        return connection;
+
+      }
+
+
+      function disconnect(
+        id
+      ){
+
+        const index=
+          state.connections.findIndex(
+            connection=>
+              connection.id===id
+          );
+
+
+        if(index<0){
+
+          return false;
+
+        }
+
+
+        state.connections.splice(
+          index,
+          1
+        );
+
+
+        render();
+
+        emit(
+          'change',
+          getWorkflow()
+        );
+
+
+        return true;
+
+      }
+
+
+      /* =========================
+         Workflow Validation
+      ========================= */
+
+      function validate(){
+
+        const errors=[];
+
+        const warnings=[];
+
+        const ids=
+          new Set();
+
+
+        for(
+          const node of
+          state.nodes
+        ){
+
+          if(
+            ids.has(
+              node.id
+            )
+          ){
+
+            errors.push({
+              code:'DUPLICATE_NODE_ID',
+              node:node.id,
+              message:
+                `노드 ID ${node.id}가 중복됩니다.`
+            });
+
+          }
+
+
+          ids.add(
+            node.id
+          );
+
+
+          if(
+            !registry.has(
+              node.type
+            )
+          ){
+
+            errors.push({
+              code:'UNKNOWN_NODE_TYPE',
+              node:node.id,
+              message:
+                `노드 타입 ${node.type}이 등록되어 있지 않습니다.`
+            });
+
+          }
+
+        }
+
+
+        const nodeSet=
+          new Set(
+            state.nodes.map(
+              node=>node.id
+            )
+          );
+
+
+        const connectionKeys=
+          new Set();
+
+
+        for(
+          const connection of
+          state.connections
+        ){
+
+          if(
+            !nodeSet.has(
+              connection.from.node
+            )
+          ){
+
+            errors.push({
+              code:'MISSING_SOURCE_NODE',
+              connection:
+                connection.id,
+              message:
+                `연결 ${connection.id}의 출발 노드가 없습니다.`
+            });
+
+          }
+
+
+          if(
+            !nodeSet.has(
+              connection.to.node
+            )
+          ){
+
+            errors.push({
+              code:'MISSING_TARGET_NODE',
+              connection:
+                connection.id,
+              message:
+                `연결 ${connection.id}의 대상 노드가 없습니다.`
+            });
+
+          }
+
+
+          if(
+            connection.from.node===
+            connection.to.node
+          ){
+
+            errors.push({
+              code:'SELF_CONNECTION',
+              connection:
+                connection.id,
+              message:
+                `연결 ${connection.id}가 자기 자신을 가리킵니다.`
+            });
+
+          }
+
+
+          const key=
+            connectionKey(
+              connection
+            );
+
+
+          if(
+            connectionKeys.has(key)
+          ){
+
+            errors.push({
+              code:'DUPLICATE_CONNECTION',
+              connection:
+                connection.id,
+              message:
+                `연결 ${connection.id}가 중복됩니다.`
+            });
+
+          }
+
+
+          connectionKeys.add(
+            key
+          );
+
+
+          const output=
+            portDef(
+              connection.from.node,
+              connection.from.port,
+              'output'
+            );
+
+
+          const input=
+            portDef(
+              connection.to.node,
+              connection.to.port,
+              'input'
+            );
+
+
+          if(!output){
+
+            errors.push({
+              code:'MISSING_SOURCE_PORT',
+              connection:
+                connection.id,
+              message:
+                `연결 ${connection.id}의 출력 포트가 없습니다.`
+            });
+
+          }
+
+
+          if(!input){
+
+            errors.push({
+              code:'MISSING_TARGET_PORT',
+              connection:
+                connection.id,
+              message:
+                `연결 ${connection.id}의 입력 포트가 없습니다.`
+            });
+
+          }
+
+
+          if(
+            output&&
+            input
+          ){
+
+            const accepts=
+              Array.isArray(
+                input.accepts
+              )
+                ?input.accepts
+                :['any'];
+
+
+            const compatible=
+              accepts.includes(
+                'any'
+              )||
+              accepts.includes(
+                output.type
+              )||
+              output.type===
+                'any';
+
+
+            if(!compatible){
+
+              errors.push({
+                code:'TYPE_MISMATCH',
+                connection:
+                  connection.id,
+                message:
+                  `${output.type} → ${input.type} 타입이 호환되지 않습니다.`
+              });
+
+            }
+
+          }
+
+        }
+
+
+        for(
+          const node of
+          state.nodes
+        ){
+
+          const type=
+            getNodeType(
+              node
+            );
+
+
+          if(!type){
+
+            continue;
+
+          }
+
+
+          for(
+            const port of
+            type.inputs
+          ){
+
+            const incoming=
+              state.connections.filter(
+                connection=>
+                  connection.to.node===
+                    node.id&&
+                  connection.to.port===
+                    port.id
+              );
+
+
+            if(
+              port.required&&
+              !incoming.length
+            ){
+
+              errors.push({
+                code:'REQUIRED_INPUT',
+                node:node.id,
+                port:port.id,
+                message:
+                  `${type.name}의 필수 입력 '${port.name}'이 연결되지 않았습니다.`
+              });
+
+            }
+
+
+            if(
+              !port.multiple&&
+              incoming.length>1
+            ){
+
+              errors.push({
+                code:'INPUT_MULTIPLE',
+                node:node.id,
+                port:port.id,
+                message:
+                  `${type.name}의 '${port.name}'은 단일 입력만 허용합니다.`
+              });
+
+            }
+
+          }
+
+        }
+
+
+        const connectedNodes=
+          new Set();
+
+
+        for(
+          const connection of
+          state.connections
+        ){
+
+          connectedNodes.add(
+            connection.from.node
+          );
+
+          connectedNodes.add(
+            connection.to.node
+          );
+
+        }
+
+
+        const startNodes=
+          state.nodes.filter(
+            node=>
+              node.type==='start'
+          );
+
+
+        for(
+          const node of
+          state.nodes
+        ){
+
+          if(
+            node.type!=='start'&&
+            !connectedNodes.has(
+              node.id
+            )
+          ){
+
+            warnings.push({
+              code:'ISOLATED_NODE',
+              node:node.id,
+              message:
+                `노드 '${getNodeType(node)?.name||node.type}'가 그래프와 연결되지 않았습니다.`
+            });
+
+          }
+
+        }
+
+
+        if(
+          startNodes.length===0
+        ){
+
+          warnings.push({
+            code:'NO_START_NODE',
+            message:
+              '시작 노드가 없습니다.'
+          });
+
+        }
+
+
+        if(
+          startNodes.length>1
+        ){
+
+          warnings.push({
+            code:'MULTIPLE_START_NODE',
+            message:
+              '시작 노드가 여러 개입니다.'
+          });
+
+        }
+
+
+        const graph={
+
+          nodes:
+            state.nodes.map(
+              node=>node.id
+            ),
+
+          adjacency:
+            new Map()
+
+        };
+
+
+        for(
+          const connection of
+          state.connections
+        ){
+
+          if(
+            !graph.adjacency.has(
+              connection.from.node
+            )
+          ){
+
+            graph.adjacency.set(
+              connection.from.node,
+              []
+            );
+
+          }
+
+
+          graph
+            .adjacency
+            .get(
+              connection.from.node
+            )
+            .push(
+              connection.to.node
+            );
+
+        }
+
+
+        const cycleNodes=
+          new Set();
+
+
+        for(
+          const nodeId of
+          graph.nodes
+        ){
+
+          const visiting=
+            new Set();
+
+          const visited=
+            new Set();
+
+
+          if(
+            hasCycleFrom(
+              nodeId,
+              graph.adjacency,
+              visiting,
+              visited
+            )
+          ){
+
+            cycleNodes.add(
+              nodeId
+            );
+
+          }
+
+        }
+
+
+        if(
+          cycleNodes.size
+        ){
+
+          errors.push({
+            code:'CYCLE',
+            nodes:[
+              ...cycleNodes
+            ],
+            message:
+              '워크플로우에 순환 구조(Cycle)가 존재합니다.'
+          });
+
+        }
+
+
+        const result={
+
+          valid:
+            errors.length===0,
+
+          errors,
+
+          warnings
+
+        };
+
+
+        emit(
+          'validate',
+          result
+        );
+
+
+        return result;
+
+      }
+
+
+      function hasCycleFrom(
+        node,
+        adjacency,
+        visiting,
+        visited
+      ){
+
+        if(
+          visiting.has(
+            node
+          )
+        ){
+
+          return true;
+
+        }
+
+
+        if(
+          visited.has(
+            node
+          )
+        ){
+
+          return false;
+
+        }
+
+
+        visiting.add(
+          node
+        );
+
+
+        for(
+          const next of
+          adjacency.get(
+            node
+          )||[]
+        ){
+
+          if(
+            hasCycleFrom(
+              next,
+              adjacency,
+              visiting,
+              visited
+            )
+          ){
+
+            return true;
+
+          }
+
+        }
+
+
+        visiting.delete(
+          node
+        );
+
+        visited.add(
+          node
+        );
+
+
+        return false;
+
+      }
+
+
+      /* =========================
+         Workflow State
+      ========================= */
+
+      function getWorkflow(){
+
+        return {
+
+          nodes:
+            structuredCloneSafe(
+              state.nodes
+            ),
+
+          connections:
+            structuredCloneSafe(
+              state.connections
+            )
+
+        };
+
+      }
+
+
+      function getState(){
+
+        return {
+
+          workflow:
+            getWorkflow(),
+
+          viewport:{
+
+            scale:
+              state.scale,
+
+            offset:{
+              ...state.offset
+            }
+
+          }
+
+        };
+
+      }
+
+
+      function setState(
+        saved={}
+      ){
+
+        const workflow=
+          saved.workflow||
+          saved;
+
+
+        state.nodes=
+          Array.isArray(
+            workflow.nodes
+          )
+            ?workflow.nodes
+              .map(
+                normalizeNode
+              )
+              .filter(
+                node=>
+                  registry.has(
+                    node.type
+                  )
+              )
+            :[];
+
+
+        state.connections=
+          Array.isArray(
+            workflow.connections
+          )
+            ?structuredCloneSafe(
+                workflow.connections
+              )
+              .map(
+                connection=>({
+
+                  id:
+                    String(
+                      connection.id||
+                      uniqueConnectionId()
+                    ),
+
+                  from:{
+
+                    node:
+                      String(
+                        connection.from?.node??
+                        connection.from??
+                        ''
+                      ),
+
+                    port:
+                      String(
+                        connection.from?.port??
+                        'out'
+                      )
+
+                  },
+
+                  to:{
+
+                    node:
+                      String(
+                        connection.to?.node??
+                        connection.to??
+                        ''
+                      ),
+
+                    port:
+                      String(
+                        connection.to?.port??
+                        'in'
+                      )
+
+                  },
+
+                  ...(connection.data
+                    ?{
+                      data:
+                        structuredCloneSafe(
+                          connection.data
+                        )
+                    }
+                    :{})
+
+                })
+              )
+            :[];
+
+
+        if(
+          saved.viewport
+        ){
+
+          state.scale=
+            clamp(
+              Number(
+                saved.viewport.scale
+              )||
+              1,
+              .12,
+              3
+            );
+
+
+          state.offset={
+
+            x:
+              Number(
+                saved.viewport.offset?.x
+              )||
+              0,
+
+            y:
+              Number(
+                saved.viewport.offset?.y
+              )||
+              0
+
+          };
+
+        }
+
+
+        state.selectedNode=
+          null;
+
+
+        render();
+
+        emit(
+          'change',
+          getWorkflow()
+        );
+
+
+        return api;
+
+      }
+
+
+      /* =========================
+         Validation UI
+      ========================= */
+
+      function showValidation(
+        errors,
+        warnings
+      ){
+
+        validationLayer.textContent='';
+
+
+        const items=[
+
+          ...errors
+            .slice(
+              0,
+              3
+            )
+            .map(
+              item=>({
+                cls:'vc-error',
+                text:item.message
+              })
+            ),
+
+          ...warnings
+            .slice(
+              0,
+              2
+            )
+            .map(
+              item=>({
+                cls:'vc-warning',
+                text:item.message
+              })
+            )
+
+        ];
+
+
+        if(!items.length){
+
+          return;
+
+        }
+
+
+        for(
+          const item of items
+        ){
+
+          const element=
+            document.createElement(
+              'div'
+            );
+
+
+          element.className=
+            `vc-validation-item ${item.cls}`;
+
+
+          element.textContent=
+            item.text;
+
+
+          validationLayer.appendChild(
+            element
+          );
+
+
+          raf(
+            ()=>{
+              element.classList.add(
+                'vc-show'
+              );
+            }
+          );
+
+        }
+
+
+        if(
+          state.validationTimer
+        ){
+
+          clearTimeout(
+            state.validationTimer
+          );
+
+        }
+
+
+        state.validationTimer=
+          setTimeout(
+            ()=>{
+
+              validationLayer
+                .querySelectorAll(
+                  '.vc-validation-item'
+                )
+                .forEach(
+                  element=>
+                    element.classList.remove(
+                      'vc-show'
+                    )
+                );
+
+
+              setTimeout(
+                ()=>{
+                  validationLayer.textContent='';
+                },
+                200
+              );
+
+            },
+            2800
+          );
+
+      }
+
+
+      function render(){
+
+        renderTransform();
+
+        renderNodes();
+
+        renderConnections();
+
+        updateComposerState();
+
+      }
+
+
+      /* =========================
+         Add Menu
+      ========================= */
+
+      function renderMenu(){
+
+        addMenu.textContent='';
+
+
+        for(
+          const [key,type]
+            of registry
+        ){
+
+          /*
+            hidden은 서버 Definition에서
+            그대로 존중한다.
+          */
+          if(
+            type.hidden
+          ){
+
+            continue;
+
+          }
+
+
+          const button=
+            document.createElement(
+              'button'
+            );
+
+
+          button.type=
+            'button';
+
+          button.className=
+            'vc-menu-item';
+
+          button.dataset.nodeType=
+            key;
+
+
+          button.innerHTML=`
+
+            <span
+              class="vc-menu-icon"
+              style="color:${
+                type.color||
+                'var(--sub)'
+              }"
+            >
+              ${type.icon||''}
+            </span>
+
+            <span class="vc-menu-name">
+              ${escapeHtml(
+                type.name||
+                key
+              )}
+            </span>
+
+            <span class="vc-menu-desc">
+              ${escapeHtml(
+                type.tag||
+                ''
+              )}
+            </span>
+
+          `;
+
+
+          addMenu.appendChild(
+            button
+          );
+
+        }
+
+      }
+
+
+      function openAddMenu(){
+
+        addMenu.classList.add(
+          'vc-open'
+        );
+
+        addButton.classList.add(
+          'vc-open'
+        );
+
+        addButton.setAttribute(
+          'aria-expanded',
+          'true'
+        );
+
+        state.addMenuOpen=
+          true;
+
+      }
+
+
+      function closeAddMenu(){
+
+        addMenu.classList.remove(
+          'vc-open'
+        );
+
+        addButton.classList.remove(
+          'vc-open'
+        );
+
+        addButton.setAttribute(
+          'aria-expanded',
+          'false'
+        );
+
+        state.addMenuOpen=
+          false;
+
+      }
+
+
+      function toggleAddMenu(){
+
+        state.addMenuOpen
+          ?closeAddMenu()
+          :openAddMenu();
+
+      }
+
+
+      /* =========================
+         Connection Drag
+      ========================= */
+
+      function startNodeDrag(){
+
+        if(
+          !state.nodeDrag||
+          state.nodeDrag.moved
+        ){
+
+          return;
+
+        }
+
+
+        const element=
+          getNodeElement(
+            state.nodeDrag.node.id
+          );
+
+
+        if(!element){
+
+          return;
+
+        }
+
+
+        state.nodeDrag.moved=
+          true;
+
+
+        state.nodeDrag.wasExpanded=
+          !!state.nodeDrag.node.expanded;
+
+
+        if(
+          state.nodeDrag.wasExpanded
+        ){
+
+          setNodeExpanded(
+            element,
+            false
+          );
+
+        }
+
+
+        element.classList.add(
+          'vc-dragging'
+        );
+
+      }
+
+
+      function finishNodeDrag(){
+
+        const drag=
+          state.nodeDrag;
+
+
+        if(!drag){
+
+          return;
+
+        }
+
+
+        const element=
+          getNodeElement(
+            drag.node.id
+          );
+
+
+        if(element){
+
+          element.classList.remove(
+            'vc-dragging'
+          );
+
+
+          if(
+            drag.wasExpanded
+          ){
+
+            setNodeExpanded(
+              element,
+              true
+            );
+
+          }
+
+        }
+
+
+        state.nodeDrag=
+          null;
+
+
+        renderConnections();
+
+
+        emit(
+          'change',
+          getWorkflow()
+        );
+
+      }
+
+
+      function renderDragConnection(){
+
+        dragConnectionLayer.textContent='';
+
+
+        const drag=
+          state.connectionDrag;
+
+
+        if(!drag){
+
+          return;
+
+        }
+
+
+        const a=
+          portPoint(
+            drag.from.node,
+            drag.from.port,
+            'output'
+          );
+
+
+        if(!a){
+
+          return;
+
+        }
+
+
+        const b=
+          screenToWorld(
+            drag.x,
+            drag.y
+          );
+
+
+        const sourceNode=
+          getNode(
+            drag.from.node
+          );
+
+
+        const sourceType=
+          getNodeType(
+            sourceNode
+          );
+
+
+        const path=
+          svgEl(
+            'path',
+            {
+              d:
+                curve(
+                  a,
+                  b
+                ),
+
+              'marker-end':
+                `url(#${markerId})`
+            }
+          );
+
+
+        path.classList.add(
+          'vc-drag-connection'
+        );
+
+
+        if(
+          sourceType?.color
+        ){
+
+          path.style.stroke=
+            sourceType.color;
+
+        }
+
+
+        dragConnectionLayer.appendChild(
+          path
+        );
+
+
+        const dot=
+          svgEl(
+            'circle',
+            {
+              cx:a.x,
+              cy:a.y,
+              r:4,
+              class:
+                'vc-drag-source-dot'
+            }
+          );
+
+
+        if(
+          sourceType?.color
+        ){
+
+          dot.style.fill=
+            sourceType.color;
+
+        }
+
+
+        dragConnectionLayer.appendChild(
+          dot
+        );
+
+      }
+
+
+      function finishConnection(
+        event
+      ){
+
+        dragConnectionLayer.textContent='';
+
+
+        const drag=
+          state.connectionDrag;
+
+
+        if(!drag){
+
+          return;
+
+        }
+
+
+        const target=
+          document
+            .elementFromPoint(
+              event.clientX,
+              event.clientY
+            )
+            ?.closest(
+              '.vc-port-hit.vc-input'
+            );
+
+
+        const targetNode=
+          target?.closest(
+            '.vc-node'
+          );
+
+
+        const toNode=
+          targetNode?.dataset.nodeId;
+
+
+        const toPort=
+          target?.dataset.portId;
+
+
+        if(
+          toNode&&
+          toPort
+        ){
+
+          connect(
+            drag.from,
+            {
+              node:toNode,
+              port:toPort
+            }
+          );
+
+        }
+
+
+        state.connectionDrag=
+          null;
+
+
+        renderConnections();
+
+      }
+
+
+      /* =========================
+         Theme / Composer
+      ========================= */
+
+      function setTheme(
+        theme
+      ){
+
+        document.documentElement.classList.toggle(
+          'dark',
+          theme==='dark'
+        );
+
+
+        try{
+
+          localStorage.setItem(
+            'visual-ai-theme',
+            theme
+          );
+
+        }catch{}
+
+
+        emit(
+          'theme',
+          theme
+        );
+
+      }
+
+
+      function applySavedTheme(){
+
+        let theme=
+          'light';
+
+
+        try{
+
+          theme=
+            localStorage.getItem(
+              'visual-ai-theme'
+            )||
+            'light';
+
+        }catch{}
+
+
+        setTheme(
+          theme
+        );
+
+      }
+
+
+      function updateComposerState(){
+
+        const hasText=
+          chatInput.value.trim().length>
+          0;
+
+
+        const active=
+          hasText||
+          state.selectedNode!==null||
+          state.aiBusy;
+
+
+        chatForm.classList.toggle(
+          'vc-has-text',
+          hasText
+        );
+
+        chatForm.classList.toggle(
+          'vc-active',
+          active
+        );
+
+        chatForm.classList.toggle(
+          'vc-ai-busy',
+          state.aiBusy
+        );
+
+
+        chatForm.setAttribute(
+          'aria-busy',
+          String(
+            state.aiBusy
+          )
+        );
+
+
+        chatInput.disabled=
+          state.aiBusy;
+
+        attachButton.disabled=
+          state.aiBusy;
+
+
+        qs(
+          '.vc-send-button'
+        ).disabled=
+          state.aiBusy;
+
+
+        chatInput.placeholder=
+          state.aiBusy
+            ?'작업을 생성하는 중…'
+            :'무엇을 만들까요?';
+
+
+        chatInput.style.height=
+          'auto';
+
+
+        chatInput.style.height=
+          Math.min(
+            chatInput.scrollHeight,
+            115
+          )+
+          'px';
+
+      }
+
+
+      function setAIWaiting(
+        busy
+      ){
+
+        state.aiBusy=
+          !!busy;
+
+
+        const sendButton=
+          qs(
+            '.vc-send-button'
+          );
+
+
+        const attach=
+          qs(
+            '.vc-attach-button'
+          );
+
+
+        if(
+          state.aiBusy
+        ){
+
+          sendButton.innerHTML=`
+            <span
+              class="vc-ai-spinner"
+              aria-hidden="true"
+            ></span>
+          `;
+
+
+          sendButton.setAttribute(
+            'aria-label',
+            '작업 생성 중'
+          );
+
+
+          sendButton.setAttribute(
+            'title',
+            '작업 생성 중'
+          );
+
+
+          attach.setAttribute(
+            'aria-disabled',
+            'true'
+          );
+
+
+          chatInput.setAttribute(
+            'aria-busy',
+            'true'
+          );
+
+        }else{
+
+          sendButton.innerHTML=
+            sendIcon;
+
+
+          sendButton.setAttribute(
+            'aria-label',
+            '보내기'
+          );
+
+
+          sendButton.removeAttribute(
+            'title'
+          );
+
+
+          attach.removeAttribute(
+            'aria-disabled'
+          );
+
+
+          chatInput.removeAttribute(
+            'aria-busy'
+          );
+
+        }
+
+
+        updateComposerState();
+
+      }
+
+
+      /* =========================
+         Drag / Pointer
+      ========================= */
+
+      listen(
+        addButton,
+        'click',
+        event=>{
+
+          event.preventDefault();
+
+          event.stopPropagation();
+
+          toggleAddMenu();
+
+        }
+      );
+
+
+      listen(
+        addMenu,
+        'pointerdown',
+        event=>
+          event.stopPropagation()
+      );
+
+
+      listen(
+        addMenu,
+        'click',
+        event=>{
+
+          const item=
+            event.target.closest(
+              '.vc-menu-item'
+            );
+
+
+          if(!item){
+
+            return;
+
+          }
+
+
+          addNode(
+            item.dataset.nodeType
+          );
+
+        }
+      );
+
+
+      listen(
+        root,
+        'pointerdown',
+        event=>{
+
+          if(
+            !addMenu.contains(
+              event.target
+            )&&
+            !addButton.contains(
+              event.target
+            )
+          ){
+
+            closeAddMenu();
+
+          }
+
+        }
+      );
+
+
+      listen(
+        themeButton,
+        'click',
+        event=>{
+
+          event.stopPropagation();
+
+
+          setTheme(
+            document.documentElement.classList.contains(
+              'dark'
+            )
+              ?'light'
+              :'dark'
+          );
+
+        }
+      );
+
+
+      listen(
+        attachButton,
+        'click',
+        event=>{
+
+          event.stopPropagation();
+
+          fileInput.click();
+
+        }
+      );
+
+
+      listen(
+        fileInput,
+        'change',
+        event=>{
+
+          const files=[
+            ...event.target.files
+          ];
+
+
+          if(!files.length){
+
+            return;
+
+          }
+
+
+          const rect=
+            canvas.getBoundingClientRect();
+
+
+          const base=
+            screenToWorld(
+              rect.left+
+                rect.width/2,
+
+              rect.top+
+                Math.min(
+                  rect.height/2,
+                  rect.height-180
+                )
+            );
+
+
+          files.forEach(
+            (file,index)=>{
+
+              const previewUrl=
+                file.type.startsWith(
+                  'image/'
+                )
+                  ?URL.createObjectURL(
+                    file
+                  )
+                  :null;
+
+
+              addNode(
+                'file',
+                {
+
+                  x:
+                    base.x+
+                    (
+                      index-
+                      (
+                        files.length-1
+                      )/2
+                    )*
+                    220,
+
+                  y:
+                    base.y,
+
+                  data:{
+
+                    file,
+
+                    name:
+                      file.name,
+
+                    mime:
+                      file.type||
+                      'application/octet-stream',
+
+                    size:
+                      file.size,
+
+                    lastModified:
+                      file.lastModified,
+
+                    previewUrl
+
+                  }
+
+                }
+              );
+
+            }
+          );
+
+
+          fileInput.value='';
+
+
+          emit(
+            'attach',
+            {
+              files
+            }
+          );
+
+        }
+      );
+
+
+      listen(
+        chatInput,
+        'input',
+        updateComposerState
+      );
+
+
+      listen(
+        chatInput,
+        'focus',
+        updateComposerState
+      );
+
+
+      listen(
+        chatInput,
+        'keydown',
+        event=>{
+
+          if(state.aiBusy){
+
+            return;
+
+          }
+
+
+          if(
+            event.key==='Enter'&&
+            !event.shiftKey
+          ){
+
+            event.preventDefault();
+
+            chatForm.requestSubmit();
+
+          }
+
+        }
+      );
+
+
+      listen(
+        chatForm,
+        'submit',
+        event=>{
+
+          event.preventDefault();
+
+
+          if(
+            state.aiBusy
+          ){
+
+            return;
+
+          }
+
+
+          const text=
+            chatInput.value.trim();
+
+
+          if(!text){
+
+            return;
+
+          }
+
+
+          state.aiBusy=
+            true;
+
+
+          updateComposerState();
+
+
+          emit(
+            'submit',
+            {
+
+              text,
+
+              selectedNode:
+                state.selectedNode
+
+            }
+          );
+
+        }
+      );
+
+
+      listen(
+        nodesLayer,
+        'pointerdown',
+        event=>{
+
+          const action=
+            event.target.closest(
+              '[data-action]'
+            );
+
+
+          if(!action){
+
+            return;
+
+          }
+
+
+          event.stopPropagation();
+
+        }
+      );
+
+
+      listen(
+        nodesLayer,
+        'click',
+        event=>{
+
+          const action=
+            event.target.closest(
+              '[data-action]'
+            );
+
+
+          if(!action){
+
+            return;
+
+          }
+
+
+          event.preventDefault();
+
+          event.stopPropagation();
+
+
+          const nodeElement=
+            action.closest(
+              '.vc-node'
+            );
+
+
+          if(!nodeElement){
+
+            return;
+
+          }
+
+
+          if(
+            action.dataset.action===
+            'toggle'
+          ){
+
+            toggleNodeExpanded(
+              nodeElement.dataset.nodeId
+            );
+
+            return;
+
+          }
+
+
+          if(
+            action.dataset.action===
+              'delete'||
+            action.dataset.action===
+              'delete-expanded'
+          ){
+
+            removeNode(
+              nodeElement.dataset.nodeId
+            );
+
+          }
+
+        }
+      );
+
+
+      /* =========================
+         Canvas Pointer Events
+      ========================= */
+
+      listen(
+        canvas,
+        'pointerdown',
+        event=>{
+
+          state.pointers.set(
+            event.pointerId,
+            {
+              x:event.clientX,
+              y:event.clientY
+            }
+          );
+
+
+          if(
+            state.pointers.size>=2
+          ){
+
+            if(
+              state.nodeDrag
+            ){
+
+              finishNodeDrag();
+
+            }
+
+
+            state.canvasPan=
+              null;
+
+            state.connectionDrag=
+              null;
+
+
+            const points=
+              [
+                ...state.pointers.values()
+              ];
+
+
+            const center=
+              midpoint(
+                points[0],
+                points[1]
+              );
+
+
+            const anchor=
+              screenToWorld(
+                center.x,
+                center.y
+              );
+
+
+            state.pinch={
+
+              d:
+                Math.max(
+                  1,
+                  distance(
+                    points[0],
+                    points[1]
+                  )
+                ),
+
+              s:
+                state.scale,
+
+              x:
+                anchor.x,
+
+              y:
+                anchor.y
+
+            };
+
+
+            dragConnectionLayer.textContent='';
+
+            return;
+
+          }
+
+
+          const port=
+            event.target.closest(
+              '.vc-port-hit'
+            );
+
+
+          if(port){
+
+            event.preventDefault();
+
+            event.stopPropagation();
+
+
+            const nodeId=
+              port.dataset.nodeId;
+
+
+            const node=
+              getNode(
+                nodeId
+              );
+
+
+            if(!node){
+
+              return;
+
+            }
+
+
+            if(
+              port.dataset.portDir===
+              'output'
+            ){
+
+              state.connectionDrag={
+
+                pointerId:
+                  event.pointerId,
+
+                from:{
+
+                  node:
+                    node.id,
+
+                  port:
+                    port.dataset.portId
+
+                },
+
+                x:
+                  event.clientX,
+
+                y:
+                  event.clientY
+
+              };
+
+
+              try{
+
+                canvas.setPointerCapture(
+                  event.pointerId
+                );
+
+              }catch{}
+
+
+              renderDragConnection();
+
+            }
+
+
+            return;
+
+          }
+
+
+          const nodeElement=
+            event.target.closest(
+              '.vc-node'
+            );
+
+
+          if(nodeElement){
+
+            event.preventDefault();
+
+            event.stopPropagation();
+
+
+            const node=
+              getNode(
+                nodeElement.dataset.nodeId
+              );
+
+
+            if(!node){
+
+              return;
+
+            }
+
+
+            selectNode(
+              node.id
+            );
+
+
+            state.nodeDrag={
+
+              pointerId:
+                event.pointerId,
+
+              node,
+
+              startX:
+                event.clientX,
+
+              startY:
+                event.clientY,
+
+              nodeX:
+                node.x,
+
+              nodeY:
+                node.y,
+
+              moved:
+                false,
+
+              wasExpanded:
+                !!node.expanded
+
+            };
+
+
+            try{
+
+              canvas.setPointerCapture(
+                event.pointerId
+              );
+
+            }catch{}
+
+
+            return;
+
+          }
+
+
+          selectNode(
+            null
+          );
+
+
+          state.canvasPan={
+
+            pointerId:
+              event.pointerId,
+
+            startX:
+              event.clientX,
+
+            startY:
+              event.clientY,
+
+            startOffsetX:
+              state.offset.x,
+
+            startOffsetY:
+              state.offset.y,
+
+            moved:
+              false
+
+          };
+
+
+          canvas.classList.add(
+            'vc-dragging'
+          );
+
+
+          try{
+
+            canvas.setPointerCapture(
+              event.pointerId
+            );
+
+          }catch{}
+
+        }
+      );
+
+
+      listen(
+        canvas,
+        'pointermove',
+        event=>{
+
+          if(
+            !state.pointers.has(
+              event.pointerId
+            )
+          ){
+
+            return;
+
+          }
+
+
+          state.pointers.set(
+            event.pointerId,
+            {
+              x:event.clientX,
+              y:event.clientY
+            }
+          );
+
+
+          if(
+            state.pointers.size>=2
+          ){
+
+            if(
+              state.nodeDrag
+            ){
+
+              finishNodeDrag();
+
+              state.nodeDrag=
+                null;
+
+            }
+
+
+            state.canvasPan=
+              null;
+
+
+            const points=[
+              ...state.pointers.values()
+            ];
+
+
+            if(!state.pinch){
+
+              const center=
+                midpoint(
+                  points[0],
+                  points[1]
+                );
+
+
+              const anchor=
+                screenToWorld(
+                  center.x,
+                  center.y
+                );
+
+
+              state.pinch={
+
+                d:
+                  Math.max(
+                    1,
+                    distance(
+                      points[0],
+                      points[1]
+                    )
+                  ),
+
+                s:
+                  state.scale,
+
+                x:
+                  anchor.x,
+
+                y:
+                  anchor.y
+
+              };
+
+            }
+
+
+            const d=
+              distance(
+                points[0],
+                points[1]
+              );
+
+
+            const center=
+              midpoint(
+                points[0],
+                points[1]
+              );
+
+
+            state.scale=
+              clamp(
+                state.pinch.s*
+                (
+                  d/
+                  state.pinch.d
+                ),
+                .12,
+                3
+              );
+
+
+            state.offset.x=
+              center.x-
+              state.pinch.x*
+              state.scale;
+
+
+            state.offset.y=
+              center.y-
+              state.pinch.y*
+              state.scale;
+
+
+            renderTransform();
+
+            renderConnections();
+
+            return;
+
+          }
+
+
+          if(
+            state.connectionDrag?.pointerId===
+            event.pointerId
+          ){
+
+            event.preventDefault();
+
+
+            state.connectionDrag.x=
+              event.clientX;
+
+
+            state.connectionDrag.y=
+              event.clientY;
+
+
+            renderDragConnection();
+
+            return;
+
+          }
+
+
+          if(
+            state.nodeDrag?.pointerId===
+            event.pointerId
+          ){
+
+            const drag=
+              state.nodeDrag;
+
+
+            const dx=
+              event.clientX-
+              drag.startX;
+
+
+            const dy=
+              event.clientY-
+              drag.startY;
+
+
+            if(
+              !drag.moved&&
+              Math.hypot(
+                dx,
+                dy
+              )>7
+            ){
+
+              startNodeDrag();
+
+            }
+
+
+            if(
+              !drag.moved
+            ){
+
+              return;
+
+            }
+
+
+            event.preventDefault();
+
+
+            setNodePosition(
+              drag.node,
+              drag.nodeX+
+                dx/
+                state.scale,
+              drag.nodeY+
+                dy/
+                state.scale
+            );
+
+
+            return;
+
+          }
+
+
+          if(
+            state.canvasPan?.pointerId===
+            event.pointerId
+          ){
+
+            const pan=
+              state.canvasPan;
+
+
+            const dx=
+              event.clientX-
+              pan.startX;
+
+
+            const dy=
+              event.clientY-
+              pan.startY;
+
+
+            if(
+              !pan.moved&&
+              Math.hypot(
+                dx,
+                dy
+              )>7
+            ){
+
+              pan.moved=
+                true;
+
+            }
+
+
+            if(
+              !pan.moved
+            ){
+
+              return;
+
+            }
+
+
+            event.preventDefault();
+
+
+            state.offset.x=
+              pan.startOffsetX+
+              dx;
+
+
+            state.offset.y=
+              pan.startOffsetY+
+              dy;
+
+
+            renderTransform();
+
+            renderConnections();
+
+          }
+
+        },
+        {
+          passive:false
+        }
+      );
+
+
+      function endPointer(
+        event
+      ){
+
+        if(
+          state.connectionDrag?.pointerId===
+          event.pointerId
+        ){
+
+          finishConnection(
+            event
+          );
+
+        }
+
+
+        if(
+          state.nodeDrag?.pointerId===
+          event.pointerId
+        ){
+
+          finishNodeDrag();
+
+        }
+
+
+        state.pointers.delete(
+          event.pointerId
+        );
+
+
+        if(
+          state.pointers.size<2
+        ){
+
+          state.pinch=
+            null;
+
+        }
+
+
+        if(
+          state.pointers.size===0
+        ){
+
+          state.canvasPan=
+            null;
+
+          state.connectionDrag=
+            null;
+
+          canvas.classList.remove(
+            'vc-dragging'
+          );
+
+          dragConnectionLayer.textContent='';
+
+        }
+
+      }
+
+
+      listen(
+        canvas,
+        'pointerup',
+        endPointer
+      );
+
+
+      listen(
+        canvas,
+        'pointercancel',
+        endPointer
+      );
+
+
+      listen(
+        canvas,
+        'wheel',
+        event=>{
+
+          event.preventDefault();
+
+
+          const before=
+            screenToWorld(
+              event.clientX,
+              event.clientY
+            );
+
+
+          const factor=
+            Math.exp(
+              -event.deltaY*
+              .0015
+            );
+
+
+          state.scale=
+            clamp(
+              state.scale*
+              factor,
+              .12,
+              3
+            );
+
+
+          state.offset.x=
+            event.clientX-
+            before.x*
+            state.scale;
+
+
+          state.offset.y=
+            event.clientY-
+            before.y*
+            state.scale;
+
+
+          renderTransform();
+
+          renderConnections();
+
+        },
+        {
+          passive:false
+        }
+      );
+
+
+      /* =========================
+         Resize
+      ========================= */
+
+      const resizeObserver=
+        new ResizeObserver(
+          ()=>{
+            renderConnections();
+
+            emit(
+              'resize',
+              canvas.getBoundingClientRect()
+            );
+          }
+        );
+
+
+      resizeObserver.observe(
+        canvas
+      );
+
+
+      observerHandles.push(
+        ()=>{
+          resizeObserver.disconnect();
+        }
+      );
+
+
+      observerHandles.push(
+        ()=>{
+          nodeResizeObserver.disconnect();
+        }
+      );
+
+
+      function centerInitial(){
+
+        if(
+          !state.nodes.length
+        ){
+
+          return;
+
+        }
+
+
+        const rect=
+          canvas.getBoundingClientRect();
+
+
+        const firstNode=
+          state.nodes[0];
+
+
+        const width=
+          window.innerWidth<=600
+            ?178
+            :190;
+
+
+        state.offset.x=
+          rect.width/2-
+          (
+            firstNode.x+
+            width/2
+          )*
+          state.scale;
+
+
+        state.offset.y=
+          Math.max(
+            90,
+            rect.height*.12
+          )-
+          firstNode.y*
+          state.scale;
+
+      }
+
+
+      /* =========================
+         Definition Registration
+      ========================= */
+
+      function registerNodeType(
+        type,
+        definition
+      ){
+
+        if(
+          !type||
+          typeof type!=='string'
+        ){
+
+          throw new TypeError(
+            'type must be a string'
+          );
+
+        }
+
+
+        registry.set(
+          type,
+          normalizeNodeType(
+            type,
+            definition
+          )
+        );
+
+
+        renderMenu();
+
+        render();
+
+
+        return api;
+
+      }
+
+
+      function unregisterNodeType(
+        type
+      ){
+
+        if(
+          type==='start'
+        ){
+
+          throw new Error(
+            'start node type cannot be removed'
+          );
+
+        }
+
+
+        registry.delete(
+          type
+        );
+
+
+        renderMenu();
+
+        return api;
+
+      }
+
+
+      /* =========================
+         API
+      ========================= */
+
+      const api={
+
+        root,
+
+        registerNodeType,
+
+        unregisterNodeType,
+
+        addNode,
+
+        removeNode,
+
+        connect,
+
+        disconnect,
+
+        canConnect,
+
+        validate,
+
+        getWorkflow,
+
+        getState,
+
+        setState,
+
+        getNode:
+          id=>
+            getNode(id),
+
+        on,
+
+        off,
+
+        selectNode,
+
+        render,
+
+        __setAIWaiting(
+          busy
+        ){
+
+          state.aiBusy=
+            !!busy;
+
+
+          const sendButton=
+            qs(
+              '.vc-send-button'
+            );
+
+
+          const attach=
+            qs(
+              '.vc-attach-button'
+            );
+
+
+          if(
+            state.aiBusy
+          ){
+
+            sendButton.innerHTML=`
+              <span
+                class="vc-ai-spinner"
+                aria-hidden="true"
+              ></span>
+            `;
+
+
+            sendButton.setAttribute(
+              'aria-label',
+              '작업 생성 중'
+            );
+
+
+            attach.setAttribute(
+              'aria-disabled',
+              'true'
+            );
+
+          }else{
+
+            sendButton.innerHTML=
+              sendIcon;
+
+
+            sendButton.setAttribute(
+              'aria-label',
+              '보내기'
+            );
+
+
+            attach.removeAttribute(
+              'aria-disabled'
+            );
+
+          }
+
+
+          updateComposerState();
+
+        },
+
+
+        destroy(){
+
+          if(
+            state.destroyed
+          ){
+
+            return;
+
+          }
+
+
+          state.destroyed=
+            true;
+
+
+          listeners
+            .splice(0)
+            .forEach(
+              cleanup=>{
+                try{
+                  cleanup();
+                }catch{}
+              }
+            );
+
+
+          observerHandles
+            .splice(0)
+            .forEach(
+              cleanup=>{
+                try{
+                  cleanup();
+                }catch{}
+              }
+            );
+
+
+          if(
+            state.expansionAnimation
+          ){
+
+            cancelAnimationFrame(
+              state.expansionAnimation
+            );
+
+          }
+
+
+          state.rafIds.forEach(
+            cancelAnimationFrame
+          );
+
+
+          state.rafIds.clear();
+
+
+          if(
+            state.validationTimer
+          ){
+
+            clearTimeout(
+              state.validationTimer
+            );
+
+          }
+
+
+          events.clear();
+
+
+          state.pointers.clear();
+
+          state.nodeDrag=
+            null;
+
+          state.canvasPan=
+            null;
+
+          state.connectionDrag=
+            null;
+
+
+          root.remove();
+
+        }
+
+      };
+
+
+      /* =========================
+         Initial Workflow
+      ========================= */
+
+      const initial={
+
+        nodes:[
+          {
+            id:'start',
+            type:'start',
+            x:780,
+            y:80,
+            expanded:true
+          }
+        ],
+
+        connections:[]
+
+      };
+
+
+      /*
+        Definition은 이미 loadNodeDefinitions()
+        결과를 받아서 생성됐으므로
+        start도 즉시 정상 렌더링된다.
+      */
+      renderMenu();
+
+      applySavedTheme();
+
+      setState({
+        workflow:initial
+      });
+
+      centerInitial();
+
+      render();
+
+
+      if(
+        options.onChange
+      ){
+
+        on(
+          'change',
+          options.onChange
+        );
+
+      }
+
+
+      if(
+        options.onConnect
+      ){
+
+        on(
+          'connect',
+          options.onConnect
+        );
+
+      }
+
+
+      if(
+        options.onValidate
+      ){
+
+        on(
+          'validate',
+          options.onValidate
+        );
+
+      }
+
+
+      if(
+        options.onSubmit
+      ){
+
+        on(
+          'submit',
+          options.onSubmit
+        );
+
+      }
+
+
+      if(
+        options.onAttach
+      ){
+
+        on(
+          'attach',
+          options.onAttach
+        );
+
+      }
+
+
+      if(
+        options.onResize
+      ){
+
+        on(
+          'resize',
+          options.onResize
+        );
+
+      }
+
+
+      return api;
+
     };
 
-    registerNodeType('file',{
-      name:'파일',
-      desc:'업로드된 파일을 작업의 입력으로 사용합니다.',
-      tag:'FILE',
-      hidden:true,
-      color:'#64748B',
-      inputs:[],
-      outputs:[{id:'file',name:'파일',type:'file',required:false,multiple:true,accepts:['file','any']}],
-      renderBody(node){
-        const mime=node.data?.mime||'알 수 없는 형식';
-        const size=Number(node.data?.size||0);
-        const sizeText=size<1024?`${size} B`:size<1024*1024?`${(size/1024).toFixed(1)} KB`:`${(size/1024/1024).toFixed(1)} MB`;
-        return `<div class="vc-file-meta"><span>${escapeHtml(mime)}</span><span>${escapeHtml(sizeText)}</span></div>`;
-      }
-    });
 
-    let initial={
-      nodes:[
-        {id:'start',type:'start',x:780,y:80,expanded:true},
-      ],
-      connections:[
-      ]
-    };
+  /* =========================
+     Workflow Animation
+  ========================= */
 
-    renderMenu();applySavedTheme();setState({workflow:initial});centerInitial();render();
-    if(options.onChange)on('change',options.onChange);
-    if(options.onConnect)on('connect',options.onConnect);
-    if(options.onValidate)on('validate',options.onValidate);
-    if(options.onSubmit)on('submit',options.onSubmit);
-    if(options.onAttach)on('attach',options.onAttach);
-    if(options.onResize)on('resize',options.onResize);
+  function chatApplyResult(
+    canvas,
+    text
+  ){
 
-    return api;
-  };
+    const root=
+      canvas.root;
 
-  function chatApplyResult(canvas,text){
-    const root=canvas.root;
-    const input=root.querySelector('.vc-chat-input');
+
+    const input=
+      root.querySelector(
+        '.vc-chat-input'
+      );
+
 
     if(input){
+
       input.value='';
+
     }
+
 
     canvas.render();
 
-    requestAnimationFrame(()=>{
-      requestAnimationFrame(()=>{
-        const nodes=root.querySelectorAll('.vc-node');
-        nodes.forEach((el,index)=>{
-          el.animate(
-            [
-              {opacity:0,filter:'blur(5px)'},
-              {opacity:1,filter:'blur(0)'}
-            ],
-            {
-              duration:400,
-              delay:index*45,
-              easing:'cubic-bezier(.22,1,.36,1)',
-              fill:'both'
-            }
-          );
-        });
-      });
-    });
+
+    requestAnimationFrame(
+      ()=>{
+
+        requestAnimationFrame(
+          ()=>{
+
+            const nodes=
+              root.querySelectorAll(
+                '.vc-node'
+              );
+
+
+            nodes.forEach(
+              (element,index)=>{
+
+                element.animate(
+
+                  [
+
+                    {
+                      opacity:0,
+                      filter:'blur(5px)'
+                    },
+
+                    {
+                      opacity:1,
+                      filter:'blur(0)'
+                    }
+
+                  ],
+
+                  {
+
+                    duration:400,
+
+                    delay:
+                      index*45,
+
+                    easing:
+                      'cubic-bezier(.22,1,.36,1)',
+
+                    fill:'both'
+
+                  }
+
+                );
+
+              }
+            );
+
+          }
+        );
+
+      }
+    );
+
   }
 
-  function chatApplyError(canvas,error){
-    const root=canvas.root;
-    const input=root.querySelector('.vc-chat-input');
-    const validation=root.querySelector('.vc-validation');
+
+  function chatApplyError(
+    canvas,
+    error
+  ){
+
+    const root=
+      canvas.root;
+
+
+    const input=
+      root.querySelector(
+        '.vc-chat-input'
+      );
+
+
+    const validation=
+      root.querySelector(
+        '.vc-validation'
+      );
+
 
     if(input){
-      input.value=input.value||'';
+
+      input.value=
+        input.value||
+        '';
+
       input.focus();
+
     }
 
+
     if(validation){
+
       validation.textContent='';
 
-      const item=document.createElement('div');
-      item.className='vc-validation-item vc-error vc-show';
+
+      const item=
+        document.createElement(
+          'div'
+        );
+
+
+      item.className=
+        'vc-validation-item vc-error vc-show';
+
+
       item.textContent=
         error?.message||
         '워크플로우 생성에 실패했습니다.';
 
-      validation.appendChild(item);
 
-      setTimeout(()=>{
-        item.classList.remove('vc-show');
-        setTimeout(()=>item.remove(),220);
-      },3000);
+      validation.appendChild(
+        item
+      );
+
+
+      setTimeout(
+        ()=>{
+
+          item.classList.remove(
+            'vc-show'
+          );
+
+
+          setTimeout(
+            ()=>{
+              item.remove();
+            },
+            220
+          );
+
+        },
+        3000
+      );
+
     }
+
   }
 
-  const app=document.getElementById('app');
-  const canvas=createVisualCanvas(app,{
-    onConnect(){},
-    onValidate(){},
-    onSubmit:async({text})=>{
-      try{
-        const workflow=await workflowToCanvas(
-          text,
-          canvas
+
+  /* =========================
+     Canvas Boot
+  ========================= */
+
+  const app=
+    document.getElementById(
+      'app'
+    );
+
+
+  async function boot(){
+
+    try{
+
+      /*
+        가장 먼저 Canonical Definition을
+        서버에서 확보한다.
+      */
+      const nodeDefinitions=
+        await loadNodeDefinitions();
+
+
+      /*
+        그 다음 canvas를 만든다.
+      */
+      const canvas=
+        window.createVisualCanvas(
+          app,
+          {
+
+            nodeDefinitions,
+
+            onConnect(){},
+
+            onValidate(){},
+
+            onSubmit:
+              async({text})=>{
+
+                try{
+
+                  const workflow=
+                    await workflowToCanvas(
+                      text,
+                      canvas
+                    );
+
+
+                  const validation=
+                    canvas.validate();
+
+
+                  if(
+                    !validation.valid
+                  ){
+
+                    throw new Error(
+                      validation
+                        .errors?.[0]
+                        ?.message||
+                      '생성된 워크플로우를 적용할 수 없습니다.'
+                    );
+
+                  }
+
+
+                  chatApplyResult(
+                    canvas,
+                    text
+                  );
+
+                }catch(error){
+
+                  console.error(
+                    'Workflow ERROR:',
+                    error
+                  );
+
+
+                  chatApplyError(
+                    canvas,
+                    error
+                  );
+
+                }finally{
+
+                  canvas.__setAIWaiting?.(
+                    false
+                  );
+
+                }
+
+              },
+
+            onAttach(){}
+
+          }
         );
 
-        const validation=canvas.validate();
 
-        if(!validation.valid){
-          throw new Error(
-            validation.errors?.[0]?.message||
-            '생성된 워크플로우를 적용할 수 없습니다.'
-          );
-        }
+      window.visualCanvas=
+        canvas;
 
-        chatApplyResult(canvas,text);
-      }catch(error){
-        console.error('Workflow ERROR:',error);
-        chatApplyError(canvas,error);
-      }finally{
-        canvas.__setAIWaiting?.(false);
-      }
-    },
-    onAttach(){},
-  });
-  window.visualCanvas=canvas;
+
+    }catch(error){
+
+      console.error(
+        'Node Definition ERROR:',
+        error
+      );
+
+
+      /*
+        Definition을 못 받으면
+        캔버스를 억지로 옛날 정의로 생성하지 않는다.
+        서버 schema 단일화 원칙을 유지한다.
+      */
+      const message=
+        document.createElement(
+          'div'
+        );
+
+
+      message.style.cssText=`
+        position:fixed;
+        left:50%;
+        top:50%;
+        transform:translate(-50%,-50%);
+        z-index:10000;
+        max-width:calc(100vw - 32px);
+        padding:16px 18px;
+        border-radius:14px;
+        border:1px solid rgba(255,255,255,.14);
+        background:rgba(30,30,34,.88);
+        color:#fff;
+        font-size:12px;
+        line-height:1.5;
+        text-align:center;
+        box-shadow:0 12px 40px rgba(0,0,0,.22);
+      `;
+
+
+      message.textContent=
+        error?.message||
+        '노드 정의를 불러오지 못했습니다.';
+
+
+      document.body.appendChild(
+        message
+      );
+
+    }
+
+  }
+
+
+  boot();
+
+
 })();
 
+
+/* =========================
+   Tutorial
+========================= */
+
 function playTutorial(){
-  if(localStorage.getItem('vc-tutorial-done')==='1')return;
+
+  if(
+    localStorage.getItem(
+      'vc-tutorial-done'
+    )===
+    '1'
+  ){
+
+    return;
+
+  }
+
 
   const steps=[
+
     {
-      target:'.vc-add-button',
-      title:'노드를 추가하세요',
-      desc:'원하는 작업을 캔버스에 추가해 워크플로우를 만들 수 있어요.',
+
+      target:
+        '.vc-add-button',
+
+      title:
+        '노드를 추가하세요',
+
+      desc:
+        '원하는 작업을 캔버스에 추가해 워크플로우를 만들 수 있어요.',
+
       visual:`
+
         <div class="vt-flow">
-          <div class="vt-mini-node vt-green">조사</div>
-          <div class="vt-flow-arrow">→</div>
-          <div class="vt-mini-node vt-blue">정리</div>
-          <div class="vt-flow-arrow">→</div>
-          <div class="vt-mini-node vt-red">작성</div>
+
+          <div class="vt-mini-node vt-green">
+            조사
+          </div>
+
+          <div class="vt-flow-arrow">
+            →
+          </div>
+
+          <div class="vt-mini-node vt-blue">
+            정리
+          </div>
+
+          <div class="vt-flow-arrow">
+            →
+          </div>
+
+          <div class="vt-mini-node vt-red">
+            작성
+          </div>
+
         </div>
+
       `
+
     },
 
+
     {
-      target:'.vc-node',
-      title:'작업을 연결하세요',
-      desc:'노드의 출력과 다음 노드의 입력을 연결하면 데이터가 전달돼요.',
+
+      target:
+        '.vc-node',
+
+      title:
+        '작업을 연결하세요',
+
+      desc:
+        '노드의 출력과 다음 노드의 입력을 연결하면 데이터가 전달돼요.',
+
       visual:`
+
         <div class="vt-connect-demo">
+
           <div class="vt-port vt-blue"></div>
+
           <div class="vt-connect-line"></div>
+
           <div class="vt-port vt-purple"></div>
+
         </div>
+
       `
+
     },
 
+
     {
-      target:'.vc-node-body',
-      title:'작업 내용을 설정하세요',
-      desc:'노드를 펼치면 주제, 기간, 조건 같은 값을 직접 설정할 수 있어요.',
+
+      target:
+        '.vc-node-body',
+
+      title:
+        '작업 내용을 설정하세요',
+
+      desc:
+        '노드를 펼치면 주제, 기간, 조건 같은 값을 직접 설정할 수 있어요.',
+
       visual:`
+
         <div class="vt-demo-node">
+
           <div class="vt-demo-head"></div>
+
           <div class="vt-demo-input"></div>
+
           <div class="vt-demo-input"></div>
+
           <div class="vt-demo-input vt-small"></div>
+
         </div>
+
       `
+
     },
 
+
     {
-      target:'.vc-chat-input',
-      title:'자연어로 요청하세요',
-      desc:'원하는 작업을 평소처럼 입력하면 AI가 워크플로우를 구성하는 데 활용할 수 있어요.',
+
+      target:
+        '.vc-chat-input',
+
+      title:
+        '자연어로 요청하세요',
+
+      desc:
+        '원하는 작업을 평소처럼 입력하면 AI가 워크플로우를 구성하는 데 활용할 수 있어요.',
+
       visual:`
+
         <div class="vt-chat-demo">
+
           <div class="vt-bubble vt-user">
             AI 시장 조사하고 보고서 만들어줘
           </div>
-          <div class="vt-down">↓</div>
+
+          <div class="vt-down">
+            ↓
+          </div>
+
           <div class="vt-bubble vt-ai">
             조사 → 정리 → 작성
           </div>
+
         </div>
+
       `
+
     }
+
   ];
 
-  const style=document.createElement('style');
+
+  const style=
+    document.createElement(
+      'style'
+    );
+
 
   style.textContent=`
+
     .vc-tutorial{
+
       position:fixed;
+
       inset:0;
+
       z-index:99999;
+
       pointer-events:none;
+
       opacity:0;
-      transition:opacity .2s ease;
+
+      transition:
+        opacity .2s ease;
+
     }
+
 
     .vc-tutorial.open{
+
       opacity:1;
+
       pointer-events:auto;
+
     }
+
 
     .vc-tutorial-shade{
+
       position:fixed;
+
       inset:0;
-      background:rgba(0,0,0,.34);
-      backdrop-filter:blur(1.5px);
-      -webkit-backdrop-filter:blur(1.5px);
+
+      background:
+        rgba(0,0,0,.34);
+
+      backdrop-filter:
+        blur(1.5px);
+
+      -webkit-backdrop-filter:
+        blur(1.5px);
+
     }
 
+
     .vc-tutorial-focus{
+
       position:fixed;
+
       z-index:100000;
+
       pointer-events:none;
+
       border-radius:14px;
+
       box-shadow:
-        0 0 0 9999px rgba(0,0,0,.34),
-        0 0 0 3px rgba(255,255,255,.96),
-        0 0 0 6px var(--accent),
-        0 14px 40px rgba(0,0,0,.18);
+
+        0 0 0 9999px
+          rgba(0,0,0,.34),
+
+        0 0 0 3px
+          rgba(255,255,255,.96),
+
+        0 0 0 6px
+          var(--accent),
+
+        0 14px 40px
+          rgba(0,0,0,.18);
+
       transition:
+
         left .16s ease,
         top .16s ease,
         width .16s ease,
         height .16s ease;
+
     }
+
 
     .vc-tutorial-card{
+
       position:fixed;
+
       left:0;
+
       top:0;
+
       z-index:100001;
+
       width:310px;
+
       padding:17px;
-      border:1px solid rgba(255,255,255,.18);
+
+      border:
+        1px solid
+        rgba(255,255,255,.18);
+
       border-radius:18px;
-      background:var(--glass2);
+
+      background:
+        var(--glass2);
+
       box-shadow:
-        0 20px 60px rgba(0,0,0,.2),
-        0 2px 8px rgba(0,0,0,.06);
-      backdrop-filter:blur(24px);
-      -webkit-backdrop-filter:blur(24px);
-      will-change:left,top;
+
+        0 20px 60px
+          rgba(0,0,0,.2),
+
+        0 2px 8px
+          rgba(0,0,0,.06);
+
+      backdrop-filter:
+        blur(24px);
+
+      -webkit-backdrop-filter:
+        blur(24px);
+
+      will-change:
+        left,
+        top;
+
       transition:
+
         left .16s ease,
         top .16s ease;
+
     }
+
 
     .vc-tutorial-title{
+
       font-size:14px;
+
       font-weight:750;
+
       letter-spacing:-.025em;
+
     }
+
 
     .vc-tutorial-desc{
+
       margin-top:6px;
+
       color:var(--sub);
+
       font-size:11px;
+
       line-height:1.55;
+
       letter-spacing:-.015em;
+
     }
+
 
     .vc-tutorial-visual{
+
       min-height:58px;
+
       margin-top:13px;
+
       padding:10px;
+
       display:flex;
+
       align-items:center;
+
       justify-content:center;
+
       border-radius:11px;
+
       background:var(--soft);
+
       overflow:hidden;
+
     }
+
 
     .vc-tutorial-bottom{
+
       display:flex;
+
       align-items:center;
+
       justify-content:space-between;
+
       margin-top:14px;
+
     }
+
 
     .vc-tutorial-page{
+
       color:var(--faint);
+
       font-size:9px;
-      font-variant-numeric:tabular-nums;
+
+      font-variant-numeric:
+        tabular-nums;
+
     }
+
 
     .vc-tutorial-buttons{
+
       display:flex;
+
       gap:5px;
+
     }
+
 
     .vc-tutorial-buttons button{
+
       height:30px;
+
       padding:0 10px;
+
       border:0;
+
       border-radius:9px;
+
       font-size:10px;
+
       cursor:pointer;
+
     }
+
 
     .vc-tutorial-skip{
+
       color:var(--sub);
-      background:transparent;
+
+      background:
+        transparent;
+
     }
+
 
     .vc-tutorial-skip:hover{
-      background:var(--soft);
+
+      background:
+        var(--soft);
+
     }
+
 
     .vc-tutorial-next{
+
       color:#fff;
-      background:var(--accent);
+
+      background:
+        var(--accent);
+
       box-shadow:
+
         0 4px 12px
-        color-mix(in srgb,var(--accent) 25%,transparent);
+        color-mix(
+          in srgb,
+          var(--accent)
+          25%,
+          transparent
+        );
+
     }
+
 
     .vt-flow{
+
       width:100%;
+
       display:flex;
+
       align-items:center;
+
       justify-content:center;
+
       gap:7px;
+
     }
+
 
     .vt-mini-node{
+
       padding:6px 8px;
-      border:1px solid var(--border);
+
+      border:
+        1px solid
+        var(--border);
+
       border-radius:8px;
-      background:var(--node);
+
+      background:
+        var(--node);
+
       font-size:9px;
+
       font-weight:650;
+
     }
+
 
     .vt-flow-arrow{
+
       color:var(--sub);
+
       font-size:11px;
+
     }
 
-    .vt-green{color:#10B981}
-    .vt-blue{color:#3B82F6}
-    .vt-purple{color:#8B5CF6}
-    .vt-red{color:#EF4444}
+
+    .vt-green{
+      color:#10B981;
+    }
+
+    .vt-blue{
+      color:#3B82F6;
+    }
+
+    .vt-purple{
+      color:#8B5CF6;
+    }
+
+    .vt-red{
+      color:#EF4444;
+    }
+
 
     .vt-connect-demo{
+
       display:flex;
+
       align-items:center;
+
       width:100%;
+
       justify-content:center;
+
     }
+
 
     .vt-port{
+
       width:10px;
+
       height:10px;
+
       flex:none;
+
       border-radius:50%;
-      background:currentColor;
+
+      background:
+        currentColor;
+
       box-shadow:
+
         0 0 0 4px
-        color-mix(in srgb,currentColor 15%,transparent);
+        color-mix(
+          in srgb,
+          currentColor
+          15%,
+          transparent
+        );
+
     }
+
 
     .vt-connect-line{
+
       width:80px;
+
       height:2px;
+
       margin:0 8px;
+
       border-radius:999px;
-      background:var(--line);
+
+      background:
+        var(--line);
+
     }
+
 
     .vt-demo-node{
+
       width:135px;
+
       padding:9px;
-      border:1px solid var(--border);
+
+      border:
+        1px solid
+        var(--border);
+
       border-radius:10px;
-      background:var(--node);
-      box-shadow:var(--shadow);
+
+      background:
+        var(--node);
+
+      box-shadow:
+        var(--shadow);
+
     }
+
 
     .vt-demo-head{
+
       width:45%;
+
       height:7px;
+
       margin-bottom:8px;
+
       border-radius:999px;
-      background:var(--soft);
+
+      background:
+        var(--soft);
+
     }
+
 
     .vt-demo-input{
+
       height:14px;
+
       margin-top:5px;
-      border:1px solid var(--border);
+
+      border:
+        1px solid
+        var(--border);
+
       border-radius:5px;
-      background:var(--canvas);
+
+      background:
+        var(--canvas);
+
     }
+
 
     .vt-demo-input.vt-small{
+
       width:65%;
+
     }
+
 
     .vt-chat-demo{
+
       width:100%;
+
       display:flex;
+
       flex-direction:column;
+
       gap:5px;
+
     }
+
 
     .vt-bubble{
+
       max-width:88%;
+
       padding:6px 9px;
+
       border-radius:9px;
+
       font-size:9px;
+
       line-height:1.4;
+
     }
+
 
     .vt-user{
+
       align-self:flex-end;
-      background:var(--accent-soft);
+
+      background:
+        var(--accent-soft);
+
     }
+
 
     .vt-ai{
+
       align-self:flex-start;
-      border:1px solid var(--border);
-      background:var(--node);
+
+      border:
+        1px solid
+        var(--border);
+
+      background:
+        var(--node);
+
     }
+
 
     .vt-down{
+
       align-self:center;
+
       color:var(--faint);
+
       font-size:10px;
+
     }
+
 
     @media(max-width:600px){
+
       .vc-tutorial-card{
-        width:calc(100vw - 28px);
+
+        width:
+          calc(100vw - 28px);
+
       }
+
     }
+
   `;
 
-  const layer=document.createElement('div');
-  layer.className='vc-tutorial';
+
+  const layer=
+    document.createElement(
+      'div'
+    );
+
+
+  layer.className=
+    'vc-tutorial';
+
 
   layer.innerHTML=`
+
     <div class="vc-tutorial-shade"></div>
 
     <div class="vc-tutorial-focus"></div>
 
     <div class="vc-tutorial-card">
+
       <div class="vc-tutorial-title"></div>
+
       <div class="vc-tutorial-desc"></div>
+
       <div class="vc-tutorial-visual"></div>
 
       <div class="vc-tutorial-bottom">
+
         <span class="vc-tutorial-page"></span>
 
         <div class="vc-tutorial-buttons">
-          <button type="button" class="vc-tutorial-skip">
+
+          <button
+            type="button"
+            class="vc-tutorial-skip"
+          >
             건너뛰기
           </button>
 
-          <button type="button" class="vc-tutorial-next">
+          <button
+            type="button"
+            class="vc-tutorial-next"
+          >
             다음
           </button>
+
         </div>
+
       </div>
+
     </div>
+
   `;
 
-  document.head.appendChild(style);
-  document.body.appendChild(layer);
 
-  const focus=layer.querySelector('.vc-tutorial-focus');
-  const card=layer.querySelector('.vc-tutorial-card');
-  const title=layer.querySelector('.vc-tutorial-title');
-  const desc=layer.querySelector('.vc-tutorial-desc');
-  const visual=layer.querySelector('.vc-tutorial-visual');
-  const page=layer.querySelector('.vc-tutorial-page');
-  const next=layer.querySelector('.vc-tutorial-next');
-  const skip=layer.querySelector('.vc-tutorial-skip');
+  document.head.appendChild(
+    style
+  );
+
+
+  document.body.appendChild(
+    layer
+  );
+
+
+  const focus=
+    layer.querySelector(
+      '.vc-tutorial-focus'
+    );
+
+
+  const card=
+    layer.querySelector(
+      '.vc-tutorial-card'
+    );
+
+
+  const title=
+    layer.querySelector(
+      '.vc-tutorial-title'
+    );
+
+
+  const desc=
+    layer.querySelector(
+      '.vc-tutorial-desc'
+    );
+
+
+  const visual=
+    layer.querySelector(
+      '.vc-tutorial-visual'
+    );
+
+
+  const page=
+    layer.querySelector(
+      '.vc-tutorial-page'
+    );
+
+
+  const next=
+    layer.querySelector(
+      '.vc-tutorial-next'
+    );
+
+
+  const skip=
+    layer.querySelector(
+      '.vc-tutorial-skip'
+    );
+
 
   let index=0;
+
   let running=true;
+
   let rafId=0;
-  let lastTarget=null;
+
 
   function stopPositionLoop(){
-    if(!rafId)return;
 
-    cancelAnimationFrame(rafId);
+    if(!rafId){
+
+      return;
+
+    }
+
+
+    cancelAnimationFrame(
+      rafId
+    );
+
+
     rafId=0;
+
   }
+
 
   function finish(){
-    if(!running)return;
 
-    running=false;
+    if(!running){
+
+      return;
+
+    }
+
+
+    running=
+      false;
+
+
     stopPositionLoop();
 
-    window.removeEventListener('resize',handleResize);
 
-    localStorage.setItem('vc-tutorial-done','1');
+    window.removeEventListener(
+      'resize',
+      handleResize
+    );
 
-    layer.classList.remove('open');
 
-    setTimeout(()=>{
-      layer.remove();
-      style.remove();
-    },220);
+    localStorage.setItem(
+      'vc-tutorial-done',
+      '1'
+    );
+
+
+    layer.classList.remove(
+      'open'
+    );
+
+
+    setTimeout(
+      ()=>{
+        layer.remove();
+        style.remove();
+      },
+      220
+    );
+
   }
+
 
   function getTarget(){
-    const step=steps[index];
+
+    const step=
+      steps[index];
+
+
     return step
-      ? document.querySelector(step.target)
-      : null;
+      ?document.querySelector(
+        step.target
+      )
+      :null;
+
   }
+
 
   function updatePosition(){
-    if(!running)return false;
 
-    const target=getTarget();
+    if(!running){
 
-    if(!target){
       return false;
+
     }
 
-    const r=target.getBoundingClientRect();
+
+    const target=
+      getTarget();
+
+
+    if(!target){
+
+      return false;
+
+    }
+
+
+    const rect=
+      target.getBoundingClientRect();
+
 
     const pad=7;
+
     const gap=18;
 
-    focus.style.left=`${r.left-pad}px`;
-    focus.style.top=`${r.top-pad}px`;
-    focus.style.width=`${r.width+pad*2}px`;
-    focus.style.height=`${r.height+pad*2}px`;
 
-    const cardWidth=card.offsetWidth;
-    const cardHeight=card.offsetHeight;
+    focus.style.left=
+      `${rect.left-pad}px`;
 
-    if(!cardWidth || !cardHeight){
-      return true;
-    }
 
-    let x=r.left+(r.width-cardWidth)/2;
-    let y=r.bottom+gap;
+    focus.style.top=
+      `${rect.top-pad}px`;
+
+
+    focus.style.width=
+      `${rect.width+pad*2}px`;
+
+
+    focus.style.height=
+      `${rect.height+pad*2}px`;
+
+
+    const cardWidth=
+      card.offsetWidth;
+
+
+    const cardHeight=
+      card.offsetHeight;
+
 
     if(
-      y+cardHeight >
+      !cardWidth||
+      !cardHeight
+    ){
+
+      return true;
+
+    }
+
+
+    let x=
+      rect.left+
+      (
+        rect.width-
+        cardWidth
+      )/
+      2;
+
+
+    let y=
+      rect.bottom+
+      gap;
+
+
+    if(
+      y+cardHeight>
       window.innerHeight-14
     ){
-      y=r.top-cardHeight-gap;
+
+      y=
+        rect.top-
+        cardHeight-
+        gap;
+
     }
 
-    const maxX=Math.max(
-      14,
-      window.innerWidth-cardWidth-14
-    );
 
-    const maxY=Math.max(
-      14,
-      window.innerHeight-cardHeight-14
-    );
+    const maxX=
+      Math.max(
+        14,
+        window.innerWidth-
+        cardWidth-
+        14
+      );
 
-    x=Math.min(
-      Math.max(x,14),
-      maxX
-    );
 
-    y=Math.min(
-      Math.max(y,14),
-      maxY
-    );
+    const maxY=
+      Math.max(
+        14,
+        window.innerHeight-
+        cardHeight-
+        14
+      );
 
-    card.style.left=`${x}px`;
-    card.style.top=`${y}px`;
+
+    x=
+      Math.min(
+        Math.max(
+          x,
+          14
+        ),
+        maxX
+      );
+
+
+    y=
+      Math.min(
+        Math.max(
+          y,
+          14
+        ),
+        maxY
+      );
+
+
+    card.style.left=
+      `${x}px`;
+
+
+    card.style.top=
+      `${y}px`;
+
 
     return true;
+
   }
+
 
   function positionLoop(){
-    if(!running)return;
 
-    const exists=updatePosition();
+    if(!running){
+
+      return;
+
+    }
+
+
+    const exists=
+      updatePosition();
+
 
     if(!exists){
+
       finish();
+
       return;
+
     }
 
-    rafId=requestAnimationFrame(positionLoop);
+
+    rafId=
+      requestAnimationFrame(
+        positionLoop
+      );
+
   }
+
 
   function restartPositionLoop(){
+
     stopPositionLoop();
 
-    requestAnimationFrame(()=>{
-      if(!running)return;
 
-      updatePosition();
-      positionLoop();
-    });
+    requestAnimationFrame(
+      ()=>{
+
+        if(!running){
+
+          return;
+
+        }
+
+
+        updatePosition();
+
+        positionLoop();
+
+      }
+    );
+
   }
 
-  function renderStep(){
-    if(!running)return;
 
-    const step=steps[index];
+  function renderStep(){
+
+    if(!running){
+
+      return;
+
+    }
+
+
+    const step=
+      steps[index];
+
 
     if(!step){
+
       finish();
+
       return;
+
     }
 
-    const target=document.querySelector(step.target);
+
+    const target=
+      document.querySelector(
+        step.target
+      );
+
 
     if(!target){
-      if(index<steps.length-1){
+
+      if(
+        index<
+        steps.length-1
+      ){
+
         index++;
+
         renderStep();
+
       }else{
+
         finish();
+
       }
 
+
       return;
+
     }
 
-    title.textContent=step.title;
-    desc.textContent=step.desc;
-    visual.innerHTML=step.visual;
+
+    title.textContent=
+      step.title;
+
+
+    desc.textContent=
+      step.desc;
+
+
+    visual.innerHTML=
+      step.visual;
+
 
     page.textContent=
       `${index+1} / ${steps.length}`;
 
+
     next.textContent=
-      index===steps.length-1
-        ? '시작하기'
-        : '다음';
+      index===
+      steps.length-1
+        ?'시작하기'
+        :'다음';
+
 
     restartPositionLoop();
+
   }
+
 
   function handleResize(){
-    if(!running)return;
 
-    requestAnimationFrame(()=>{
-      updatePosition();
-    });
-  }
+    if(!running){
 
-  next.addEventListener('click',e=>{
-    e.preventDefault();
-    e.stopPropagation();
-
-    if(!running)return;
-
-    if(index===steps.length-1){
-      finish();
       return;
+
     }
 
-    index++;
-    renderStep();
-  });
 
-  skip.addEventListener('click',e=>{
-    e.preventDefault();
-    e.stopPropagation();
+    requestAnimationFrame(
+      ()=>{
+        updatePosition();
+      }
+    );
 
-    finish();
-  });
+  }
 
-  layer.addEventListener('click',e=>{
-    e.stopPropagation();
-  });
 
-  window.addEventListener('resize',handleResize);
+  next.addEventListener(
+    'click',
+    event=>{
 
-  layer.classList.add('open');
+      event.preventDefault();
 
-  requestAnimationFrame(()=>{
-    renderStep();
-  });
+      event.stopPropagation();
+
+
+      if(!running){
+
+        return;
+
+      }
+
+
+      if(
+        index===
+        steps.length-1
+      ){
+
+        finish();
+
+        return;
+
+      }
+
+
+      index++;
+
+      renderStep();
+
+    }
+  );
+
+
+  skip.addEventListener(
+    'click',
+    event=>{
+
+      event.preventDefault();
+
+      event.stopPropagation();
+
+      finish();
+
+    }
+  );
+
+
+  layer.addEventListener(
+    'click',
+    event=>{
+      event.stopPropagation();
+    }
+  );
+
+
+  window.addEventListener(
+    'resize',
+    handleResize
+  );
+
+
+  layer.classList.add(
+    'open'
+  );
+
+
+  requestAnimationFrame(
+    ()=>{
+      renderStep();
+    }
+  );
+
 }
 
-setTimeout(playTutorial,500);
+
+setTimeout(
+  playTutorial,
+  500
+);
 </script>
+
 </body>
 </html>
