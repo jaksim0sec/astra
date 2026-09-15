@@ -322,7 +322,6 @@ html.dark .vc-world::before{
       var(--node)
     );
 
-  /* 아이콘 박스 */
   --node-icon-color:
     color-mix(
       in srgb,
@@ -330,11 +329,11 @@ html.dark .vc-world::before{
       var(--node)
     );
 
-  /* 선택/확장 아웃라인 */
+  /* 아웃라인만 기존 12%에서 14%로 미세하게 진하게 */
   --node-state-color:
     color-mix(
       in srgb,
-      var(--node-color) 12%,
+      var(--node-color) 14%,
       var(--node)
     );
 
@@ -404,7 +403,6 @@ html.dark .vc-node:hover{
    SELECTED / EXPANDED
    ========================================================= */
 
-/* 확장: 아웃라인만 */
 .vc-node.vc-expanded{
 
   border:
@@ -418,7 +416,6 @@ html.dark .vc-node:hover{
 }
 
 
-/* 선택: 아웃라인 + 약한 외곽 링 */
 .vc-node.vc-selected{
 
   border:
@@ -438,7 +435,6 @@ html.dark .vc-node:hover{
 }
 
 
-/* 선택 + 확장 */
 .vc-node.vc-selected.vc-expanded{
 
   border:
@@ -1004,12 +1000,7 @@ html.dark .vc-param-group:focus-within{
 
 .vc-start-node .vc-node-icon{
 
-  background:
-    color-mix(
-      in srgb,
-      var(--node-color) 9%,
-      var(--node)
-    );
+  background:var(--node-icon-color);
 
 }
 
@@ -1057,12 +1048,7 @@ html.dark .vc-param-group:focus-within{
 
 .vc-file-node .vc-node-icon{
 
-  background:
-    color-mix(
-      in srgb,
-      var(--node-color) 9%,
-      var(--node)
-    );
+  background:var(--node-icon-color);
 
 }
 
