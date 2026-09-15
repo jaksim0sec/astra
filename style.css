@@ -2,23 +2,23 @@
 
   color-scheme:light;
 
-  --bg:#eef2f6;
-  --canvas:#f4f7fa;
+  --bg:#ffffff;
+  --canvas:#ffffff;
 
-  --glass:rgba(255,255,255,.82);
-  --glass2:rgba(255,255,255,.96);
+  --glass:rgba(255,255,255,.92);
+  --glass2:rgba(255,255,255,.985);
 
   --text:#181a1f;
-  --sub:#606670;
-  --faint:#969ca6;
+  --sub:#626772;
+  --faint:#959ba5;
 
-  --line:rgba(27,34,45,.085);
-  --soft:rgba(27,34,45,.05);
+  --line:rgba(22,28,36,.085);
+  --soft:rgba(22,28,36,.045);
 
   --node:#ffffff;
-  --node-soft:#f6f8fb;
+  --node-soft:#ffffff;
 
-  --border:rgba(27,34,45,.14);
+  --border:rgba(22,28,36,.18);
 
   --accent:#6b4cff;
   --accent-soft:rgba(107,76,255,.1);
@@ -29,9 +29,7 @@
   --node-radius:.95rem;
   --input-radius:.6rem;
 
-  --shadow:
-    0 .65rem 1.55rem rgba(20,28,40,.06),
-    0 .08rem .18rem rgba(20,28,40,.025);
+  --shadow:none;
 }
 
 
@@ -39,23 +37,23 @@ html.dark{
 
   color-scheme:dark;
 
-  --bg:#171b20;
+  --bg:#181c21;
   --canvas:#1b2026;
 
-  --glass:rgba(34,38,45,.84);
-  --glass2:rgba(38,43,50,.97);
+  --glass:rgba(35,40,47,.9);
+  --glass2:rgba(39,44,51,.985);
 
   --text:#f2f4f7;
-  --sub:#a7acb5;
-  --faint:#737983;
+  --sub:#a4aab3;
+  --faint:#777e88;
 
-  --line:rgba(255,255,255,.08);
+  --line:rgba(255,255,255,.09);
   --soft:rgba(255,255,255,.045);
 
   --node:#242930;
-  --node-soft:#292f37;
+  --node-soft:#292f36;
 
-  --border:rgba(255,255,255,.115);
+  --border:rgba(255,255,255,.17);
 
   --accent:#8b73ff;
   --accent-soft:rgba(139,115,255,.13);
@@ -63,14 +61,12 @@ html.dark{
   --danger:#ff7379;
   --danger-soft:rgba(255,115,121,.1);
 
-  --shadow:
-    0 .75rem 1.7rem rgba(0,0,0,.24),
-    0 .08rem .18rem rgba(0,0,0,.16);
+  --shadow:none;
 }
 
 
 /* =========================================================
-   ROOT
+   ROOT SCALE
    ========================================================= */
 
 html{
@@ -261,15 +257,28 @@ button{
   background-image:
     radial-gradient(
       circle,
-      var(--soft) 1px,
+      rgba(35,42,52,.075) 1px,
       transparent 1px
     );
 
   background-size:28px 28px;
 
-  opacity:.62;
+  opacity:.86;
 
   pointer-events:none;
+}
+
+
+html.dark .vc-world::before{
+
+  background-image:
+    radial-gradient(
+      circle,
+      rgba(255,255,255,.105) 1px,
+      transparent 1px
+    );
+
+  opacity:.8;
 }
 
 
@@ -324,15 +333,17 @@ button{
   background:var(--node);
 
   /*
-   * 외곽선은 컨셉 컬러를 사용하지 않는다.
-   * 노드 자체의 구조를 또렷하게 보여주는 중립 outline.
+   * 비선택 상태:
+   * 컨셉 컬러 사용 안 함
+   * 그림자/외곽 발광 없음
+   * 1.5px 중립 border
    */
 
-  border:1px solid var(--border);
+  border:1.5px solid var(--border);
 
   border-radius:var(--node-radius);
 
-  box-shadow:var(--shadow);
+  box-shadow:none;
 
   cursor:grab;
 
@@ -344,29 +355,39 @@ button{
     border-color .18s ease,
     background .18s ease,
     transform .18s cubic-bezier(.22,.8,.25,1);
+
 }
 
+
+/* =========================================================
+   NODE HOVER
+   ========================================================= */
 
 .vc-node:hover{
 
   border-color:
     color-mix(
       in srgb,
-      var(--border) 72%,
+      var(--border) 88%,
       var(--text)
     );
 
-  box-shadow:
-    0 .72rem 1.7rem rgba(20,28,40,.075),
-    0 .08rem .18rem rgba(20,28,40,.025);
+  box-shadow:none;
+
 }
 
 
 html.dark .vc-node:hover{
 
-  box-shadow:
-    0 .8rem 1.8rem rgba(0,0,0,.28),
-    0 .08rem .18rem rgba(0,0,0,.16);
+  border-color:
+    color-mix(
+      in srgb,
+      var(--border) 90%,
+      var(--text)
+    );
+
+  box-shadow:none;
+
 }
 
 
@@ -377,22 +398,50 @@ html.dark .vc-node:hover{
 .vc-node.vc-selected,
 .vc-node.vc-expanded{
 
-  border-color:var(--border);
+  /*
+   * 상태가 활성화되었을 때만
+   * 노드 컨셉 컬러를 외곽선에 사용.
+   */
+
+  border:
+    1.5px solid
+    color-mix(
+      in srgb,
+      var(--node-color) 64%,
+      var(--border)
+    );
 
   box-shadow:
-    0 .8rem 1.8rem rgba(20,28,40,.09),
-    0 0 0 .1rem rgba(27,34,45,.045);
+    0 0 0 1px
+      color-mix(
+        in srgb,
+        var(--node-color) 10%,
+        transparent
+      );
 
-  transform:translateY(-.1rem);
+  transform:translateY(-.05rem);
+
 }
 
 
 html.dark .vc-node.vc-selected,
 html.dark .vc-node.vc-expanded{
 
+  border-color:
+    color-mix(
+      in srgb,
+      var(--node-color) 70%,
+      var(--border)
+    );
+
   box-shadow:
-    0 .85rem 1.9rem rgba(0,0,0,.3),
-    0 0 0 .1rem rgba(255,255,255,.035);
+    0 0 0 1px
+      color-mix(
+        in srgb,
+        var(--node-color) 13%,
+        transparent
+      );
+
 }
 
 
@@ -406,17 +455,22 @@ html.dark .vc-node.vc-expanded{
 
   transition:none;
 
-  box-shadow:
-    0 1.1rem 2.4rem rgba(20,28,40,.12),
-    0 0 0 .1rem rgba(27,34,45,.045);
+  box-shadow:none;
+
 }
 
 
-html.dark .vc-node.vc-dragging{
+.vc-node.vc-dragging.vc-selected,
+.vc-node.vc-dragging.vc-expanded{
 
   box-shadow:
-    0 1.1rem 2.4rem rgba(0,0,0,.34),
-    0 0 0 .1rem rgba(255,255,255,.045);
+    0 0 0 1px
+      color-mix(
+        in srgb,
+        var(--node-color) 12%,
+        transparent
+      );
+
 }
 
 
@@ -433,14 +487,12 @@ html.dark .vc-node.vc-dragging{
   align-items:center;
 
   gap:.5625rem;
+
 }
 
 
 /* =========================================================
    ICON BOX
-
-   outline 없음.
-   배경만 컨셉 컬러.
    ========================================================= */
 
 .vc-node-icon{
@@ -466,7 +518,7 @@ html.dark .vc-node.vc-dragging{
   background:
     color-mix(
       in srgb,
-      var(--node-color) 12%,
+      var(--node-color) 13%,
       var(--node)
     );
 
@@ -474,6 +526,7 @@ html.dark .vc-node.vc-dragging{
     background .18s ease,
     color .18s ease,
     transform .18s cubic-bezier(.22,.8,.25,1);
+
 }
 
 
@@ -483,6 +536,7 @@ html.dark .vc-node.vc-dragging{
   height:1.125rem;
 
   display:block;
+
 }
 
 
@@ -494,6 +548,7 @@ html.dark .vc-node.vc-dragging{
       var(--node-color) 15%,
       var(--node)
     );
+
 }
 
 
@@ -506,6 +561,7 @@ html.dark .vc-node.vc-dragging{
       var(--node-color) 18%,
       var(--node)
     );
+
 }
 
 
@@ -534,6 +590,7 @@ html.dark .vc-node.vc-dragging{
   overflow:hidden;
 
   text-overflow:ellipsis;
+
 }
 
 
@@ -550,6 +607,7 @@ html.dark .vc-node.vc-dragging{
   gap:.1875rem;
 
   flex:0 0 auto;
+
 }
 
 
@@ -586,6 +644,7 @@ html.dark .vc-node.vc-dragging{
     background .16s ease,
     color .16s ease,
     transform .16s cubic-bezier(.22,.8,.25,1);
+
 }
 
 
@@ -594,12 +653,14 @@ html.dark .vc-node.vc-dragging{
   color:var(--text);
 
   background:var(--soft);
+
 }
 
 
 .vc-node-action:active{
 
   transform:scale(.88);
+
 }
 
 
@@ -614,6 +675,7 @@ html.dark .vc-node.vc-dragging{
     );
 
   outline-offset:2px;
+
 }
 
 
@@ -623,12 +685,12 @@ html.dark .vc-node.vc-dragging{
   height:.875rem;
 
   display:block;
+
 }
 
 
 /* =========================================================
    TOGGLE
-   컨셉 컬러 제거
    ========================================================= */
 
 .vc-node-toggle{
@@ -636,6 +698,7 @@ html.dark .vc-node.vc-dragging{
   color:var(--sub);
 
   background:transparent;
+
 }
 
 
@@ -644,6 +707,7 @@ html.dark .vc-node.vc-dragging{
   color:var(--text);
 
   background:var(--soft);
+
 }
 
 
@@ -651,12 +715,14 @@ html.dark .vc-node.vc-dragging{
 
   transition:
     transform .32s cubic-bezier(.22,.8,.25,1);
+
 }
 
 
 .vc-node.vc-expanded .vc-node-toggle svg{
 
   transform:rotate(180deg);
+
 }
 
 
@@ -667,12 +733,14 @@ html.dark .vc-node.vc-dragging{
 .vc-node-delete{
 
   display:none;
+
 }
 
 
 .vc-node:not(.vc-start-node).vc-expanded .vc-node-delete{
 
   display:flex;
+
 }
 
 
@@ -681,6 +749,7 @@ html.dark .vc-node.vc-dragging{
   color:var(--danger)!important;
 
   background:var(--danger-soft)!important;
+
 }
 
 
@@ -701,12 +770,14 @@ html.dark .vc-node.vc-dragging{
   transition:
     height .32s cubic-bezier(.22,.8,.25,1),
     opacity .18s ease;
+
 }
 
 
 .vc-node.vc-expanded .vc-node-body{
 
   opacity:1;
+
 }
 
 
@@ -727,13 +798,12 @@ html.dark .vc-node.vc-dragging{
   line-height:1.45;
 
   letter-spacing:-.012em;
+
 }
 
 
 /* =========================================================
    PARAMETER GROUP
-   컨셉 컬러 완전 제거.
-   노드 배경에 자연스럽게 섞이는 입력 컨트롤.
    ========================================================= */
 
 .vc-param-group{
@@ -754,39 +824,45 @@ html.dark .vc-node.vc-dragging{
     .125rem
     .5625rem;
 
+  /*
+   * 컨셉 컬러 완전 제거.
+   * 노드 내부에 자연스럽게 들어가는
+   * 흰색 입력 영역.
+   */
+
   border:1px solid var(--line);
 
   border-radius:var(--input-radius);
 
-  background:
-    var(--node-soft);
+  background:#ffffff;
 
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.28);
+  box-shadow:none;
 
   transition:
     border-color .16s ease,
-    background .16s ease,
-    box-shadow .16s ease;
+    background .16s ease;
+
 }
 
 
 html.dark .vc-param-group{
 
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.025);
+  background:var(--node-soft);
+
 }
 
 
 .vc-param-group:first-child{
 
   margin-top:0;
+
 }
 
 
 .vc-param-group + .vc-param-group{
 
   margin-top:.5rem;
+
 }
 
 
@@ -798,6 +874,7 @@ html.dark .vc-param-group{
       var(--border) 82%,
       var(--text)
     );
+
 }
 
 
@@ -806,26 +883,21 @@ html.dark .vc-param-group{
   border-color:
     color-mix(
       in srgb,
-      var(--border) 72%,
+      var(--border) 76%,
       var(--text)
     );
 
-  background:
-    color-mix(
-      in srgb,
-      var(--node-soft) 88%,
-      var(--node)
-    );
+  background:#ffffff;
 
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.24);
+  box-shadow:none;
+
 }
 
 
 html.dark .vc-param-group:focus-within{
 
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.025);
+  background:var(--node-soft);
+
 }
 
 
@@ -852,6 +924,7 @@ html.dark .vc-param-group:focus-within{
   letter-spacing:-.01em;
 
   white-space:nowrap;
+
 }
 
 
@@ -897,6 +970,7 @@ html.dark .vc-param-group:focus-within{
   line-height:1.3;
 
   letter-spacing:-.008em;
+
 }
 
 
@@ -909,12 +983,14 @@ html.dark .vc-param-group:focus-within{
   background:transparent;
 
   box-shadow:none;
+
 }
 
 
 .vc-slot-param::placeholder{
 
   color:var(--faint);
+
 }
 
 
@@ -930,6 +1006,7 @@ html.dark .vc-param-group:focus-within{
       var(--node-color) 15%,
       var(--node)
     );
+
 }
 
 
@@ -946,7 +1023,7 @@ html.dark .vc-param-group:focus-within{
   background:
     color-mix(
       in srgb,
-      var(--node-color) 11%,
+      var(--node-color) 10%,
       transparent
     );
 
@@ -959,6 +1036,7 @@ html.dark .vc-param-group:focus-within{
   line-height:1;
 
   letter-spacing:.03em;
+
 }
 
 
@@ -969,6 +1047,7 @@ html.dark .vc-param-group:focus-within{
 .vc-file-node .vc-node-head{
 
   min-height:3.625rem;
+
 }
 
 
@@ -980,6 +1059,7 @@ html.dark .vc-param-group:focus-within{
       var(--node-color) 14%,
       var(--node)
     );
+
 }
 
 
@@ -992,6 +1072,7 @@ html.dark .vc-param-group:focus-within{
   flex-direction:column;
 
   gap:.125rem;
+
 }
 
 
@@ -1010,6 +1091,7 @@ html.dark .vc-param-group:focus-within{
   text-overflow:ellipsis;
 
   max-width:11.875rem;
+
 }
 
 
@@ -1024,6 +1106,7 @@ html.dark .vc-param-group:focus-within{
   letter-spacing:.04em;
 
   text-transform:uppercase;
+
 }
 
 
@@ -1040,6 +1123,7 @@ html.dark .vc-param-group:focus-within{
   font-size:.5625rem;
 
   color:var(--sub);
+
 }
 
 
@@ -1052,6 +1136,7 @@ html.dark .vc-param-group:focus-within{
   text-overflow:ellipsis;
 
   white-space:nowrap;
+
 }
 
 
@@ -1079,6 +1164,7 @@ html.dark .vc-param-group:focus-within{
   position:absolute;
 
   background:var(--node);
+
 }
 
 
@@ -1103,6 +1189,7 @@ html.dark .vc-param-group:focus-within{
   opacity:.5;
 
   z-index:0;
+
 }
 
 
@@ -1124,6 +1211,7 @@ html.dark .vc-param-group:focus-within{
   z-index:0;
 
   pointer-events:none;
+
 }
 
 
@@ -1133,17 +1221,19 @@ html.dark .vc-param-group:focus-within{
   position:relative;
 
   z-index:2;
+
 }
 
 
 .vc-image-file-node .vc-port-hit{
 
   z-index:40;
+
 }
 
 
 /* =========================================================
-   DELETE ROW
+   DELETE BUTTON
    ========================================================= */
 
 .vc-node-delete-row{
@@ -1151,6 +1241,7 @@ html.dark .vc-param-group:focus-within{
   margin-top:.7rem;
 
   padding-top:0;
+
 }
 
 
@@ -1193,6 +1284,7 @@ html.dark .vc-param-group:focus-within{
   transition:
     background .16s ease,
     transform .16s cubic-bezier(.22,.8,.25,1);
+
 }
 
 
@@ -1204,12 +1296,14 @@ html.dark .vc-param-group:focus-within{
       var(--danger-soft) 72%,
       var(--danger) 8%
     );
+
 }
 
 
 .vc-node-delete-button:active{
 
   transform:scale(.97);
+
 }
 
 
@@ -1224,6 +1318,7 @@ html.dark .vc-param-group:focus-within{
     );
 
   outline-offset:2px;
+
 }
 
 
@@ -1231,6 +1326,7 @@ html.dark .vc-param-group:focus-within{
 
   width:.8125rem;
   height:.8125rem;
+
 }
 
 
@@ -1261,6 +1357,7 @@ html.dark .vc-param-group:focus-within{
 
   user-select:none;
   -webkit-user-select:none;
+
 }
 
 
@@ -1283,6 +1380,7 @@ html.dark .vc-param-group:focus-within{
 
   align-items:center;
   justify-content:center;
+
 }
 
 
@@ -1309,6 +1407,7 @@ html.dark .vc-param-group:focus-within{
     background .15s ease,
     border-color .15s ease,
     box-shadow .15s ease;
+
 }
 
 
@@ -1318,6 +1417,7 @@ html.dark .vc-param-group:focus-within{
   opacity:.92;
 
   transform:scale(1.05);
+
 }
 
 
@@ -1328,6 +1428,7 @@ html.dark .vc-param-group:focus-within{
   border-color:var(--node-color);
 
   opacity:.5;
+
 }
 
 
@@ -1337,6 +1438,7 @@ html.dark .vc-param-group:focus-within{
 .vc-port-pill.vc-connected{
 
   opacity:1;
+
 }
 
 
@@ -1357,6 +1459,7 @@ html.dark .vc-param-group:focus-within{
         var(--node-color) 10%,
         transparent
       );
+
 }
 
 
@@ -1381,27 +1484,36 @@ html.dark .vc-param-group:focus-within{
   transition:
     opacity .22s ease,
     transform .22s cubic-bezier(.22,.8,.25,1);
+
 }
 
 
 .vc-input .vc-port-label{
+
   right:calc(100% - .5rem);
+
 }
 
 
 .vc-output .vc-port-label{
+
   left:calc(100% - .5rem);
+
 }
 
 
 .vc-node.vc-selected .vc-port-label,
 .vc-node.vc-expanded .vc-port-label{
+
   opacity:.75;
+
 }
 
 
 .vc-start-node .vc-port-hit.vc-input{
+
   display:none;
+
 }
 
 
@@ -1432,6 +1544,7 @@ html.dark .vc-param-group:focus-within{
     stroke-width .24s ease,
     stroke .24s ease,
     stroke-dasharray .28s cubic-bezier(.22,.8,.25,1);
+
 }
 
 
@@ -1444,6 +1557,7 @@ html.dark .vc-param-group:focus-within{
   opacity:.76;
 
   stroke-width:2.2px;
+
 }
 
 
@@ -1456,6 +1570,7 @@ html.dark .vc-param-group:focus-within{
   stroke-width:1.2px;
 
   opacity:.38;
+
 }
 
 
@@ -1472,11 +1587,14 @@ html.dark .vc-param-group:focus-within{
   opacity:.88;
 
   pointer-events:none;
+
 }
 
 
 .vc-drag-source-dot{
+
   fill:var(--accent);
+
 }
 
 
@@ -1497,6 +1615,7 @@ html.dark .vc-param-group:focus-within{
   display:flex;
 
   gap:.4375rem;
+
 }
 
 
@@ -1526,7 +1645,7 @@ html.dark .vc-param-group:focus-within{
 
   background:var(--glass);
 
-  box-shadow:var(--shadow);
+  box-shadow:none;
 
   cursor:pointer;
 
@@ -1537,6 +1656,7 @@ html.dark .vc-param-group:focus-within{
     transform .18s cubic-bezier(.22,.8,.25,1),
     background .18s ease,
     border-color .18s ease;
+
 }
 
 
@@ -1550,11 +1670,14 @@ html.dark .vc-param-group:focus-within{
 .vc-top-button:active{
 
   transform:scale(.93);
+
 }
 
 
 .vc-theme-button{
+
   color:var(--text);
+
 }
 
 
@@ -1564,15 +1687,17 @@ html.dark .vc-param-group:focus-within{
 
   background:#fff;
 
-  border-color:rgba(20,25,32,.1);
+  border-color:rgba(20,25,32,.12);
 
-  box-shadow:
-    0 .45rem 1.15rem rgba(20,28,40,.09);
+  box-shadow:none;
+
 }
 
 
 html.dark .vc-add-button{
+
   background:#f4f4f4;
+
 }
 
 
@@ -1586,16 +1711,21 @@ html.dark .vc-add-button{
   transition:
     transform .28s cubic-bezier(.22,.8,.25,1),
     opacity .18s ease;
+
 }
 
 
 .vc-add-button:hover .vc-add-node-icon{
+
   transform:scale(1.04);
+
 }
 
 
 .vc-add-button.vc-open .vc-add-node-icon{
+
   transform:rotate(90deg) scale(.96);
+
 }
 
 
@@ -1626,8 +1756,7 @@ html.dark .vc-add-button{
 
   background:var(--glass2);
 
-  box-shadow:
-    0 1rem 2.4rem rgba(20,28,40,.1);
+  box-shadow:none;
 
   backdrop-filter:blur(1rem);
   -webkit-backdrop-filter:blur(1rem);
@@ -1643,6 +1772,7 @@ html.dark .vc-add-button{
   transition:
     opacity .16s ease,
     transform .18s cubic-bezier(.22,.8,.25,1);
+
 }
 
 
@@ -1653,6 +1783,7 @@ html.dark .vc-add-button{
   transform:none;
 
   pointer-events:auto;
+
 }
 
 
@@ -1674,6 +1805,7 @@ html.dark .vc-add-button{
   padding:.5625rem;
 
   border:0;
+
   outline:0;
 
   border-radius:.625rem;
@@ -1685,11 +1817,14 @@ html.dark .vc-add-button{
   text-align:left;
 
   cursor:pointer;
+
 }
 
 
 .vc-menu-item:hover{
+
   background:var(--soft);
+
 }
 
 
@@ -1709,9 +1844,10 @@ html.dark .vc-add-button{
 
   background:var(--soft);
 
-  border:1px solid var(--line);
+  border:0;
 
   color:var(--sub);
+
 }
 
 
@@ -1719,6 +1855,7 @@ html.dark .vc-add-button{
 
   width:.9375rem;
   height:.9375rem;
+
 }
 
 
@@ -1727,6 +1864,7 @@ html.dark .vc-add-button{
   font-size:.71875rem;
 
   font-weight:600;
+
 }
 
 
@@ -1737,6 +1875,7 @@ html.dark .vc-add-button{
   color:var(--faint);
 
   font-size:.5625rem;
+
 }
 
 
@@ -1767,6 +1906,7 @@ html.dark .vc-add-button{
   z-index:200;
 
   pointer-events:none;
+
 }
 
 
@@ -1798,9 +1938,7 @@ html.dark .vc-add-button{
 
   background:var(--glass2);
 
-  box-shadow:
-    0 .625rem 2rem rgba(20,28,40,.08),
-    0 .06rem .125rem rgba(20,28,40,.035);
+  box-shadow:none;
 
   backdrop-filter:blur(1.25rem);
   -webkit-backdrop-filter:blur(1.25rem);
@@ -1812,6 +1950,7 @@ html.dark .vc-add-button{
     border-radius .22s ease,
     box-shadow .22s ease,
     opacity .22s ease;
+
 }
 
 
@@ -1826,6 +1965,7 @@ html.dark .vc-add-button{
   border-radius:1.375rem;
 
   opacity:.86;
+
 }
 
 
@@ -1834,11 +1974,13 @@ html.dark .vc-add-button{
   min-height:2rem;
 
   padding-top:.375rem;
+
   padding-bottom:.375rem;
 
   font-size:.96875rem;
 
   font-weight:500;
+
 }
 
 
@@ -1853,6 +1995,7 @@ html.dark .vc-add-button{
   border-radius:1.75rem;
 
   opacity:1;
+
 }
 
 
@@ -1889,12 +2032,15 @@ html.dark .vc-add-button{
 
   background:transparent;
 
+  box-shadow:none;
+
   cursor:pointer;
 
   transition:
     background .16s ease,
     color .16s ease,
     transform .16s cubic-bezier(.22,.8,.25,1);
+
 }
 
 
@@ -1903,12 +2049,14 @@ html.dark .vc-add-button{
   color:var(--text);
 
   background:var(--soft);
+
 }
 
 
 .vc-composer-button:active{
 
   transform:scale(.92);
+
 }
 
 
@@ -1918,6 +2066,7 @@ html.dark .vc-add-button{
   height:.9375rem;
 
   display:block;
+
 }
 
 
@@ -1927,6 +2076,7 @@ html.dark .vc-add-button{
   height:1.875rem;
 
   flex:0 0 1.875rem;
+
 }
 
 
@@ -1956,11 +2106,14 @@ html.dark .vc-add-button{
   line-height:1.45;
 
   letter-spacing:-.015em;
+
 }
 
 
 .vc-chat-input::placeholder{
+
   color:var(--faint);
+
 }
 
 
@@ -1988,24 +2141,28 @@ html.dark .vc-add-button{
 
   border:1px solid rgba(20,25,32,.1);
 
-  box-shadow:
-    0 .1875rem .5625rem rgba(20,28,40,.09);
+  box-shadow:none;
 
   line-height:0;
 
   transition:
     opacity .18s ease,
     transform .16s cubic-bezier(.22,.8,.25,1);
+
 }
 
 
 .vc-send-button:hover{
+
   opacity:.78;
+
 }
 
 
 .vc-send-button:active{
+
   transform:scale(.93);
+
 }
 
 
@@ -2015,11 +2172,14 @@ html.dark .vc-add-button{
   height:.9375rem;
 
   display:block;
+
 }
 
 
 html.dark .vc-send-button{
+
   background:#f4f4f4;
+
 }
 
 
@@ -2053,6 +2213,7 @@ html.dark .vc-send-button{
   -webkit-backdrop-filter:blur(.9rem);
 
   opacity:.8;
+
 }
 
 
@@ -2087,6 +2248,7 @@ html.dark .vc-send-button{
     );
 
   pointer-events:none;
+
 }
 
 
@@ -2100,8 +2262,7 @@ html.dark .vc-send-button{
 
   border:1px solid var(--border);
 
-  box-shadow:
-    0 .5rem 1.3rem rgba(20,28,40,.07);
+  box-shadow:none;
 
   font-size:.625rem;
 
@@ -2114,6 +2275,7 @@ html.dark .vc-send-button{
   transition:
     opacity .18s ease,
     transform .18s ease;
+
 }
 
 
@@ -2122,6 +2284,7 @@ html.dark .vc-send-button{
   opacity:1;
 
   transform:none;
+
 }
 
 
@@ -2135,6 +2298,7 @@ html.dark .vc-send-button{
     );
 
   color:var(--danger);
+
 }
 
 
@@ -2148,11 +2312,14 @@ html.dark .vc-send-button{
     );
 
   color:#9a6706;
+
 }
 
 
 .vc-validation-item.vc-ok{
+
   color:var(--sub);
+
 }
 
 
@@ -2171,32 +2338,41 @@ html.dark .vc-send-button{
     padding:.625rem .75rem;
 
     border-radius:1rem;
+
   }
 
 
   .vc-node-title{
+
     font-size:.78125rem;
+
   }
 
 
   .vc-node-icon{
 
     width:1.75rem;
+
     height:1.75rem;
 
     flex-basis:1.75rem;
+
   }
 
 
   .vc-node-icon svg{
 
     width:1.125rem;
+
     height:1.125rem;
+
   }
 
 
   .vc-slot-description{
+
     font-size:.65625rem;
+
   }
 
 
@@ -2205,16 +2381,21 @@ html.dark .vc-send-button{
     font-size:.46875rem;
 
     padding:.1875rem .3125rem;
+
   }
 
 
   .vc-top-controls{
+
     right:.6875rem;
+
   }
 
 
   .vc-add-menu{
+
     right:.6875rem;
+
   }
 
 
@@ -2232,6 +2413,7 @@ html.dark .vc-send-button{
       );
 
     transform:translateX(-50%);
+
   }
 
 
@@ -2246,6 +2428,7 @@ html.dark .vc-send-button{
     border-radius:1.5rem;
 
     padding:.25rem;
+
   }
 
 
@@ -2258,6 +2441,7 @@ html.dark .vc-send-button{
     border-radius:1.3125rem;
 
     padding:.1875rem .25rem;
+
   }
 
 
@@ -2266,6 +2450,7 @@ html.dark .vc-send-button{
     min-height:1.9375rem;
 
     font-size:.9375rem;
+
   }
 
 
@@ -2278,43 +2463,54 @@ html.dark .vc-send-button{
     border-radius:1.6875rem;
 
     padding:.375rem;
+
   }
 
 
   .vc-composer-button{
 
     width:1.875rem;
+
     height:1.875rem;
 
     flex-basis:1.875rem;
+
   }
 
 
   .vc-attach-button{
 
     width:1.875rem;
+
     height:1.875rem;
 
     flex-basis:1.875rem;
+
   }
 
 
   .vc-send-button{
 
     width:1.875rem;
+
     height:1.875rem;
 
     flex-basis:1.875rem;
+
   }
 
 
   .vc-zoom-indicator{
+
     left:.6875rem;
+
   }
 
 
   .vc-image-file-node{
+
     width:13.90625rem;
+
   }
 
 }
