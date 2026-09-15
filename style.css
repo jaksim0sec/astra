@@ -2,35 +2,44 @@
 
   color-scheme:light;
 
-  --bg:#f2f3f5;
-  --canvas:#f7f8fa;
+  /* =========================================================
+     COLOR
+     ========================================================= */
 
-  --glass:rgba(255,255,255,.72);
-  --glass2:rgba(255,255,255,.92);
+  --bg:#f3f6fa;
+  --canvas:#f7f9fc;
 
-  --text:#18181a;
-  --sub:#707176;
-  --faint:#a4a5aa;
+  --glass:rgba(255,255,255,.76);
+  --glass2:rgba(255,255,255,.94);
 
-  --line:rgba(20,20,25,.08);
-  --soft:rgba(20,20,25,.045);
+  --text:#181a1f;
+  --sub:#626772;
+  --faint:#9298a3;
+
+  --line:rgba(27,34,45,.09);
+  --soft:rgba(27,34,45,.055);
 
   --node:#ffffff;
-  --node-soft:#f8f8fb;
-  --border:rgba(20,20,25,.1);
+  --node-soft:#f6f8fb;
+
+  --border:rgba(27,34,45,.14);
 
   --accent:#6b4cff;
-  --accent-soft:rgba(107,76,255,.1);
+  --accent-soft:rgba(107,76,255,.11);
 
   --danger:#e5484d;
   --danger-soft:rgba(229,72,77,.08);
 
-  --shadow:
-    0 .55rem 1.35rem rgba(0,0,0,.065),
-    0 .06rem .15rem rgba(0,0,0,.025);
+  /* =========================================================
+     SIZE TOKENS
+     ========================================================= */
 
-  --node-radius:1rem;
-  --input-radius:.625rem;
+  --node-radius:.95rem;
+  --input-radius:.6rem;
+
+  --shadow:
+    0 .65rem 1.55rem rgba(20,28,40,.065),
+    0 .08rem .18rem rgba(20,28,40,.025);
 
 }
 
@@ -39,38 +48,42 @@ html.dark{
 
   color-scheme:dark;
 
-  --bg:#111214;
-  --canvas:#161719;
+  --bg:#101317;
+  --canvas:#14171c;
 
-  --glass:rgba(32,32,32,.74);
-  --glass2:rgba(38,38,38,.95);
+  --glass:rgba(28,31,37,.78);
+  --glass2:rgba(31,35,42,.96);
 
-  --text:#f3f3f5;
-  --sub:#9b9ca3;
-  --faint:#66676d;
+  --text:#f3f4f6;
+  --sub:#a1a6b0;
+  --faint:#6e737d;
 
   --line:rgba(255,255,255,.08);
-  --soft:rgba(255,255,255,.045);
+  --soft:rgba(255,255,255,.05);
 
-  --node:#202124;
-  --node-soft:#242529;
-  --border:rgba(255,255,255,.095);
+  --node:#20242a;
+  --node-soft:#252a31;
+
+  --border:rgba(255,255,255,.12);
 
   --accent:#8b73ff;
   --accent-soft:rgba(139,115,255,.14);
 
-  --danger:#ff7077;
-  --danger-soft:rgba(255,112,119,.1);
+  --danger:#ff7379;
+  --danger-soft:rgba(255,115,121,.1);
 
   --shadow:
-    0 .65rem 1.55rem rgba(0,0,0,.28),
-    0 .06rem .15rem rgba(0,0,0,.18);
+    0 .75rem 1.7rem rgba(0,0,0,.30),
+    0 .08rem .18rem rgba(0,0,0,.18);
 
 }
 
 
 /* =========================================================
    ROOT SCALE
+
+   body 기준만 vw 반응형.
+   내부 UI는 rem을 사용.
    ========================================================= */
 
 html{
@@ -78,10 +91,6 @@ html{
   width:100%;
   height:100%;
 
-  /*
-   * viewport에 따라 body의 기준 크기만 변화.
-   * 내부 항목은 rem 기준으로 비례.
-   */
   font-size:clamp(
     16px,
     4.35vw,
@@ -96,6 +105,7 @@ body{
 
   width:100%;
   height:100%;
+
   margin:0;
 
   overflow:hidden;
@@ -108,6 +118,7 @@ body{
     sans-serif;
 
   color:var(--text);
+
   background:var(--bg);
 
 }
@@ -160,6 +171,7 @@ button{
 #app{
 
   position:fixed;
+
   inset:0;
 
   overflow:hidden;
@@ -171,12 +183,15 @@ button{
 
 /* =========================================================
    CANVAS
+
+   Gesture / world geometry preserved.
    ========================================================= */
 
 .vc-root,
 .vc-canvas{
 
   position:absolute;
+
   inset:0;
 
   overflow:hidden;
@@ -240,6 +255,7 @@ button{
 .vc-svg{
 
   position:absolute;
+
   inset:0;
 
   width:100%;
@@ -257,6 +273,7 @@ button{
 .vc-nodes{
 
   position:absolute;
+
   inset:0;
 
   z-index:10;
@@ -265,7 +282,9 @@ button{
 
 
 /* =========================================================
-   NODE
+   NODE BASE
+
+   "Glass panel"보다 "실제 객체"에 가깝게.
    ========================================================= */
 
 .vc-node{
@@ -282,7 +301,8 @@ button{
   position:absolute;
 
   /*
-   * 기존 190px 유지
+   * 기존 190px
+   * 16px 기준 = 11.875rem
    */
   width:11.875rem;
 
@@ -290,13 +310,13 @@ button{
 
   padding:.625rem .75rem;
 
+  background:var(--node);
+
   border:
     1px solid
     var(--border);
 
   border-radius:var(--node-radius);
-
-  background:var(--node);
 
   box-shadow:var(--shadow);
 
@@ -314,25 +334,18 @@ button{
 }
 
 
-html.dark .vc-node{
-
-  box-shadow:var(--shadow);
-
-}
-
-
 .vc-node:hover{
 
   border-color:
     color-mix(
       in srgb,
-      var(--node-color) 20%,
+      var(--node-color) 22%,
       var(--border)
     );
 
   box-shadow:
-    0 .65rem 1.55rem rgba(0,0,0,.08),
-    0 .06rem .15rem rgba(0,0,0,.025);
+    0 .72rem 1.7rem rgba(20,28,40,.08),
+    0 .08rem .18rem rgba(20,28,40,.025);
 
 }
 
@@ -340,11 +353,15 @@ html.dark .vc-node{
 html.dark .vc-node:hover{
 
   box-shadow:
-    0 .75rem 1.7rem rgba(0,0,0,.32),
-    0 .06rem .15rem rgba(0,0,0,.18);
+    0 .8rem 1.8rem rgba(0,0,0,.34),
+    0 .08rem .18rem rgba(0,0,0,.18);
 
 }
 
+
+/* =========================================================
+   SELECTED / EXPANDED
+   ========================================================= */
 
 .vc-node.vc-selected,
 .vc-node.vc-expanded{
@@ -352,12 +369,12 @@ html.dark .vc-node:hover{
   border-color:
     color-mix(
       in srgb,
-      var(--node-color) 34%,
+      var(--node-color) 42%,
       var(--border)
     );
 
   box-shadow:
-    0 .7rem 1.6rem rgba(0,0,0,.08),
+    0 .8rem 1.8rem rgba(20,28,40,.09),
     0 0 0 .1rem
       color-mix(
         in srgb,
@@ -374,16 +391,20 @@ html.dark .vc-node.vc-selected,
 html.dark .vc-node.vc-expanded{
 
   box-shadow:
-    0 .7rem 1.6rem rgba(0,0,0,.3),
+    0 .85rem 1.9rem rgba(0,0,0,.34),
     0 0 0 .1rem
       color-mix(
         in srgb,
-        var(--node-color) 13%,
+        var(--node-color) 14%,
         transparent
       );
 
 }
 
+
+/* =========================================================
+   DRAGGING
+   ========================================================= */
 
 .vc-node.vc-dragging{
 
@@ -392,7 +413,7 @@ html.dark .vc-node.vc-expanded{
   transition:none;
 
   box-shadow:
-    0 1.1rem 2.4rem rgba(0,0,0,.13),
+    0 1.1rem 2.4rem rgba(20,28,40,.13),
     0 0 0 .1rem
       color-mix(
         in srgb,
@@ -404,7 +425,7 @@ html.dark .vc-node.vc-expanded{
 
 
 /* =========================================================
-   NODE HEADER
+   HEADER
    ========================================================= */
 
 .vc-node-head{
@@ -419,6 +440,12 @@ html.dark .vc-node.vc-expanded{
 
 }
 
+
+/* =========================================================
+   ICON
+
+   컨셉 컬러가 아이콘의 "재질"이 되도록.
+   ========================================================= */
 
 .vc-node-icon{
 
@@ -438,14 +465,19 @@ html.dark .vc-node.vc-expanded{
 
   color:var(--node-color);
 
-  background:var(--accent-soft);
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color) 12%,
+      var(--node)
+    );
 
   border:
     1px solid
     color-mix(
       in srgb,
-      var(--node-color) 15%,
-      transparent
+      var(--node-color) 30%,
+      var(--border)
     );
 
 }
@@ -461,16 +493,32 @@ html.dark .vc-node.vc-expanded{
 }
 
 
-button svg{
+.vc-node.vc-selected .vc-node-icon,
+.vc-node.vc-expanded .vc-node-icon{
 
-  width:1.25em;
-  height:1.25em;
+  color:var(--node-color);
+
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color) 17%,
+      var(--node)
+    );
+
+  border-color:
+    color-mix(
+      in srgb,
+      var(--node-color) 44%,
+      var(--border)
+    );
 
 }
 
 
 /* =========================================================
-   NODE TITLE
+   TITLE
+
+   가장 강한 정보.
    ========================================================= */
 
 .vc-node-title{
@@ -499,7 +547,7 @@ button svg{
 
 
 /* =========================================================
-   NODE ACTIONS
+   ACTIONS
    ========================================================= */
 
 .vc-node-actions{
@@ -593,6 +641,10 @@ button svg{
 }
 
 
+/* =========================================================
+   DELETE
+   ========================================================= */
+
 .vc-node-delete{
 
   display:none;
@@ -615,10 +667,6 @@ button svg{
 
 }
 
-
-/* =========================================================
-   TOGGLE
-   ========================================================= */
 
 .vc-node-toggle{
 
@@ -652,7 +700,211 @@ button svg{
 
 
 /* =========================================================
-   START NODE
+   NODE BODY
+
+   제목과 body 사이에는 선을 넣지 않는다.
+   여백으로 정보 계층만 나눈다.
+   ========================================================= */
+
+.vc-node-body{
+
+  height:0;
+
+  overflow:hidden;
+
+  opacity:0;
+
+  margin-top:.75rem;
+
+  transition:
+    height .32s cubic-bezier(.22,.8,.25,1),
+    opacity .18s ease;
+
+}
+
+
+.vc-node.vc-expanded .vc-node-body{
+
+  opacity:1;
+
+}
+
+
+/* =========================================================
+   DESCRIPTION
+
+   가장 약한 정보.
+   ========================================================= */
+
+.vc-slot-description{
+
+  margin:0 0 .625rem;
+
+  color:var(--faint);
+
+  font-size:.575rem;
+
+  font-weight:450;
+
+  line-height:1.45;
+
+  letter-spacing:-.012em;
+
+}
+
+
+/* =========================================================
+   PARAMETER GROUP
+
+   같은 그룹 내부는 밀착.
+   그룹끼리는 확실하게 분리.
+   ========================================================= */
+
+.vc-param-group{
+
+  margin-top:.7rem;
+
+}
+
+
+.vc-param-group:first-child{
+
+  margin-top:0;
+
+}
+
+
+.vc-param-group + .vc-param-group{
+
+  margin-top:.7rem;
+
+}
+
+
+/* =========================================================
+   PARAMETER LABEL
+
+   작지만 input보다 먼저 읽히는 명칭.
+   ========================================================= */
+
+.vc-param-label{
+
+  display:block;
+
+  margin:0 0 .2rem;
+
+  color:var(--sub);
+
+  font-size:.5625rem;
+
+  font-weight:650;
+
+  line-height:1.2;
+
+  letter-spacing:-.008em;
+
+}
+
+
+/* =========================================================
+   PARAMETER INPUT
+
+   실제 값은 명확하게 강조.
+   ========================================================= */
+
+.vc-slot-param{
+
+  display:block;
+
+  width:100%;
+
+  min-height:1.875rem;
+
+  margin:0;
+
+  padding:.375rem .5625rem;
+
+  border:
+    1px solid
+    color-mix(
+      in srgb,
+      var(--node-color) 19%,
+      var(--border)
+    );
+
+  border-radius:var(--input-radius);
+
+  outline:none;
+
+  appearance:none;
+  -webkit-appearance:none;
+
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color) 4%,
+      var(--node-soft)
+    );
+
+  color:var(--text);
+
+  box-shadow:none;
+
+  font-size:.625rem;
+
+  font-weight:550;
+
+  line-height:1.3;
+
+  letter-spacing:-.008em;
+
+  transition:
+    border-color .16s ease,
+    background .16s ease;
+
+}
+
+
+.vc-slot-param:hover{
+
+  border-color:
+    color-mix(
+      in srgb,
+      var(--node-color) 30%,
+      var(--border)
+    );
+
+}
+
+
+.vc-slot-param:focus{
+
+  border-color:
+    color-mix(
+      in srgb,
+      var(--node-color) 58%,
+      var(--border)
+    );
+
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color) 7%,
+      var(--node-soft)
+    );
+
+}
+
+
+.vc-slot-param::placeholder{
+
+  color:var(--faint);
+
+}
+
+
+/* =========================================================
+   START
    ========================================================= */
 
 .vc-start-node{
@@ -664,15 +916,18 @@ button svg{
 
 .vc-start-node .vc-node-icon{
 
-  color:var(--node-color);
-
-  background:var(--accent-soft);
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color) 15%,
+      var(--node)
+    );
 
   border-color:
     color-mix(
       in srgb,
-      var(--node-color) 22%,
-      transparent
+      var(--node-color) 34%,
+      var(--border)
     );
 
 }
@@ -694,7 +949,7 @@ button svg{
     1px solid
     color-mix(
       in srgb,
-      var(--node-color) 14%,
+      var(--node-color) 18%,
       transparent
     );
 
@@ -729,15 +984,18 @@ button svg{
 
 .vc-file-node .vc-node-icon{
 
-  color:var(--node-color);
-
-  background:var(--accent-soft);
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color) 14%,
+      var(--node)
+    );
 
   border-color:
     color-mix(
       in srgb,
-      var(--node-color) 22%,
-      transparent
+      var(--node-color) 34%,
+      var(--border)
     );
 
 }
@@ -829,6 +1087,8 @@ button svg{
 
 /* =========================================================
    IMAGE FILE NODE
+
+   기존 비율 유지.
    ========================================================= */
 
 .vc-image-file-node{
@@ -886,8 +1146,8 @@ button svg{
   background:
     linear-gradient(
       180deg,
-      rgba(255,255,255,.2),
-      rgba(255,255,255,.5)
+      rgba(255,255,255,.16),
+      rgba(255,255,255,.42)
     );
 
   z-index:0;
@@ -915,221 +1175,14 @@ button svg{
 
 
 /* =========================================================
-   NODE BODY
-   ========================================================= */
-
-.vc-node-body{
-
-  height:0;
-
-  overflow:hidden;
-
-  opacity:0;
-
-  margin-top:.75rem;
-
-  transition:
-    height .32s cubic-bezier(.22,.8,.25,1),
-    opacity .18s ease;
-
-}
-
-
-.vc-node.vc-expanded .vc-node-body{
-
-  opacity:1;
-
-}
-
-
-/* =========================================================
-   DESCRIPTION
-   ========================================================= */
-
-.vc-slot-description{
-
-  margin:0 0 .7rem;
-
-  color:var(--faint);
-
-  font-size:.575rem;
-
-  line-height:1.45;
-
-  letter-spacing:-.012em;
-
-}
-
-
-/* =========================================================
-   PARAMETER GROUP
-   ========================================================= */
-
-.vc-param-group{
-
-  margin-top:.625rem;
-
-}
-
-
-.vc-param-group:first-child{
-
-  margin-top:0;
-
-}
-
-
-.vc-param-group + .vc-param-group{
-
-  margin-top:.625rem;
-
-}
-
-
-/* =========================================================
-   PARAMETER LABEL
-   ========================================================= */
-
-.vc-param-label{
-
-  display:block;
-
-  margin:0 0 .2rem;
-
-  color:var(--sub);
-
-  font-size:.5625rem;
-
-  font-weight:650;
-
-  line-height:1.25;
-
-  letter-spacing:-.01em;
-
-}
-
-
-/* =========================================================
-   PARAMETER
-   ========================================================= */
-
-.vc-slot-param{
-
-  display:block;
-
-  width:100%;
-
-  max-width:100%;
-
-  min-height:1.875rem;
-
-  margin:0;
-
-  padding:.375rem .5625rem;
-
-  border:
-    1px solid
-    color-mix(
-      in srgb,
-      var(--text) 8%,
-      var(--border)
-    );
-
-  border-radius:var(--input-radius);
-
-  outline:none;
-
-  appearance:none;
-  -webkit-appearance:none;
-
-  background:var(--node-soft);
-
-  color:var(--text);
-
-  box-shadow:none;
-
-  font-size:.625rem;
-
-  font-weight:500;
-
-  line-height:1.3;
-
-  letter-spacing:-.01em;
-
-  transition:
-    border-color .16s ease,
-    background .16s ease;
-
-}
-
-
-.vc-slot-param::placeholder{
-
-  color:var(--faint);
-
-}
-
-
-.vc-slot-param:hover{
-
-  border-color:
-    color-mix(
-      in srgb,
-      var(--node-color) 18%,
-      var(--border)
-    );
-
-}
-
-
-.vc-slot-param:focus{
-
-  border-color:
-    color-mix(
-      in srgb,
-      var(--node-color) 42%,
-      var(--border)
-    );
-
-  background:
-    color-mix(
-      in srgb,
-      var(--node-color) 4%,
-      var(--node-soft)
-    );
-
-  box-shadow:none;
-
-}
-
-
-html.dark .vc-slot-param{
-
-  background:var(--node-soft);
-
-}
-
-
-/* =========================================================
-   CUSTOM SLOT
-   ========================================================= */
-
-.vc-slot-custom{
-
-  margin-top:.5625rem;
-
-}
-
-
-/* =========================================================
-   DELETE ROW
+   DELETE BUTTON
    ========================================================= */
 
 .vc-node-delete-row{
 
-  margin-top:.5625rem;
+  margin-top:.7rem;
 
-  padding-top:.0625rem;
+  padding-top:0;
 
 }
 
@@ -1152,6 +1205,7 @@ html.dark .vc-slot-param{
   gap:.375rem;
 
   margin:0;
+
   padding:0;
 
   border:0;
@@ -1183,7 +1237,7 @@ html.dark .vc-slot-param{
   background:
     color-mix(
       in srgb,
-      var(--danger-soft) 70%,
+      var(--danger-soft) 72%,
       var(--danger) 8%
     );
 
@@ -1217,8 +1271,6 @@ html.dark .vc-slot-param{
   width:.8125rem;
   height:.8125rem;
 
-  display:block;
-
 }
 
 
@@ -1239,7 +1291,6 @@ html.dark .vc-slot-param{
   display:flex;
 
   align-items:center;
-
   justify-content:center;
 
   z-index:40;
@@ -1272,11 +1323,13 @@ html.dark .vc-slot-param{
 .vc-port-anchor{
 
   width:.75rem;
+
   height:.75rem;
 
   display:flex;
 
   align-items:center;
+
   justify-content:center;
 
 }
@@ -1285,6 +1338,7 @@ html.dark .vc-slot-param{
 .vc-port-pill{
 
   width:.625rem;
+
   height:.625rem;
 
   border-radius:50%;
@@ -1295,17 +1349,15 @@ html.dark .vc-slot-param{
     1.5px solid
     var(--text);
 
-  opacity:.18;
+  opacity:.2;
 
-  box-shadow:
-    0 .06rem .18rem rgba(0,0,0,.06);
+  box-shadow:none;
 
   transition:
     opacity .15s ease,
     transform .15s cubic-bezier(.22,.8,.25,1),
     background .15s ease,
-    border-color .15s ease,
-    box-shadow .15s ease;
+    border-color .15s ease;
 
 }
 
@@ -1324,7 +1376,7 @@ html.dark .vc-slot-param{
 
   background:var(--text);
 
-  opacity:.35;
+  opacity:.42;
 
 }
 
@@ -1354,12 +1406,6 @@ html.dark .vc-slot-param{
       color-mix(
         in srgb,
         var(--node-color) 10%,
-        transparent
-      ),
-    0 .125rem .375rem
-      color-mix(
-        in srgb,
-        var(--node-color) 18%,
         transparent
       );
 
@@ -1443,7 +1489,7 @@ html.dark .vc-slot-param{
 
   stroke-dasharray:2px 5px;
 
-  opacity:.18;
+  opacity:.2;
 
   pointer-events:none;
 
@@ -1461,7 +1507,7 @@ html.dark .vc-slot-param{
 
   stroke-dasharray:none;
 
-  opacity:.7;
+  opacity:.76;
 
   stroke-width:2.2px;
 
@@ -1476,7 +1522,7 @@ html.dark .vc-slot-param{
 
   stroke-width:1.2px;
 
-  opacity:.35;
+  opacity:.38;
 
 }
 
@@ -1491,7 +1537,7 @@ html.dark .vc-slot-param{
 
   stroke-linecap:round;
 
-  opacity:.85;
+  opacity:.88;
 
   pointer-events:none;
 
@@ -1542,16 +1588,39 @@ html.dark .vc-slot-param{
   margin:0;
   padding:0;
 
-  border:0;
+  border:1px solid var(--border);
+
   outline:0;
 
   border-radius:50%;
 
+  color:var(--text);
+
+  background:var(--glass);
+
+  box-shadow:var(--shadow);
+
   cursor:pointer;
+
+  backdrop-filter:blur(.9rem);
+  -webkit-backdrop-filter:blur(.9rem);
 
   transition:
     transform .18s cubic-bezier(.22,.8,.25,1),
-    background .18s ease;
+    background .18s ease,
+    border-color .18s ease;
+
+}
+
+
+.vc-top-button:hover{
+
+  border-color:
+    color-mix(
+      in srgb,
+      var(--accent) 24%,
+      var(--border)
+    );
 
 }
 
@@ -1567,27 +1636,19 @@ html.dark .vc-slot-param{
 
   color:var(--text);
 
-  background:var(--glass);
-
-  border:1px solid var(--soft);
-
-  backdrop-filter:blur(1.125rem);
-
-  -webkit-backdrop-filter:blur(1.125rem);
-
 }
 
 
 .vc-add-button{
 
-  color:#171717;
+  color:#18191c;
 
   background:#fff;
 
-  border:1px solid rgba(0,0,0,.07);
+  border-color:rgba(20,25,32,.12);
 
   box-shadow:
-    0 .375rem 1.125rem rgba(0,0,0,.1);
+    0 .45rem 1.15rem rgba(20,28,40,.1);
 
 }
 
@@ -1648,18 +1709,17 @@ html.dark .vc-add-button{
 
   padding:.375rem;
 
-  border:1px solid var(--soft);
+  border:1px solid var(--border);
 
   border-radius:1rem;
 
   background:var(--glass2);
 
   box-shadow:
-    0 1rem 2.625rem rgba(0,0,0,.12);
+    0 1rem 2.4rem rgba(20,28,40,.12);
 
-  backdrop-filter:blur(1.5rem);
-
-  -webkit-backdrop-filter:blur(1.5rem);
+  backdrop-filter:blur(1rem);
+  -webkit-backdrop-filter:blur(1rem);
 
   opacity:0;
 
@@ -1705,6 +1765,7 @@ html.dark .vc-add-button{
   padding:.5625rem;
 
   border:0;
+
   outline:0;
 
   border-radius:.625rem;
@@ -1739,7 +1800,6 @@ html.dark .vc-add-button{
   display:flex;
 
   align-items:center;
-
   justify-content:center;
 
   border-radius:.5rem;
@@ -1750,7 +1810,7 @@ html.dark .vc-add-button{
     1px solid
     color-mix(
       in srgb,
-      var(--text) 6%,
+      var(--text) 7%,
       transparent
     );
 
@@ -1763,8 +1823,6 @@ html.dark .vc-add-button{
 
   width:.9375rem;
   height:.9375rem;
-
-  display:block;
 
 }
 
@@ -1842,19 +1900,18 @@ html.dark .vc-add-button{
 
   padding:.3125rem;
 
-  border:1px solid var(--soft);
+  border:1px solid var(--border);
 
   border-radius:1.625rem;
 
   background:var(--glass2);
 
   box-shadow:
-    0 .625rem 2rem rgba(0,0,0,.09),
-    0 .06rem .125rem rgba(0,0,0,.04);
+    0 .625rem 2rem rgba(20,28,40,.09),
+    0 .06rem .125rem rgba(20,28,40,.04);
 
-  backdrop-filter:blur(1.625rem);
-
-  -webkit-backdrop-filter:blur(1.625rem);
+  backdrop-filter:blur(1.25rem);
+  -webkit-backdrop-filter:blur(1.25rem);
 
   transition:
     width .28s cubic-bezier(.22,.8,.25,1),
@@ -1989,6 +2046,7 @@ html.dark .vc-add-button{
   padding:.5rem .375rem .4375rem;
 
   border:0;
+
   outline:0;
 
   color:var(--text);
@@ -2033,19 +2091,23 @@ html.dark .vc-add-button{
 
   background:#fff;
 
-  border:1px solid rgba(0,0,0,.07);
+  border:1px solid rgba(20,25,32,.1);
 
   box-shadow:
-    0 .1875rem .5625rem rgba(0,0,0,.09);
+    0 .1875rem .5625rem rgba(20,28,40,.1);
 
   line-height:0;
+
+  transition:
+    opacity .18s ease,
+    transform .16s cubic-bezier(.22,.8,.25,1);
 
 }
 
 
 .vc-send-button:hover{
 
-  opacity:.75;
+  opacity:.78;
 
 }
 
@@ -2075,7 +2137,7 @@ html.dark .vc-send-button{
 
 
 /* =========================================================
-   ZOOM
+   ZOOM INDICATOR
    ========================================================= */
 
 .vc-zoom-indicator{
@@ -2094,15 +2156,14 @@ html.dark .vc-send-button{
 
   background:var(--glass);
 
-  border:1px solid var(--soft);
+  border:1px solid var(--border);
 
   color:var(--sub);
 
   font-size:.625rem;
 
-  backdrop-filter:blur(1.125rem);
-
-  -webkit-backdrop-filter:blur(1.125rem);
+  backdrop-filter:blur(.9rem);
+  -webkit-backdrop-filter:blur(.9rem);
 
   opacity:.8;
 
@@ -2152,10 +2213,10 @@ html.dark .vc-send-button{
 
   background:var(--glass2);
 
-  border:1px solid var(--soft);
+  border:1px solid var(--border);
 
   box-shadow:
-    0 .5rem 1.375rem rgba(0,0,0,.08);
+    0 .5rem 1.3rem rgba(20,28,40,.08);
 
   font-size:.625rem;
 
@@ -2186,8 +2247,8 @@ html.dark .vc-send-button{
   border-color:
     color-mix(
       in srgb,
-      var(--danger) 24%,
-      var(--soft)
+      var(--danger) 30%,
+      var(--border)
     );
 
   color:var(--danger);
@@ -2200,11 +2261,11 @@ html.dark .vc-send-button{
   border-color:
     color-mix(
       in srgb,
-      #c48a18 24%,
-      var(--soft)
+      #b27a14 30%,
+      var(--border)
     );
 
-  color:#a06d08;
+  color:#9a6706;
 
 }
 
@@ -2372,14 +2433,9 @@ html.dark .vc-send-button{
   }
 
 
-  /*
-   * 기존 실제 최종 image node 비율 유지
-   */
   .vc-image-file-node{
 
-    width:9.375rem;
-
-    height:9.375rem!important;
+    width:13.90625rem;
 
   }
 
@@ -2387,25 +2443,25 @@ html.dark .vc-send-button{
 
 
 /* =========================================================
-   FINAL OVERRIDES
+   IMAGE NODE FINAL SIZE
+   Existing final override retained.
+   ========================================================= */
+
+.vc-image-file-node{
+
+  width:9.375rem;
+
+  height:9.375rem!important;
+
+}
+
+
+/* =========================================================
+   NON-DARK SEND BUTTON
    ========================================================= */
 
 .vc-send-button:not(html.dark *){
 
   filter:invert(1);
-
-}
-
-
-.vc-port-label{
-
-  transition:all .5s ease;
-
-}
-
-
-.vc-port-label:not(.vc-selected *){
-
-  opacity:0!important;
 
 }
