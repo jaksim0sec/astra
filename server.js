@@ -1,257 +1,910 @@
-async function api(
-  path,
-  headers = {},
-  body = null,
-  print = false
-){
-  const res=await fetch(
-    "/api/"+path,
-    {
-      method:body==null?"GET":"POST",
+import 'dotenv/config';
+import express from 'express';
+import compression from 'compression';
+import path from 'path';
+import {fileURLToPath} from 'url';
 
-      headers:{
-        ...(body!=null?{
-          "Content-Type":"application/json"
-        }:{}),
+const app=express();
 
-        ...headers
+const __filename=fileURLToPath(import.meta.url);
+const __dirname=path.dirname(__filename);
+
+app.use(
+  express.json({
+    limit:'1mb'
+  })
+);
+
+app.use(compression());
+
+const PORT=
+  process.env.PORT||
+  3000;
+
+const htmlRoutes={
+  '/home':'index.html'
+};
+
+
+/* =========================
+   Canonical Node Definition
+========================= */
+
+const NODE_DEFINITIONS={
+  start:{
+    name:'시작하기',
+    desc:'AI 작업을 시작하는 기준점입니다.',
+    tag:'START',
+    color:'#10B981',
+
+    icon:`
+      <svg viewBox="0 0 20 20" fill="none">
+        <circle cx="10" cy="10" r="6.5"
+          stroke="currentColor" stroke-width="1.45"/>
+        <path d="M10 13.2V7"
+          stroke="currentColor" stroke-width="1.55"
+          stroke-linecap="round"/>
+        <path d="M7.8 9.1L10 7l2.2 2.1"
+          stroke="currentColor" stroke-width="1.55"
+          stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `,
+
+    inputs:[],
+
+    outputs:[
+      {
+        id:'out',
+        name:'실행 방향',
+        type:'any',
+        required:false,
+        multiple:true,
+        accepts:['any']
+      }
+    ]
+  },
+
+  research:{
+    name:'조사하기',
+    desc:'필요한 정보를 찾아 수집합니다.',
+    tag:'RESEARCH',
+    color:'#3B82F6',
+
+    icon:`
+      <svg viewBox="0 0 20 20" fill="none">
+        <circle cx="8" cy="8" r="5"
+          stroke="currentColor" stroke-width="1.55"/>
+        <path d="M11.6 11.6L15.8 15.8"
+          stroke="currentColor" stroke-width="1.6"
+          stroke-linecap="round"/>
+      </svg>
+    `,
+
+    params:[
+      {
+        id:'topic',
+        name:'주제',
+        placeholder:'조사할 주제',
+        default:'생성형 AI 시장'
       },
+      {
+        id:'filter',
+        name:'조건',
+        placeholder:'조사 조건',
+        default:'최근 3년'
+      }
+    ],
 
-      body:
-        body==null
-          ?null
-          :JSON.stringify(body)
-    }
+    inputs:[
+      {
+        id:'in',
+        name:'연결',
+        type:'any',
+        required:false,
+        multiple:true,
+        accepts:['any']
+      }
+    ],
+
+    outputs:[
+      {
+        id:'result',
+        name:'결과',
+        type:'research',
+        required:false,
+        multiple:true,
+        accepts:['research','any']
+      }
+    ]
+  },
+
+  organize:{
+    name:'정리하기',
+    desc:'자료를 기준에 따라 구조화합니다.',
+    tag:'ORGANIZE',
+    color:'#F59E0B',
+
+    icon:`
+      <svg viewBox="0 0 20 20" fill="none">
+        <path d="M4 5h12M4 10h12M4 15h8"
+          stroke="currentColor"
+          stroke-width="1.6"
+          stroke-linecap="round"/>
+      </svg>
+    `,
+
+    params:[
+      {
+        id:'criteria',
+        name:'정리 기준',
+        placeholder:'정리할 기준',
+        default:'시장 규모 / 주요 기업'
+      },
+      {
+        id:'format',
+        name:'출력 형식',
+        placeholder:'예: 표, 목록, 문단',
+        default:'표'
+      }
+    ],
+
+    inputs:[
+      {
+        id:'in',
+        name:'데이터',
+        type:'any',
+        required:false,
+        multiple:true,
+        accepts:['any']
+      }
+    ],
+
+    outputs:[
+      {
+        id:'result',
+        name:'결과',
+        type:'structured',
+        required:false,
+        multiple:true,
+        accepts:['structured','any']
+      }
+    ]
+  },
+
+  judge:{
+    name:'판단하기',
+    desc:'조건을 판단하고 참 또는 거짓 경로로 데이터를 전달합니다.',
+    tag:'JUDGE',
+    color:'#8B5CF6',
+
+    icon:`
+      <svg viewBox="0 0 20 20" fill="none">
+        <path
+          d="M10 3
+             L11.5 8.5
+             L17 10
+             L11.5 11.5
+             L10 17
+             L8.5 11.5
+             L3 10
+             L8.5 8.5
+             Z"
+          stroke="currentColor"
+          stroke-width="1.45"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    `,
+
+    params:[
+      {
+        id:'condition',
+        name:'조건',
+        placeholder:'판단 조건',
+        default:'일치도 ≥ 70%'
+      }
+    ],
+
+    inputs:[
+      {
+        id:'true',
+        name:'참 자료',
+        type:'any',
+        required:false,
+        multiple:true,
+        accepts:['any']
+      },
+      {
+        id:'false',
+        name:'거짓 자료',
+        type:'any',
+        required:false,
+        multiple:true,
+        accepts:['any']
+      }
+    ],
+
+    outputs:[
+      {
+        id:'true',
+        name:'참 출구',
+        type:'decision',
+        required:false,
+        multiple:true,
+        accepts:['decision','any']
+      },
+      {
+        id:'false',
+        name:'거짓 출구',
+        type:'decision',
+        required:false,
+        multiple:true,
+        accepts:['decision','any']
+      }
+    ]
+  },
+
+  write:{
+    name:'작성하기',
+    desc:'주어진 정보를 글 형태로 작성합니다.',
+    tag:'WRITE',
+    color:'#EF4444',
+
+    icon:`
+      <svg viewBox="0 0 20 20" fill="none">
+        <path
+          d="M5.1 14.9L6.2 11.8L13.1 4.9
+             C13.7 4.3 14.7 4.3 15.3 4.9
+             L16 5.6C16.6 6.2 16.6 7.2 16 7.8
+             L9.1 14.7L5.1 14.9Z"
+          stroke="currentColor"
+          stroke-width="1.45"
+          stroke-linejoin="round"
+        />
+        <path d="M12.4 5.6L15.1 8.3"
+          stroke="currentColor"
+          stroke-width="1.35"
+          stroke-linecap="round"/>
+        <path d="M5.1 14.9L7.9 14.2"
+          stroke="currentColor"
+          stroke-width="1.45"
+          stroke-linecap="round"/>
+      </svg>
+    `,
+
+    params:[
+      {
+        id:'title',
+        name:'제목',
+        placeholder:'문서 제목',
+        default:'AI 기술 보고서'
+      },
+      {
+        id:'length',
+        name:'분량',
+        placeholder:'예: 2페이지',
+        default:'2페이지'
+      },
+      {
+        id:'style',
+        name:'스타일',
+        placeholder:'예: 전문적, 간결한',
+        default:'전문적'
+      },
+      {
+        id:'about',
+        name:'내용',
+        placeholder:'예: 관련 데이터에 대하여 서술',
+        default:''
+      }
+    ],
+
+    inputs:[
+      {
+        id:'in',
+        name:'자료',
+        type:'any',
+        required:false,
+        multiple:true,
+        accepts:['any']
+      }
+    ],
+
+    outputs:[
+      {
+        id:'result',
+        name:'결과',
+        type:'document',
+        required:false,
+        multiple:true,
+        accepts:['document','any']
+      }
+    ]
+  },
+
+  convert:{
+    name:'변형하기',
+    desc:'자료의 형식이나 스타일을 변형합니다.',
+    tag:'CONVERT',
+    color:'#EC4899',
+
+    icon:`
+      <svg viewBox="0 0 20 20" fill="none">
+        <path d="M4 6.5H14.5"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"/>
+        <path d="M11.8 3.9L14.5 6.5L11.8 9.1"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+        <path d="M16 13.5H5.5"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"/>
+        <path d="M8.2 10.9L5.5 13.5L8.2 16.1"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+      </svg>
+    `,
+
+    params:[
+      {
+        id:'instruction',
+        name:'변형 방식',
+        placeholder:'어떻게 변형할까요?',
+        default:'표로 바꿔줘'
+      }
+    ],
+
+    inputs:[
+      {
+        id:'in',
+        name:'자료',
+        type:'any',
+        required:false,
+        multiple:true,
+        accepts:['any']
+      }
+    ],
+
+    outputs:[
+      {
+        id:'result',
+        name:'결과',
+        type:'any',
+        required:false,
+        multiple:true,
+        accepts:['any']
+      }
+    ]
+  },
+
+  file:{
+    name:'파일추가하기',
+    desc:'작업에 사용할 파일을 추가합니다.',
+    tag:'INPUT',
+    color:'#64748B',
+
+    icon:`
+      <svg viewBox="0 0 20 20" fill="none">
+        <path
+          d="M7.2 10.8
+             l4.7-4.7
+             a2.55 2.55 0 0 1 3.6 3.6
+             l-5.9 5.9
+             a4.05 4.05 0 0 1-5.7-5.7
+             l6-6"
+          stroke="currentColor"
+          stroke-width="1.55"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    `,
+
+    inputs:[],
+
+    outputs:[
+      {
+        id:'file',
+        name:'전달',
+        type:'file',
+        required:false,
+        multiple:true,
+        accepts:['file','any']
+      }
+    ]
+  },
+
+  createFile:{
+    hidden:true,
+    name:'내보내기',
+    desc:'완성된 결과물을 파일로 생성합니다.',
+    tag:'OUTPUT',
+    color:'#F97316',
+
+    icon:`
+      <svg viewBox="0 0 20 20" fill="none">
+        <path
+          d="M10 13V3.5"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+        />
+        <path
+          d="M6.8 6.7L10 3.5L13.2 6.7"
+          stroke="currentColor"
+          stroke-width="1.65"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+        <path
+          d="M5 16H15"
+          stroke="currentColor"
+          stroke-width="1.5"
+          stroke-linecap="round"
+        />
+      </svg>
+    `,
+
+    params:[
+      {
+        id:'format',
+        name:'파일 형식',
+        placeholder:'예: PDF, DOCX',
+        default:'PDF'
+      },
+      {
+        id:'filename',
+        name:'파일명',
+        placeholder:'저장할 파일 이름',
+        default:'결과물'
+      }
+    ],
+
+    inputs:[
+      {
+        id:'in',
+        name:'대상',
+        type:'any',
+        required:false,
+        multiple:true,
+        accepts:['any']
+      }
+    ],
+
+    outputs:[]
+  }
+};
+
+
+/* =========================
+   Node Definition Helpers
+========================= */
+
+const nodeTypeNames=
+  Object.keys(
+    NODE_DEFINITIONS
   );
 
-  let data;
+const nodeDefinitionsPublic=
+  JSON.parse(
+    JSON.stringify(
+      NODE_DEFINITIONS
+    )
+  );
 
-  try{
-    data=await res.json();
-  }catch{
-    throw new Error(
-      `HTTP ${res.status}`
-    );
-  }
+const paramDefinitions=
+  Object.values(
+    NODE_DEFINITIONS
+  ).flatMap(
+    def=>
+      Array.isArray(def.params)
+        ?def.params
+        :[]
+  );
 
-  if(print){
-    console.log(
-      `/${path} res:`,
-      data
-    );
-  }
+const paramKeys=
+  new Set(
+    paramDefinitions.map(
+      param=>String(param.id)
+    )
+  );
 
-  if(!res.ok||data?.ok===false){
-    throw new Error(
-      data?.error||
-      `HTTP ${res.status}`
-    );
-  }
+function getNodeDefinition(type){
 
-  return data;
+  return NODE_DEFINITIONS[type]||null;
+
 }
 
-
-/* =========================
-   Node Definitions
-========================= */
-
-let nodeDefinitionsCache=null;
-
-async function getNodeDefinitions(){
-
-  if(nodeDefinitionsCache){
-    return nodeDefinitionsCache;
-  }
-
-  const result=
-    await api(
-      "node-definitions"
-    );
-
-  if(
-    !result||
-    typeof result.nodes!=="object"||
-    result.nodes===null||
-    Array.isArray(result.nodes)
-  ){
-    throw new Error(
-      "노드 정의 응답이 올바르지 않습니다."
-    );
-  }
-
-  nodeDefinitionsCache=
-    result.nodes;
-
-  /*
-    index.html에서도 사용할 수 있도록
-    동일한 Canonical Definition을 노출한다.
-  */
-  window.nodeDefinitions=
-    nodeDefinitionsCache;
-
-  return nodeDefinitionsCache;
-}
-
-
-function getNodeDefinitionSync(
-  definitions,
-  type
+function getParamDefinition(
+  type,
+  paramId
 ){
 
+  const def=
+    getNodeDefinition(type);
+
   if(
-    !definitions||
-    typeof definitions!=="object"
+    !def||
+    !Array.isArray(def.params)
   ){
+
     return null;
+
   }
 
-  return definitions[type]||null;
+  return def.params.find(
+    param=>
+      param.id===paramId
+  )||null;
+
 }
 
-
-/* =========================
-   Definition Helpers
-========================= */
-
 function getPortDefinition(
-  definition,
+  type,
   direction,
   portId
 ){
 
-  if(!definition){
+  const def=
+    getNodeDefinition(type);
+
+  if(!def){
+
     return null;
+
   }
 
   const ports=
-    direction==="input"
-      ?(
-        Array.isArray(
-          definition.inputs
-        )
-          ?definition.inputs
-          :[]
-      )
-      :(
-        Array.isArray(
-          definition.outputs
-        )
-          ?definition.outputs
-          :[]
-      );
+    direction==='input'
+      ?def.inputs||[]
+      :def.outputs||[];
 
   return ports.find(
     port=>
-      String(port?.id)===String(portId)
+      port.id===portId
   )||null;
+
 }
 
-
-function getParamDefinition(
-  definition,
-  paramId
+function getDefinitionPortIds(
+  type,
+  direction
 ){
 
-  if(!definition){
-    return null;
+  const def=
+    getNodeDefinition(type);
+
+  if(!def){
+
+    return [];
+
   }
 
-  const params=
-    Array.isArray(
-      definition.params
-    )
-      ?definition.params
-      :[];
+  const ports=
+    direction==='input'
+      ?def.inputs||[]
+      :def.outputs||[];
 
-  return params.find(
-    param=>
-      String(param?.id)===String(paramId)
-  )||null;
+  return ports.map(
+    port=>
+      String(port.id)
+  );
+
 }
 
 
-function normalizeParamsFromDefinition(
-  definition,
+/* =========================
+   Definition Prompt Builder
+========================= */
+
+function buildNodeDefinitionPrompt(){
+
+  const lines=[];
+
+  for(
+    const [type,def]
+      of Object.entries(
+        NODE_DEFINITIONS
+      )
+  ){
+
+    lines.push(type);
+
+    lines.push(
+      `- name: ${def.name}`
+    );
+
+    lines.push(
+      `- inputs: ${
+        (def.inputs||[])
+          .map(
+            port=>
+              `${port.id} (${port.name})`
+          )
+          .join(', ')||
+        '없음'
+      }`
+    );
+
+    lines.push(
+      `- outputs: ${
+        (def.outputs||[])
+          .map(
+            port=>
+              `${port.id} (${port.name})`
+          )
+          .join(', ')||
+        '없음'
+      }`
+    );
+
+    const params=
+      Array.isArray(def.params)
+        ?def.params
+        :[];
+
+    if(params.length){
+
+      lines.push('- params:');
+
+      for(const param of params){
+
+        lines.push(
+          `  - ${param.id}: ${param.name}`
+        );
+
+      }
+
+    }else{
+
+      lines.push('- params: 없음');
+
+    }
+
+    lines.push('');
+
+  }
+
+  return lines.join('\n');
+
+}
+
+const NODE_DEFINITION_PROMPT=
+  buildNodeDefinitionPrompt();
+
+
+/* =========================
+   Prompt
+========================= */
+
+const SYSTEM_PROMPT=`
+너는 AI 시각적 프로그래밍 캔버스의 Workflow Planner다.
+
+사용자의 자연어 요청을 하나의 Workflow JSON으로 변환한다.
+
+반드시 JSON 객체 하나만 출력한다.
+
+구조:
+{
+  "nodes":[
+    {
+      "id":"start",
+      "type":"start",
+      "params":{}
+    }
+  ],
+  "links":[
+    ["start.out","research1.in"]
+  ],
+  "data":[]
+}
+
+허용되는 모든 노드와 포트와 파라미터는 아래 정의를 따른다.
+
+${NODE_DEFINITION_PROMPT}
+
+중요:
+- start는 항상 포함한다.
+- 필요한 노드만 사용한다.
+- 요청에서 알 수 있거나 자연스럽게 추론할 수 있는 params는 최대한 채운다.
+- 의미 없는 params는 만들지 않는다.
+- 필요 없는 params는 params에서 생략한다.
+- nodes의 모든 원소는 반드시 객체다.
+- nodes 안에 문자열이나 ":"를 직접 넣지 않는다.
+- links와 data의 연결은 반드시 ["노드ID.출력포트","노드ID.입력포트"] 형식이다.
+- [ "1", "2" ] 같은 숫자 연결은 절대 사용하지 않는다.
+- 존재하지 않는 포트 이름을 만들지 않는다.
+- 존재하지 않는 파라미터 이름을 만들지 않는다.
+- 모든 연결 endpoint의 노드와 포트는 실제 정의에 존재해야 한다.
+- data는 필요하지 않으면 []이다.
+
+Judge 규칙:
+- judge의 입력은 "true"와 "false" 두 포트다.
+- judge의 판단 기준은 condition 파라미터에 적는다.
+- judge의 출력은 "true"와 "false" 두 포트다.
+- true/false는 boolean 값 자체가 아니라 포트의 의미다.
+- 조건이 참이면 true 입력 쪽 데이터가 true 출력 경로로 전달된다.
+- 조건이 거짓이면 false 입력 쪽 데이터가 false 출력 경로로 전달된다.
+- 선택되지 않은 반대 경로는 이후 실행에서 SKIPPED로 취급될 수 있다.
+- judge.in, judge.truePath, judge.falsePath 같은 존재하지 않는 포트를 사용하지 않는다.
+
+노드 ID 형식:
+- start
+- research1
+- organize1
+- judge1
+- write1
+- convert1
+- file1
+- createFile1
+
+예:
+"최근 고라니 개체수 변화에 대해 조사하고 보고서를 작성해서 PDF로 만들어줘"
+
+research:
+{
+  "topic":"고라니 개체수 변화",
+  "filter":"최근"
+}
+
+organize:
+{
+  "criteria":"개체수 변화와 주요 원인",
+  "format":"항목별 정리"
+}
+
+write:
+{
+  "title":"고라니 개체수 변화 보고서",
+  "length":"2페이지",
+  "style":"보고서 형식, 객관적",
+  "about":"최근 고라니 개체수 변화와 주요 원인"
+}
+
+convert:
+{
+  "instruction":"PDF로 변환"
+}
+
+createFile:
+{
+  "format":"PDF",
+  "filename":"고라니 개체수 변화 보고서"
+}
+
+links:
+[
+  ["start.out","research1.in"],
+  ["research1.result","organize1.in"],
+  ["organize1.result","write1.in"],
+  ["write1.result","convert1.in"],
+  ["convert1.result","createFile1.in"]
+]
+
+data:
+[]
+`;
+
+
+/* =========================
+   JSON Parse
+========================= */
+
+function parseJson(text){
+
+  try{
+
+    return JSON.parse(text);
+
+  }catch{
+
+    throw new Error(
+      'LLM이 올바른 JSON을 반환하지 않았습니다.'
+    );
+
+  }
+
+}
+
+
+/* =========================
+   Param Cleanup
+========================= */
+
+function cleanParams(
+  type,
   params
 ){
 
   if(
     !params||
-    typeof params!=="object"||
+    typeof params!=='object'||
     Array.isArray(params)
   ){
+
     return {};
+
   }
 
-  if(!definition){
+  const def=
+    getNodeDefinition(type);
+
+  if(!def){
+
     return {};
+
   }
+
+  const allowed=
+    new Set(
+      (def.params||[])
+        .map(
+          param=>
+            String(param.id)
+        )
+    );
 
   const result={};
 
   for(
-    const [key,value]
-      of Object.entries(params)
+    const key of Object.keys(params)
   ){
 
-    const param=
-      getParamDefinition(
-        definition,
-        key
-      );
-
-    if(!param){
-      continue;
-    }
-
     if(
-      typeof value==="string"
+      !allowed.has(key)
     ){
 
-      const trimmed=
-        value.trim();
-
-      if(trimmed){
-        result[key]=trimmed;
-      }
-
       continue;
+
     }
 
-    /*
-      현재 Definition의 파라미터는
-      문자열 기반이므로 문자열 이외의 값은
-      Canonical Workflow에서 보존하지 않는다.
-    */
+    const value=
+      params[key];
+
+    if(
+      typeof value==='string'&&
+      value.trim()
+    ){
+
+      result[key]=
+        value.trim();
+
+    }
+
   }
 
   return result;
+
 }
 
 
 /* =========================
-   Workflow Endpoint
+   JSON Endpoint
 ========================= */
 
-function parseWorkflowEndpoint(
-  value
-){
+function endpoint(value){
 
   if(
-    typeof value!=="string"
+    typeof value!=='string'
   ){
 
     throw new Error(
-      "연결 endpoint가 문자열이 아닙니다."
+      '연결 endpoint가 문자열이 아닙니다.'
     );
 
   }
 
-  const dot=
-    value.lastIndexOf(".");
+  const i=
+    value.lastIndexOf('.');
 
-  if(dot===-1){
+  if(i===-1){
 
     throw new Error(
       `포트가 지정되지 않았습니다: ${value}`
@@ -262,12 +915,12 @@ function parseWorkflowEndpoint(
   const node=
     value.slice(
       0,
-      dot
+      i
     );
 
   const port=
     value.slice(
-      dot+1
+      i+1
     );
 
   if(
@@ -285,6 +938,7 @@ function parseWorkflowEndpoint(
     node,
     port
   };
+
 }
 
 
@@ -292,19 +946,16 @@ function parseWorkflowEndpoint(
    Workflow Validation
 ========================= */
 
-function validateWorkflowForCanvas(
-  spec,
-  definitions
-){
+function validateWorkflow(spec){
 
   if(
     !spec||
-    typeof spec!=="object"||
+    typeof spec!=='object'||
     Array.isArray(spec)
   ){
 
     throw new Error(
-      "워크플로우가 없습니다."
+      '워크플로우가 없습니다.'
     );
 
   }
@@ -314,7 +965,7 @@ function validateWorkflowForCanvas(
   ){
 
     throw new Error(
-      "workflow nodes가 배열이 아닙니다."
+      'nodes가 배열이 아닙니다.'
     );
 
   }
@@ -324,7 +975,7 @@ function validateWorkflowForCanvas(
   ){
 
     throw new Error(
-      "workflow links가 배열이 아닙니다."
+      'links가 배열이 아닙니다.'
     );
 
   }
@@ -334,67 +985,70 @@ function validateWorkflowForCanvas(
   ){
 
     throw new Error(
-      "workflow data가 배열이 아닙니다."
+      'data가 배열이 아닙니다.'
     );
 
   }
 
 
-  const nodeMap=
-    new Map();
+  const ids=
+    new Set();
 
 
   let startCount=0;
 
 
   for(
-    const item of spec.nodes
+    const node of spec.nodes
   ){
 
     if(
-      !item||
-      typeof item!=="object"||
-      Array.isArray(item)||
-      typeof item.id!=="string"||
-      typeof item.type!=="string"
+      !node||
+      typeof node!=='object'||
+      Array.isArray(node)||
+      typeof node.id!=='string'||
+      typeof node.type!=='string'
     ){
 
       throw new Error(
-        "잘못된 workflow 노드입니다."
+        '잘못된 노드입니다.'
       );
 
     }
 
 
     if(
-      nodeMap.has(item.id)
+      ids.has(node.id)
     ){
 
       throw new Error(
-        `중복된 노드 ID: ${item.id}`
+        `중복된 노드 ID: ${node.id}`
       );
 
     }
 
+    ids.add(
+      node.id
+    );
 
-    const definition=
-      getNodeDefinitionSync(
-        definitions,
-        item.type
+
+    const def=
+      getNodeDefinition(
+        node.type
       );
 
 
-    if(!definition){
+    if(!def){
 
       throw new Error(
-        `존재하지 않는 노드 타입: ${item.type}`
+        `존재하지 않는 노드 타입: ${node.type}`
       );
 
     }
 
 
     if(
-      item.type==="start"
+      node.type==='start'
     ){
 
       startCount++;
@@ -402,13 +1056,11 @@ function validateWorkflowForCanvas(
     }
 
 
-    nodeMap.set(
-      item.id,
-      {
-        spec:item,
-        definition
-      }
-    );
+    node.params=
+      cleanParams(
+        node.type,
+        node.params
+      );
 
   }
 
@@ -418,20 +1070,19 @@ function validateWorkflowForCanvas(
   ){
 
     throw new Error(
-      "start 노드는 정확히 하나 있어야 합니다."
+      'start 노드는 정확히 하나 있어야 합니다.'
     );
 
   }
 
 
-  function validateEdges(
+  function checkEdges(
     edges,
     mode
   ){
 
     const seen=
       new Set();
-
 
     for(
       const edge of edges
@@ -440,8 +1091,8 @@ function validateWorkflowForCanvas(
       if(
         !Array.isArray(edge)||
         edge.length!==2||
-        typeof edge[0]!=="string"||
-        typeof edge[1]!=="string"
+        typeof edge[0]!=='string'||
+        typeof edge[1]!=='string'
       ){
 
         throw new Error(
@@ -452,28 +1103,30 @@ function validateWorkflowForCanvas(
 
 
       const from=
-        parseWorkflowEndpoint(
+        endpoint(
           edge[0]
         );
 
       const to=
-        parseWorkflowEndpoint(
+        endpoint(
           edge[1]
         );
 
 
-      const fromInfo=
-        nodeMap.get(
-          from.node
+      const fromNode=
+        spec.nodes.find(
+          node=>
+            node.id===from.node
         );
 
-      const toInfo=
-        nodeMap.get(
-          to.node
+      const toNode=
+        spec.nodes.find(
+          node=>
+            node.id===to.node
         );
 
 
-      if(!fromInfo){
+      if(!fromNode){
 
         throw new Error(
           `${mode}: 출발 노드가 없습니다: ${from.node}`
@@ -482,7 +1135,7 @@ function validateWorkflowForCanvas(
       }
 
 
-      if(!toInfo){
+      if(!toNode){
 
         throw new Error(
           `${mode}: 도착 노드가 없습니다: ${to.node}`
@@ -493,74 +1146,443 @@ function validateWorkflowForCanvas(
 
       const fromPort=
         getPortDefinition(
-          fromInfo.definition,
-          "output",
+          fromNode.type,
+          'output',
           from.port
         );
+
+      const toPort=
+        getPortDefinition(
+          toNode.type,
+          'input',
+          to.port
+        );
+
 
       if(!fromPort){
 
         throw new Error(
-          `${mode}: ${fromInfo.spec.type}.${from.port}는 존재하지 않는 출력 포트입니다.`
+          `${mode}: ${fromNode.type}.${from.port}는 존재하지 않는 출력 포트입니다.`
         );
 
       }
 
-
-      const toPort=
-        getPortDefinition(
-          toInfo.definition,
-          "input",
-          to.port
-        );
 
       if(!toPort){
 
         throw new Error(
-          `${mode}: ${toInfo.spec.type}.${to.port}는 존재하지 않는 입력 포트입니다.`
+          `${mode}: ${toNode.type}.${to.port}는 존재하지 않는 입력 포트입니다.`
         );
 
       }
 
 
-      const duplicateKey=
+      const key=
         `${edge[0]}->${edge[1]}`;
 
-
       if(
-        seen.has(
-          duplicateKey
-        )
+        seen.has(key)
       ){
 
         throw new Error(
-          `${mode}: 중복된 연결입니다: ${duplicateKey}`
+          `${mode}: 중복된 연결입니다: ${key}`
         );
 
       }
 
-
-      seen.add(
-        duplicateKey
-      );
+      seen.add(key);
 
     }
 
   }
 
 
-  validateEdges(
+  checkEdges(
     spec.links,
-    "links"
+    'links'
   );
 
-  validateEdges(
+  checkEdges(
     spec.data,
-    "data"
+    'data'
   );
 
 
   return spec;
+
+}
+
+
+/* =========================
+   Workflow JSON Schema
+========================= */
+
+function buildWorkflowSchema(){
+
+  const allParams={};
+
+  for(
+    const def
+      of Object.values(
+        NODE_DEFINITIONS
+      )
+  ){
+
+    for(
+      const param
+        of (def.params||[])
+    ){
+
+      allParams[param.id]={
+        type:'string'
+      };
+
+    }
+
+  }
+
+
+  return {
+
+    type:'object',
+
+    additionalProperties:false,
+
+    properties:{
+
+      nodes:{
+        type:'array',
+
+        items:{
+          type:'object',
+
+          additionalProperties:false,
+
+          properties:{
+
+            id:{
+              type:'string'
+            },
+
+            type:{
+              type:'string',
+
+              enum:nodeTypeNames
+            },
+
+            params:{
+              type:'object',
+
+              additionalProperties:false,
+
+              properties:allParams
+            }
+
+          },
+
+          required:[
+            'id',
+            'type',
+            'params'
+          ]
+
+        }
+
+      },
+
+      links:{
+        type:'array',
+
+        items:{
+          type:'array',
+
+          minItems:2,
+          maxItems:2,
+
+          items:{
+            type:'string'
+          }
+
+        }
+
+      },
+
+      data:{
+        type:'array',
+
+        items:{
+          type:'array',
+
+          minItems:2,
+          maxItems:2,
+
+          items:{
+            type:'string'
+          }
+
+        }
+
+      }
+
+    },
+
+    required:[
+      'nodes',
+      'links',
+      'data'
+    ]
+
+  };
+
+}
+
+const WORKFLOW_SCHEMA=
+  buildWorkflowSchema();
+
+
+/* =========================
+   Node Definition API
+========================= */
+
+app.get(
+  '/api/node-definitions',
+  (req,res)=>{
+
+    return res.json({
+
+      ok:true,
+
+      nodes:
+        nodeDefinitionsPublic
+
+    });
+
+  }
+);
+
+
+/* =========================
+   HTML / Static
+========================= */
+
+app.get(
+  '/',
+  (req,res)=>{
+
+    res.redirect(
+      '/home'
+    );
+
+  }
+);
+
+app.get(
+  '/*splat',
+  (req,res,next)=>{
+
+    const htmlFile=
+      htmlRoutes[
+        req.path
+      ];
+
+    if(htmlFile){
+
+      return res.sendFile(
+        path.join(
+          __dirname,
+          htmlFile
+        )
+      );
+
+    }
+
+    const filePath=
+      path.join(
+        __dirname,
+        req.path
+      );
+
+    res.sendFile(
+      filePath,
+      error=>{
+
+        if(error){
+
+          next();
+
+        }
+
+      }
+    );
+
+  }
+);
+
+
+/* =========================
+   Retry Prompt
+========================= */
+
+function buildRetryPrompt(text){
+
+  return `
+이전 응답이 Workflow 검증에 실패했다.
+
+아래 Canonical Node Definition만 사용해서 다시 생성한다.
+
+${NODE_DEFINITION_PROMPT}
+
+특히 Judge는 반드시 다음 구조를 사용한다.
+
+- 입력: judge.true, judge.false
+- 파라미터: condition
+- 출력: judge.true, judge.false
+
+judge.in은 존재하지 않는다.
+judge.truePath와 judge.falsePath도 존재하지 않는다.
+
+연결 형식:
+["출발노드.출력포트","도착노드.입력포트"]
+
+규칙:
+- nodes의 모든 원소는 객체
+- id는 start/research1/organize1/judge1/write1/convert1/file1/createFile1 형식
+- params는 객체
+- 필요한 params는 가능한 한 채운다
+- 필요 없는 params는 생략
+- 존재하지 않는 노드 타입을 만들지 않는다.
+- 존재하지 않는 포트를 사용하지 않는다.
+- 존재하지 않는 파라미터를 사용하지 않는다.
+- JSON만 출력한다.
+
+사용자 요청:
+${text}
+`;
+
+}
+
+
+/* =========================
+   LLM Request
+========================= */
+
+async function requestWorkflow(
+  text,
+  retry=false
+){
+
+  const prompt=
+    retry
+      ?buildRetryPrompt(text)
+      :text;
+
+
+  const response=
+    await fetch(
+      'https://api.groq.com/openai/v1/chat/completions',
+      {
+
+        method:'POST',
+
+        headers:{
+          'Content-Type':
+            'application/json',
+
+          Authorization:
+            `Bearer ${process.env.GROQ_API_KEY}`
+        },
+
+        body:JSON.stringify({
+
+          model:
+            'openai/gpt-oss-20b',
+
+          messages:[
+
+            {
+              role:'system',
+              content:SYSTEM_PROMPT
+            },
+
+            {
+              role:'user',
+              content:prompt
+            }
+
+          ],
+
+          response_format:{
+            type:'json_schema',
+
+            json_schema:{
+              name:'workflow',
+
+              strict:false,
+
+              schema:
+                WORKFLOW_SCHEMA
+            }
+          },
+
+          temperature:0,
+
+          reasoning_effort:'low',
+
+          reasoning_format:'hidden',
+
+          max_completion_tokens:1200
+
+        })
+
+      }
+    );
+
+
+  if(!response.ok){
+
+    const errorText=
+      await response.text();
+
+    throw new Error(
+      `Groq 요청 실패: ${errorText}`
+    );
+
+  }
+
+
+  const result=
+    await response.json();
+
+
+  const content=
+    result?.
+    choices?.
+    [0]?.
+    message?.
+    content;
+
+
+  if(!content){
+
+    throw new Error(
+      'LLM 응답이 비어 있습니다.'
+    );
+
+  }
+
+
+  console.log(
+    'LLM response:',
+    content
+  );
+
+
+  return validateWorkflow(
+    parseJson(
+      content
+    )
+  );
+
 }
 
 
@@ -568,508 +1590,127 @@ function validateWorkflowForCanvas(
    Workflow API
 ========================= */
 
-async function workflowToCanvas(
-  text,
-  canvasApi
-){
+app.post(
+  '/api/workflow',
+  async(req,res)=>{
 
-  if(
-    !text||
-    !canvasApi
-  ){
+    try{
 
-    throw new TypeError(
-      "작업 내용과 canvas가 필요합니다."
-    );
-
-  }
+      const text=
+        String(
+          req.body?.text||
+          ''
+        ).trim();
 
 
-  /*
-    Canvas에 넣기 전에
-    서버와 동일한 Node Definition을
-    한 번 가져온다.
-  */
-  const definitions=
-    await getNodeDefinitions();
+      if(!text){
+
+        return res.status(400).json({
+          ok:false,
+          error:
+            '작업 내용을 입력해주세요.'
+        });
+
+      }
 
 
-  const result=
-    await api(
-      "workflow",
-      {},
-      {text},
-      true
-    );
-
-
-  if(
-    !result?.workflow
-  ){
-
-    throw new Error(
-      "워크플로우 응답이 없습니다."
-    );
-
-  }
-
-
-  return workflowIRToCanvas(
-    result.workflow,
-    canvasApi,
-    definitions
-  );
-
-}
-
-
-/* =========================
-   Workflow IR → Canvas
-========================= */
-
-function workflowIRToCanvas(
-  spec,
-  canvasApi,
-  definitions
-){
-
-  if(
-    !spec||
-    !canvasApi
-  ){
-
-    throw new TypeError(
-      "workflow spec과 canvas가 필요합니다."
-    );
-
-  }
-
-
-  if(
-    !definitions||
-    typeof definitions!=="object"
-  ){
-
-    throw new Error(
-      "노드 정의가 없습니다."
-    );
-
-  }
-
-
-  validateWorkflowForCanvas(
-    spec,
-    definitions
-  );
-
-
-  const nodes=[];
-  const nodeMap=new Map();
-
-
-  /*
-    기존 캔버스 배치 방식 유지
-  */
-  const spacingX=260;
-  const spacingY=140;
-  const maxColumns=5;
-
-
-  /*
-    먼저 모든 노드를 생성한다.
-  */
-  spec.nodes.forEach(
-    (item,index)=>{
-
-      const definition=
-        getNodeDefinitionSync(
-          definitions,
-          item.type
-        );
-
-
-      const params=
-        normalizeParamsFromDefinition(
-          definition,
-          item.params
-        );
-
-
-      const node={
-
-        id:item.id,
-
-        type:item.type,
-
-        x:
-          (index%maxColumns)*
-          spacingX+
-          100,
-
-        y:
-          Math.floor(index/maxColumns)*
-          spacingY+
-          100,
-
-        expanded:true,
-
-        data:{
-          params
-        }
-
-      };
-
-
-      /*
-        파일 노드는
-        기존 캔버스의 표시용 name을 유지한다.
-
-        실제 업로드 파일명은
-        이후 file node 로직에서 따로
-        갱신할 수 있다.
-      */
       if(
-        item.type==="file"
+        !process.env.GROQ_API_KEY
       ){
 
-        node.data.name=
-          params.filename||
-          params.name||
-          "파일";
+        return res.status(500).json({
+          ok:false,
+          error:
+            'GROQ_API_KEY가 설정되지 않았습니다.'
+        });
 
       }
 
 
-      nodes.push(
-        node
-      );
-
-      nodeMap.set(
-        item.id,
-        node
-      );
-
-    }
-  );
+      let workflow;
 
 
-  /*
-    Canonical Definition 기반으로
-    연결을 생성한다.
-  */
-  const connections=[];
+      try{
 
-  let connectionSeq=0;
+        workflow=
+          await requestWorkflow(
+            text,
+            false
+          );
 
+      }catch(firstError){
 
-  function createConnection(
-    edge,
-    kind
-  ){
-
-    if(
-      !Array.isArray(edge)||
-      edge.length!==2
-    ){
-
-      throw new Error(
-        "잘못된 연결입니다."
-      );
-
-    }
+        console.warn(
+          'Workflow validation failed. Retrying once:',
+          firstError.message
+        );
 
 
-    const from=
-      parseWorkflowEndpoint(
-        edge[0]
-      );
+        workflow=
+          await requestWorkflow(
+            text,
+            true
+          );
 
-    const to=
-      parseWorkflowEndpoint(
-        edge[1]
-      );
-
-
-    const fromNode=
-      nodeMap.get(
-        from.node
-      );
-
-    const toNode=
-      nodeMap.get(
-        to.node
-      );
-
-
-    if(!fromNode){
-
-      throw new Error(
-        `출발 노드가 없습니다: ${from.node}`
-      );
-
-    }
-
-
-    if(!toNode){
-
-      throw new Error(
-        `도착 노드가 없습니다: ${to.node}`
-      );
-
-    }
-
-
-    /*
-      여기서 다시 한 번
-      실제 Definition 포트를 확인한다.
-      서버 검증과 frontend 변환이
-      같은 구조를 사용한다.
-    */
-    const fromDefinition=
-      getNodeDefinitionSync(
-        definitions,
-        fromNode.type
-      );
-
-    const toDefinition=
-      getNodeDefinitionSync(
-        definitions,
-        toNode.type
-      );
-
-
-    if(
-      !getPortDefinition(
-        fromDefinition,
-        "output",
-        from.port
-      )
-    ){
-
-      throw new Error(
-        `${fromNode.type}.${from.port}는 존재하지 않는 출력 포트입니다.`
-      );
-
-    }
-
-
-    if(
-      !getPortDefinition(
-        toDefinition,
-        "input",
-        to.port
-      )
-    ){
-
-      throw new Error(
-        `${toNode.type}.${to.port}는 존재하지 않는 입력 포트입니다.`
-      );
-
-    }
-
-
-    connections.push({
-
-      id:
-        `c-ir-${++connectionSeq}`,
-
-      from:{
-        node:from.node,
-        port:from.port
-      },
-
-      to:{
-        node:to.node,
-        port:to.port
-      },
-
-      data:{
-        kind
       }
 
-    });
 
-  }
-
-
-  for(
-    const edge of spec.links
-  ){
-
-    createConnection(
-      edge,
-      "flow"
-    );
-
-  }
+      return res.json({
+        ok:true,
+        workflow
+      });
 
 
-  for(
-    const edge of spec.data
-  ){
+    }catch(error){
 
-    createConnection(
-      edge,
-      "data"
-    );
-
-  }
-
-
-  const workflow={
-
-    nodes,
-
-    connections
-
-  };
-
-
-  /*
-    기존 Canvas API 그대로 사용
-  */
-  canvasApi.setState({
-    workflow
-  });
-
-
-  const result=
-    canvasApi.getWorkflow();
-
-
-  console.log(
-    "Canvas Workflow:",
-    result
-  );
-
-
-  console.table(
-    result.nodes.map(
-      node=>({
-
-        id:node.id,
-
-        type:node.type,
-
-        params:
-          JSON.stringify(
-            node.data?.params||
-            {}
-          )
-
-      })
-    )
-  );
-
-
-  return result;
-}
-
-
-/* =========================
-   Definition Cache Reset
-========================= */
-
-window.reloadNodeDefinitions=
-  function(){
-
-    nodeDefinitionsCache=
-      null;
-
-    delete window.nodeDefinitions;
-
-    return getNodeDefinitions();
-
-  };
-
-
-/* =========================
-   Test Workflow
-========================= */
-
-window.testWorkflow=async function(
-
-  text=`최근 고라니의 개체수 변화에 대해 조사하고,
-조사 결과를 정리해서
-"고라니 개체수 변화 보고서"라는 제목의 보고서를 작성한 뒤
-PDF로 변환해서 파일로 만들어줘`
-
-){
-
-  try{
-
-    /*
-      visualCanvas가 아직 준비되지 않은 경우
-      명확한 에러를 반환한다.
-    */
-    if(
-      !window.visualCanvas
-    ){
-
-      throw new Error(
-        "visualCanvas가 아직 준비되지 않았습니다."
+      console.error(
+        error
       );
+
+
+      return res.status(500).json({
+
+        ok:false,
+
+        error:
+          error.message||
+          '워크플로우 생성에 실패했습니다.'
+
+      });
 
     }
 
-
-    /*
-      Definition API가 정상적으로
-      동작하는지도 함께 확인한다.
-    */
-    await getNodeDefinitions();
+  }
+);
 
 
-    const workflow=
-      await workflowToCanvas(
-        text,
-        window.visualCanvas
-      );
+/* =========================
+   404
+========================= */
 
+app.use(
+  (req,res)=>{
+
+    res.status(404).send(
+      'Not Found'
+    );
+
+  }
+);
+
+
+/* =========================
+   Server
+========================= */
+
+app.listen(
+  PORT,
+  '0.0.0.0',
+  ()=>{
 
     console.log(
-      "Workflow:",
-      workflow
-    );
-
-
-    return workflow;
-
-  }catch(error){
-
-    console.error(
-      "Workflow ERROR:",
-      error
-    );
-
-    throw error;
-
-  }
-
-};
-
-
-/* =========================
-   Initial Definition Load
-========================= */
-
-(async function(){
-
-  try{
-
-    await getNodeDefinitions();
-
-  }catch(error){
-
-    /*
-      서버가 잠시 준비되지 않은 경우에도
-      기존 페이지 자체가 바로 죽지 않도록 한다.
-    */
-    console.warn(
-      "Node Definition loading failed:",
-      error
+      `Server running on http://localhost:${PORT}`
     );
 
   }
-
-})();
+);
