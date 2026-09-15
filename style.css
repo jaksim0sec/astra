@@ -333,7 +333,7 @@ html.dark .vc-world::before{
   --node-state-color:
     color-mix(
       in srgb,
-      var(--node-color) 22.5%,
+      var(--node-color) 45%,
       var(--node)
     );
 
