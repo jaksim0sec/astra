@@ -2,6 +2,10 @@
 
   color-scheme:light;
 
+  /* =========================================================
+     TOKENS
+     ========================================================= */
+
   --bg:#f3f3f1;
   --canvas:#f7f7f5;
 
@@ -9,27 +13,35 @@
   --glass2:rgba(255,255,255,.9);
 
   --text:#202020;
-  --sub:#777;
-  --faint:#aaa;
+  --sub:#6f6f6f;
+  --faint:#9a9a9a;
 
-  --line:rgba(25,25,25,.18);
-  --soft:rgba(25,25,25,.07);
+  --line:rgba(25,25,25,.14);
+  --soft:rgba(25,25,25,.06);
 
-  --node:rgba(255,255,255,.78);
+  --node:rgba(255,255,255,.88);
+  --node-inner:rgba(246,246,246,.82);
   --border:rgba(0,0,0,.09);
 
-  /* 전체 UI용 */
   --accent:#6b4cff;
   --accent-soft:rgba(107,76,255,.11);
 
   --danger:#e5484d;
   --danger-soft:rgba(229,72,77,.1);
 
+  --node-radius:.95rem;
+  --inner-radius:.625rem;
+
   --shadow:
-    0 12px 34px rgba(0,0,0,.07),
-    0 1px 2px rgba(0,0,0,.035);
+    0 .65rem 1.7rem rgba(0,0,0,.075),
+    0 .08rem .18rem rgba(0,0,0,.04);
 
 }
+
+
+/* =========================================================
+   DARK
+   ========================================================= */
 
 html.dark{
 
@@ -38,20 +50,20 @@ html.dark{
   --bg:#141414;
   --canvas:#171717;
 
-  --glass:rgba(32,32,32,.72);
-  --glass2:rgba(38,38,38,.94);
+  --glass:rgba(32,32,32,.74);
+  --glass2:rgba(38,38,38,.95);
 
   --text:#f1f1f1;
-  --sub:#999;
-  --faint:#666;
+  --sub:#9b9b9b;
+  --faint:#686868;
 
-  --line:rgba(255,255,255,.22);
-  --soft:rgba(255,255,255,.075);
+  --line:rgba(255,255,255,.16);
+  --soft:rgba(255,255,255,.06);
 
-  --node:rgba(34,34,34,.84);
+  --node:rgba(34,34,34,.93);
+  --node-inner:rgba(26,26,26,.88);
   --border:rgba(255,255,255,.1);
 
-  /* 전체 UI용 */
   --accent:#8b73ff;
   --accent-soft:rgba(139,115,255,.15);
 
@@ -59,20 +71,20 @@ html.dark{
   --danger-soft:rgba(255,107,114,.12);
 
   --shadow:
-    0 15px 36px rgba(0,0,0,.28),
-    0 1px 2px rgba(0,0,0,.18);
+    0 .75rem 1.8rem rgba(0,0,0,.29),
+    0 .08rem .2rem rgba(0,0,0,.2);
 
 }
 
-*{
 
-  box-sizing:border-box;
+/* =========================================================
+   ROOT SCALE
+   body의 기준 크기만 viewport에 반응.
+   내부 UI는 rem 중심.
+   ========================================================= */
 
-  -webkit-tap-highlight-color:transparent
-
-}
-
-html,body{
+html,
+body{
 
   width:100%;
   height:100%;
@@ -88,21 +100,52 @@ html,body{
     sans-serif;
 
   color:var(--text);
-  background:var(--bg)
+  background:var(--bg);
 
 }
 
-button,textarea{
+html{
 
-  font:inherit
+  /*
+   * 화면이 작아지면 완만하게 축소,
+   * 커지면 최대 21px까지만 증가.
+   */
+  font-size:clamp(16px,4.35vw,21px);
 
 }
+
+body{
+
+  font-size:1rem;
+
+}
+
+
+*{
+
+  box-sizing:border-box;
+
+  -webkit-tap-highlight-color:transparent;
+
+}
+
+
+button,
+textarea,
+input,
+select{
+
+  font:inherit;
+
+}
+
 
 button{
 
-  border:0
+  border:0;
 
 }
+
 
 #app{
 
@@ -111,9 +154,15 @@ button{
 
   overflow:hidden;
 
-  background:var(--canvas)
+  background:var(--canvas);
 
 }
+
+
+/* =========================================================
+   CANVAS
+   제스처 관련 핵심 구조는 유지.
+   ========================================================= */
 
 .vc-root,
 .vc-canvas{
@@ -128,15 +177,17 @@ button{
   user-select:none;
   -webkit-user-select:none;
 
-  cursor:grab
+  cursor:grab;
 
 }
+
 
 .vc-canvas.vc-dragging{
 
-  cursor:grabbing
+  cursor:grabbing;
 
 }
+
 
 .vc-world{
 
@@ -148,9 +199,10 @@ button{
   width:3000px;
   height:3000px;
 
-  transform-origin:0 0
+  transform-origin:0 0;
 
 }
+
 
 .vc-world::before{
 
@@ -171,9 +223,10 @@ button{
 
   opacity:.65;
 
-  pointer-events:none
+  pointer-events:none;
 
 }
+
 
 .vc-svg{
 
@@ -187,22 +240,23 @@ button{
 
   z-index:1;
 
-  pointer-events:none
+  pointer-events:none;
 
 }
+
 
 .vc-nodes{
 
   position:absolute;
   inset:0;
 
-  z-index:10
+  z-index:10;
 
 }
 
 
 /* =========================================================
-   NODE
+   NODE BASE
    ========================================================= */
 
 .vc-node{
@@ -218,39 +272,48 @@ button{
 
   position:absolute;
 
-  width:190px;
-  min-height:50px;
+  /*
+   * 기존 190px 유지
+   * 16px 기준 = 11.875rem
+   */
+  width:11.875rem;
 
-  padding:10px 12px;
+  min-height:3.125rem;
+
+  padding:.625rem .75rem;
 
   background:
     linear-gradient(
       145deg,
       color-mix(
         in srgb,
-        var(--node-color-soft) 24%,
+        var(--node-color-soft) 22%,
         var(--node)
       ),
       var(--node)
     );
 
-  border:1px solid
+  border:
+    1px solid
     color-mix(
       in srgb,
       var(--text) 8%,
       var(--border)
     );
 
-  border-radius:15px;
+  border-radius:var(--node-radius);
 
+  /*
+   * 기존의 과도한 유리판 느낌을 조금 줄임.
+   */
   box-shadow:
-    0 14px 34px rgba(0,0,0,.065),
-    0 2px 5px rgba(0,0,0,.025),
-    inset 0 1px 0 rgba(255,255,255,.46),
-    inset 0 -1px 0 rgba(0,0,0,.025);
+    0 .65rem 1.7rem rgba(0,0,0,.065),
+    0 .08rem .2rem rgba(0,0,0,.025),
+    inset 0 .06rem 0 rgba(255,255,255,.46),
+    inset 0 -.06rem 0 rgba(0,0,0,.025);
 
-  backdrop-filter:blur(20px);
-  -webkit-backdrop-filter:blur(20px);
+  backdrop-filter:blur(1rem);
+  -webkit-backdrop-filter:blur(1rem);
 
   cursor:grab;
 
@@ -261,19 +324,21 @@ button{
     box-shadow .18s ease,
     border-color .18s ease,
     background .18s ease,
-    transform .18s cubic-bezier(.22,.8,.25,1)
+    transform .18s cubic-bezier(.22,.8,.25,1);
 
 }
+
 
 html.dark .vc-node{
 
   box-shadow:
-    0 16px 38px rgba(0,0,0,.30),
-    0 2px 6px rgba(0,0,0,.18),
-    inset 0 1px 0 rgba(255,255,255,.065),
-    inset 0 -1px 0 rgba(0,0,0,.12)
+    0 .75rem 1.8rem rgba(0,0,0,.30),
+    0 .08rem .2rem rgba(0,0,0,.18),
+    inset 0 .06rem 0 rgba(255,255,255,.065),
+    inset 0 -.06rem 0 rgba(0,0,0,.12);
 
 }
+
 
 .vc-node:hover{
 
@@ -285,22 +350,24 @@ html.dark .vc-node{
     );
 
   box-shadow:
-    0 17px 38px rgba(0,0,0,.085),
-    0 2px 6px rgba(0,0,0,.03),
-    inset 0 1px 0 rgba(255,255,255,.5),
-    inset 0 -1px 0 rgba(0,0,0,.025)
+    0 .82rem 1.8rem rgba(0,0,0,.085),
+    0 .08rem .2rem rgba(0,0,0,.03),
+    inset 0 .06rem 0 rgba(255,255,255,.5),
+    inset 0 -.06rem 0 rgba(0,0,0,.025);
 
 }
+
 
 html.dark .vc-node:hover{
 
   box-shadow:
-    0 18px 42px rgba(0,0,0,.34),
-    0 2px 7px rgba(0,0,0,.2),
-    inset 0 1px 0 rgba(255,255,255,.075),
-    inset 0 -1px 0 rgba(0,0,0,.14)
+    0 .9rem 2rem rgba(0,0,0,.34),
+    0 .08rem .22rem rgba(0,0,0,.2),
+    inset 0 .06rem 0 rgba(255,255,255,.075),
+    inset 0 -.06rem 0 rgba(0,0,0,.14);
 
 }
+
 
 .vc-node.vc-selected,
 .vc-node.vc-expanded{
@@ -313,35 +380,37 @@ html.dark .vc-node:hover{
     );
 
   box-shadow:
-    0 18px 42px rgba(0,0,0,.095),
-    0 0 0 2px
+    0 .9rem 2rem rgba(0,0,0,.095),
+    0 0 0 .1rem
       color-mix(
         in srgb,
         var(--node-color) 12%,
         transparent
       ),
-    inset 0 1px 0 rgba(255,255,255,.5),
-    inset 0 -1px 0 rgba(0,0,0,.025);
+    inset 0 .06rem 0 rgba(255,255,255,.5),
+    inset 0 -.06rem 0 rgba(0,0,0,.025);
 
-  transform:translateY(-2px)
+  transform:translateY(-.1rem);
 
 }
+
 
 html.dark .vc-node.vc-selected,
 html.dark .vc-node.vc-expanded{
 
   box-shadow:
-    0 19px 44px rgba(0,0,0,.36),
-    0 0 0 2px
+    0 .95rem 2.1rem rgba(0,0,0,.36),
+    0 0 0 .1rem
       color-mix(
         in srgb,
         var(--node-color) 15%,
         transparent
       ),
-    inset 0 1px 0 rgba(255,255,255,.07),
-    inset 0 -1px 0 rgba(0,0,0,.14)
+    inset 0 .06rem 0 rgba(255,255,255,.07),
+    inset 0 -.06rem 0 rgba(0,0,0,.14);
 
 }
+
 
 .vc-node.vc-dragging{
 
@@ -350,42 +419,48 @@ html.dark .vc-node.vc-expanded{
   transition:none;
 
   box-shadow:
-    0 22px 48px rgba(0,0,0,.13),
-    0 0 0 2px
+    0 1.1rem 2.4rem rgba(0,0,0,.13),
+    0 0 0 .1rem
       color-mix(
         in srgb,
         var(--node-color) 12%,
         transparent
       ),
-    inset 0 1px 0 rgba(255,255,255,.5)
+    inset 0 .06rem 0 rgba(255,255,255,.5);
 
 }
 
+
+/* =========================================================
+   NODE HEADER
+   ========================================================= */
+
 .vc-node-head{
 
-  min-height:28px;
+  min-height:1.75rem;
 
   display:flex;
 
   align-items:center;
 
-  gap:9px
+  gap:.5625rem;
 
 }
+
 
 .vc-node-icon{
 
   position:relative;
 
-  width:28px;
-  height:28px;
+  width:1.75rem;
+  height:1.75rem;
 
   display:flex;
 
   align-items:center;
   justify-content:center;
 
-  border-radius:10px;
+  border-radius:.625rem;
 
   background:
     linear-gradient(
@@ -402,7 +477,8 @@ html.dark .vc-node.vc-expanded{
       )
     );
 
-  border:1px solid
+  border:
+    1px solid
     color-mix(
       in srgb,
       var(--text) 8%,
@@ -411,39 +487,43 @@ html.dark .vc-node.vc-expanded{
 
   color:var(--sub);
 
-  flex:0 0 28px;
+  flex:0 0 1.75rem;
 
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.52),
-    inset 0 -1px 2px rgba(0,0,0,.045),
-    0 2px 5px rgba(0,0,0,.025)
+    inset 0 .06rem 0 rgba(255,255,255,.52),
+    inset 0 -.06rem .12rem rgba(0,0,0,.045),
+    0 .12rem .3rem rgba(0,0,0,.025);
 
 }
+
 
 html.dark .vc-node-icon{
 
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.075),
-    inset 0 -1px 2px rgba(0,0,0,.16),
-    0 2px 6px rgba(0,0,0,.12)
+    inset 0 .06rem 0 rgba(255,255,255,.075),
+    inset 0 -.06rem .12rem rgba(0,0,0,.16),
+    0 .12rem .3rem rgba(0,0,0,.12);
 
 }
+
 
 .vc-node-icon svg{
 
   width:1em;
   height:1em;
 
-  display:block
+  display:block;
 
 }
+
 
 button svg{
 
   width:1.25em;
-  height:1.25em
+  height:1.25em;
 
 }
+
 
 .vc-node.vc-selected .vc-node-icon,
 .vc-node.vc-expanded .vc-node-icon{
@@ -469,14 +549,15 @@ button svg{
   color:var(--node-color);
 
   box-shadow:
-    0 3px 9px
+    0 .2rem .55rem
       color-mix(
         in srgb,
         var(--node-color) 10%,
         transparent
-      )
+      );
 
 }
+
 
 .vc-node-title{
 
@@ -484,19 +565,25 @@ button svg{
 
   flex:1;
 
-  font-size:13px;
+  /*
+   * 노드 이름을 가장 강하게.
+   */
+  font-size:.8125rem;
 
-  font-weight:700;
+  font-weight:750;
 
   letter-spacing:-.025em;
+
+  color:var(--text);
 
   white-space:nowrap;
 
   overflow:hidden;
 
-  text-overflow:ellipsis
+  text-overflow:ellipsis;
 
 }
+
 
 .vc-node-actions{
 
@@ -504,16 +591,17 @@ button svg{
 
   align-items:center;
 
-  gap:3px;
+  gap:.1875rem;
 
-  flex:0 0 auto
+  flex:0 0 auto;
 
 }
 
+
 .vc-node-action{
 
-  width:28px;
-  height:28px;
+  width:1.75rem;
+  height:1.75rem;
 
   display:flex;
 
@@ -522,7 +610,7 @@ button svg{
 
   padding:0;
 
-  border-radius:9px;
+  border-radius:.5625rem;
 
   color:var(--sub);
 
@@ -533,9 +621,10 @@ button svg{
   transition:
     background .18s ease,
     color .18s ease,
-    transform .18s cubic-bezier(.22,.8,.25,1)
+    transform .18s cubic-bezier(.22,.8,.25,1);
 
 }
+
 
 .vc-node-action:hover{
 
@@ -546,36 +635,41 @@ button svg{
       var(--node)
     );
 
-  color:var(--text)
+  color:var(--text);
 
 }
+
 
 .vc-node-action:active{
 
-  transform:scale(.88)
+  transform:scale(.88);
 
 }
+
 
 .vc-node-action svg{
 
-  width:14px;
-  height:14px;
+  width:.875rem;
+  height:.875rem;
 
-  display:block
+  display:block;
 
 }
+
 
 .vc-node-delete{
 
-  display:none
+  display:none;
 
 }
+
 
 .vc-node:not(.vc-start-node).vc-expanded .vc-node-delete{
 
-  display:flex
+  display:flex;
 
 }
+
 
 .vc-node-delete{
 
@@ -583,40 +677,45 @@ button svg{
 
   background:var(--danger-soft)!important;
 
-  transition:all .5s ease
+  transition:all .5s ease;
 
 }
+
 
 .vc-node-delete:hover{
 
-  filter:contrast(3) brightness(1)
+  filter:contrast(3) brightness(1);
 
 }
+
 
 .vc-node-toggle{
 
-  color:var(--sub)
+  color:var(--sub);
 
 }
+
 
 .vc-node.vc-expanded .vc-node-toggle{
 
   color:var(--node-color);
 
-  background:var(--node-color-soft)
+  background:var(--node-color-soft);
 
 }
+
 
 .vc-node-toggle svg{
 
   transition:
-    transform .32s cubic-bezier(.22,.8,.25,1)
+    transform .32s cubic-bezier(.22,.8,.25,1);
 
 }
 
+
 .vc-node.vc-expanded .vc-node-toggle svg{
 
-  transform:rotate(180deg)
+  transform:rotate(180deg);
 
 }
 
@@ -646,17 +745,18 @@ button svg{
     );
 
   box-shadow:
-    0 14px 34px rgba(0,0,0,.06),
-    0 0 0 1px
+    0 .65rem 1.7rem rgba(0,0,0,.06),
+    0 0 0 .06rem
       color-mix(
         in srgb,
         var(--node-color) 4%,
         transparent
       ),
-    inset 0 1px 0 rgba(255,255,255,.5),
-    inset 0 -1px 0 rgba(0,0,0,.025)
+    inset 0 .06rem 0 rgba(255,255,255,.5),
+    inset 0 -.06rem 0 rgba(0,0,0,.025);
 
 }
+
 
 .vc-start-node .vc-node-icon{
 
@@ -678,1489 +778,13 @@ button svg{
       in srgb,
       var(--node-color) 25%,
       transparent
-    )
+    );
 
 }
 
 
 /* =========================================================
    FILE NODE
-   ========================================================= */
-
-.vc-file-node{
-
-  border-color:
-    color-mix(
-      in srgb,
-      var(--node-color) 21%,
-      var(--border)
-    );
-
-  background:
-    linear-gradient(
-      145deg,
-      color-mix(
-        in srgb,
-        var(--node-color-soft) 48%,
-        var(--node)
-      ),
-      var(--node)
-    );
-
-  box-shadow:
-    0 15px 35px rgba(0,0,0,.065),
-    inset 0 1px 0 rgba(255,255,255,.48),
-    inset 0 -1px 0 rgba(0,0,0,.025)
-
-}
-
-.vc-file-node .vc-node-head{
-
-  min-height:58px
-
-}
-
-.vc-file-node .vc-node-icon{
-
-  color:var(--node-color);
-
-  background:
-    linear-gradient(
-      145deg,
-      color-mix(
-        in srgb,
-        var(--node-color) 15%,
-        var(--node)
-      ),
-      var(--node-color-soft)
-    );
-
-  border-color:
-    color-mix(
-      in srgb,
-      var(--node-color) 25%,
-      transparent
-    );
-
-  box-shadow:
-    inset 0 1px 0 rgba(255,255,255,.55),
-    inset 0 -1px 2px
-      color-mix(
-        in srgb,
-        var(--node-color) 5%,
-        transparent
-      ),
-    0 3px 8px rgba(0,0,0,.025)
-
-}
-
-.vc-file-title-wrap{
-
-  min-width:0;
-
-  display:flex;
-
-  flex-direction:column;
-
-  gap:2px
-
-}
-
-.vc-file-title{
-
-  font-size:11px;
-
-  font-weight:700;
-
-  white-space:nowrap;
-
-  overflow:hidden;
-
-  text-overflow:ellipsis;
-
-  max-width:190px
-
-}
-
-.vc-file-type{
-
-  font-size:8px;
-
-  color:var(--faint);
-
-  font-weight:650;
-
-  letter-spacing:.04em;
-
-  text-transform:uppercase
-
-}
-
-.vc-file-meta{
-
-  display:flex;
-
-  align-items:center;
-
-  gap:6px;
-
-  margin-top:10px;
-
-  font-size:9px;
-
-  color:var(--sub)
-
-}
-
-.vc-file-meta span:first-child{
-
-  max-width:150px;
-
-  overflow:hidden;
-
-  text-overflow:ellipsis;
-
-  white-space:nowrap
-
-}
-
-.vc-file-node .vc-slot-description{
-
-  display:none
-
-}
-
-
-/* =========================================================
-   PARAMETERS
-   ========================================================= */
-
-.vc-slot-param{
-
-  display:block;
-
-  width:100%;
-
-  height:30px;
-
-  margin-top:9px;
-
-  padding:6px 9px;
-
-  border:1px solid
-    color-mix(
-      in srgb,
-      var(--node-color) 12%,
-      var(--border)
-    );
-
-  border-radius:9px;
-
-  outline:none;
-
-  appearance:none;
-
-  -webkit-appearance:none;
-
-  background:
-    color-mix(
-      in srgb,
-      var(--node-color-soft) 45%,
-      var(--node)
-    );
-
-  color:var(--text);
-
-  font-size:10px;
-
-  font-weight:500;
-
-  line-height:1.2;
-
-  letter-spacing:-.01em;
-
-  transition:
-    border-color .16s ease,
-    background .16s ease,
-    box-shadow .16s ease
-
-}
-
-.vc-slot-param::placeholder{
-
-  color:var(--faint)
-
-}
-
-.vc-slot-param:hover{
-
-  border-color:
-    color-mix(
-      in srgb,
-      var(--node-color) 22%,
-      var(--border)
-    )
-
-}
-
-.vc-slot-param:focus{
-
-  border-color:
-    color-mix(
-      in srgb,
-      var(--node-color) 48%,
-      transparent
-    );
-
-  background:
-    color-mix(
-      in srgb,
-      var(--node-color-soft) 72%,
-      var(--node)
-    );
-
-  box-shadow:
-    0 0 0 2px var(--node-color-soft)
-
-}
-
-html.dark .vc-slot-param{
-
-  background:
-    color-mix(
-      in srgb,
-      var(--node-color-soft) 55%,
-      var(--node)
-    )
-
-}
-
-.vc-start-badge{
-
-  flex:none;
-
-  padding:3px 6px;
-
-  border-radius:999px;
-
-  color:var(--node-color);
-
-  background:var(--node-color-soft);
-
-  border:1px solid
-    color-mix(
-      in srgb,
-      var(--node-color) 12%,
-      transparent
-    );
-
-  font-size:8px;
-
-  font-weight:800;
-
-  letter-spacing:.03em
-
-}
-
-
-/* =========================================================
-   NODE BODY
-   ========================================================= */
-
-.vc-node-body{
-
-  height:0;
-
-  overflow:hidden;
-
-  opacity:0;
-
-  transition:
-    height .32s cubic-bezier(.22,.8,.25,1),
-    opacity .18s ease
-
-}
-
-.vc-node.vc-expanded .vc-node-body{
-
-  opacity:1
-
-}
-
-.vc-slot-description{
-
-  margin-top:11px;
-
-  color:var(--sub);
-
-  font-size:11px;
-
-  line-height:1.5;
-
-  letter-spacing:-.015em
-
-}
-
-.vc-slot-param{
-
-  display:flex;
-
-  align-items:center;
-
-  gap:5px;
-
-  max-width:100%;
-
-  margin-top:9px;
-
-  padding:5px 8px;
-
-  border-radius:9px;
-
-  background:
-    linear-gradient(
-      180deg,
-      color-mix(
-        in srgb,
-        var(--soft) 75%,
-        var(--node)
-      ),
-      var(--soft)
-    );
-
-  color:var(--sub);
-
-  font-size:10px;
-
-  line-height:1.25;
-
-  white-space:nowrap;
-
-  overflow:hidden;
-
-  text-overflow:ellipsis;
-
-  border:1px solid
-    color-mix(
-      in srgb,
-      var(--text) 5%,
-      transparent
-    );
-
-
-}
-
-.vc-slot-param::before{
-
-  content:"";
-
-  width:4px;
-  height:4px;
-
-  border-radius:50%;
-
-  background:currentColor;
-
-  opacity:.45;
-
-  flex:none
-
-}
-
-.vc-slot-custom{
-
-  margin-top:9px
-
-}
-
-.vc-node-delete-row{
-
-  margin-top:9px;
-
-  padding-top:1px
-
-}
-
-.vc-node-delete-button{
-
-  width:100%;
-  height:30px;
-
-  display:flex;
-
-  align-items:center;
-  justify-content:center;
-
-  gap:6px;
-
-  border-radius:9px;
-
-  color:var(--danger);
-
-  background:var(--danger-soft);
-
-  font-size:10px;
-
-  font-weight:650;
-
-  cursor:pointer;
-
-  transition:
-    background .18s ease,
-    transform .18s cubic-bezier(.22,.8,.25,1)
-
-}
-
-.vc-node-delete-button:hover{
-
-  background:
-    color-mix(
-      in srgb,
-      var(--danger-soft) 70%,
-      var(--danger) 8%
-    )
-
-}
-
-.vc-node-delete-button:active{
-
-  transform:scale(.97)
-
-}
-
-.vc-node-delete-button svg{
-
-  width:13px;
-  height:13px;
-
-  display:block
-
-}
-
-
-/* =========================================================
-   PORT
-   ========================================================= */
-
-.vc-port-hit{
-
-  position:absolute;
-
-  top:0;
-
-  width:32px;
-
-  min-height:32px;
-
-  display:flex;
-
-  align-items:center;
-  justify-content:center;
-
-  z-index:40;
-
-  cursor:crosshair;
-
-  touch-action:none;
-
-  user-select:none;
-  -webkit-user-select:none
-
-}
-
-.vc-port-hit.vc-input{
-
-  left:-16px
-
-}
-
-.vc-port-hit.vc-output{
-
-  right:-16px
-
-}
-
-.vc-port-anchor{
-
-  width:12px;
-  height:12px;
-
-  display:flex;
-
-  align-items:center;
-  justify-content:center
-
-}
-
-.vc-port-pill{
-
-  width:10px;
-  height:10px;
-
-  border-radius:50%;
-
-  background:var(--canvas);
-
-  border:1.5px solid var(--text);
-
-  opacity:.18;
-
-  box-shadow:
-    0 1px 3px rgba(0,0,0,.06);
-
-  transition:
-    opacity .15s ease,
-    transform .15s cubic-bezier(.22,.8,.25,1),
-    background .15s ease,
-    border-color .15s ease,
-    box-shadow .15s ease
-
-}
-
-.vc-node.vc-selected .vc-port-pill,
-.vc-node.vc-expanded .vc-port-pill{
-
-  opacity:.9;
-
-  transform:scale(1.05)
-
-}
-
-.vc-port-pill.vc-connected{
-
-  background:var(--text);
-
-  opacity:.35
-
-}
-
-.vc-node.vc-selected .vc-port-pill.vc-connected,
-.vc-node.vc-expanded .vc-port-pill.vc-connected{
-
-  opacity:1
-
-}
-
-.vc-port-hit:hover .vc-port-pill{
-
-  opacity:1;
-
-  transform:scale(1.25);
-
-  background:var(--node-color);
-
-  border-color:var(--node-color);
-
-  box-shadow:
-    0 0 0 3px
-      color-mix(
-        in srgb,
-        var(--node-color) 10%,
-        transparent
-      ),
-    0 2px 6px
-      color-mix(
-        in srgb,
-        var(--node-color) 18%,
-        transparent
-      )
-
-}
-
-.vc-port-label{
-
-  position:absolute;
-
-  top:50%;
-
-  transform:translateY(-50%);
-
-  font-size:8px;
-
-  color:var(--sub);
-
-  white-space:nowrap;
-
-  pointer-events:none;
-
-  opacity:0;
-
-  transition:all .5s ease
-
-}
-
-.vc-input .vc-port-label{
-
-  right:calc(100% - 8px)
-
-}
-
-.vc-output .vc-port-label{
-
-  left:calc(100% - 8px)
-
-}
-
-.vc-node.vc-selected .vc-port-label,
-.vc-node.vc-expanded .vc-port-label{
-
-  opacity:.75
-
-}
-
-.vc-start-node .vc-port-hit.vc-input{
-
-  display:none
-
-}
-
-
-/* =========================================================
-   CONNECTION
-   ========================================================= */
-
-.vc-connection{
-
-  fill:none;
-
-  stroke:var(--text);
-
-  stroke-width:1.8;
-
-  stroke-linecap:round;
-
-  stroke-linejoin:round;
-
-  stroke-dasharray:2 5;
-
-  opacity:.18;
-
-  pointer-events:none;
-
-  transition:
-    opacity .18s ease,
-    stroke-width .18s ease,
-    stroke .18s ease
-
-}
-
-.vc-connection.vc-active{
-
-  stroke:var(--node-color,var(--accent));
-
-  stroke-dasharray:none;
-
-  opacity:.7;
-
-  stroke-width:2.2
-
-}
-
-.vc-connection-dot{
-
-  fill:var(--canvas);
-
-  stroke:var(--text);
-
-  stroke-width:1.2;
-
-  opacity:.35
-
-}
-
-.vc-drag-connection{
-
-  fill:none;
-
-  stroke:var(--accent);
-
-  stroke-width:2.2;
-
-  stroke-linecap:round;
-
-  opacity:.85;
-
-  pointer-events:none
-
-}
-
-.vc-drag-source-dot{
-
-  fill:var(--accent)
-
-}
-
-
-/* =========================================================
-   TOP CONTROLS
-   ========================================================= */
-
-.vc-top-controls{
-
-  position:fixed;
-
-  top:max(14px,env(safe-area-inset-top));
-
-  right:14px;
-
-  z-index:300;
-
-  display:flex;
-
-  gap:7px
-
-}
-
-.vc-top-button{
-
-  width:40px;
-  height:40px;
-
-  display:flex;
-
-  align-items:center;
-  justify-content:center;
-
-  border-radius:50%;
-
-  cursor:pointer;
-
-  transition:
-    transform .18s cubic-bezier(.22,.8,.25,1),
-    background .18s ease
-
-}
-
-.vc-top-button:active{
-
-  transform:scale(.93)
-
-}
-
-.vc-theme-button{
-
-  color:var(--text);
-
-  background:var(--glass);
-
-  border:1px solid var(--soft);
-
-  backdrop-filter:blur(18px);
-
-  -webkit-backdrop-filter:blur(18px)
-
-}
-
-.vc-add-button{
-
-  color:#171717;
-
-  background:#fff;
-
-  border:1px solid rgba(0,0,0,.07);
-
-  box-shadow:0 6px 18px rgba(0,0,0,.1)
-
-}
-
-html.dark .vc-add-button{
-
-  background:#f4f4f4
-
-}
-
-.vc-add-node-icon{
-
-  width:19px;
-  height:19px;
-
-  display:block;
-
-  transition:
-    transform .28s cubic-bezier(.22,.8,.25,1),
-    opacity .18s ease
-
-}
-
-.vc-add-button:hover .vc-add-node-icon{
-
-  transform:scale(1.04)
-
-}
-
-.vc-add-button.vc-open .vc-add-node-icon{
-
-  transform:rotate(90deg) scale(.96)
-
-}
-
-
-/* =========================================================
-   ADD MENU
-   ========================================================= */
-
-.vc-add-menu{
-
-  position:fixed;
-
-  top:calc(max(14px,env(safe-area-inset-top)) + 48px);
-
-  right:14px;
-
-  z-index:301;
-
-  width:230px;
-
-  padding:6px;
-
-  border:1px solid var(--soft);
-
-  border-radius:16px;
-
-  background:var(--glass2);
-
-  box-shadow:0 16px 42px rgba(0,0,0,.12);
-
-  backdrop-filter:blur(24px);
-
-  -webkit-backdrop-filter:blur(24px);
-
-  opacity:0;
-
-  transform:translateY(-5px) scale(.98);
-
-  pointer-events:none;
-
-  transition:
-    opacity .16s ease,
-    transform .18s cubic-bezier(.22,.8,.25,1)
-
-}
-
-.vc-add-menu.vc-open{
-
-  opacity:1;
-
-  transform:none;
-
-  pointer-events:auto
-
-}
-
-.vc-menu-item{
-
-  width:100%;
-
-  display:flex;
-
-  align-items:center;
-
-  gap:10px;
-
-  padding:9px;
-
-  border-radius:10px;
-
-  color:var(--text);
-
-  background:transparent;
-
-  text-align:left;
-
-  cursor:pointer
-
-}
-
-.vc-menu-item:hover{
-
-  background:var(--soft)
-
-}
-
-.vc-menu-icon{
-
-  width:26px;
-  height:26px;
-
-  flex:0 0 26px;
-
-  display:flex;
-
-  align-items:center;
-  justify-content:center;
-
-  border-radius:8px;
-
-  background:var(--soft);
-
-  border:1px solid
-    color-mix(
-      in srgb,
-      var(--text) 6%,
-      transparent
-    );
-
-  color:var(--sub)
-
-}
-
-.vc-menu-icon svg{
-
-  width:15px;
-  height:15px;
-
-  display:block
-
-}
-
-.vc-menu-name{
-
-  font-size:11.5px;
-
-  font-weight:600
-
-}
-
-.vc-menu-desc{
-
-  margin-left:auto;
-
-  color:var(--faint);
-
-  font-size:9px
-
-}
-
-
-/* =========================================================
-   COMPOSER
-   ========================================================= */
-
-.vc-composer-wrap{
-
-  position:fixed;
-
-  left:50%;
-
-  bottom:max(
-    18px,
-    calc(env(safe-area-inset-bottom) + 8px)
-  );
-
-  width:min(calc(100% - 28px),540px);
-
-  transform:translateX(-50%);
-
-  z-index:200;
-
-  pointer-events:none
-
-}
-
-.vc-composer{
-
-  position:relative;
-
-  left:50%;
-
-  transform:translateX(-50%);
-
-  pointer-events:auto;
-
-  width:100%;
-
-  min-height:48px;
-
-  display:flex;
-
-  align-items:center;
-
-  gap:4px;
-
-  padding:5px;
-
-  border:1px solid var(--soft);
-
-  border-radius:26px;
-
-  background:var(--glass2);
-
-  box-shadow:
-    0 10px 32px rgba(0,0,0,.09),
-    0 1px 2px rgba(0,0,0,.04);
-
-  backdrop-filter:blur(26px);
-
-  -webkit-backdrop-filter:blur(26px);
-
-  transition:
-    width .28s cubic-bezier(.22,.8,.25,1),
-    min-height .22s ease,
-    padding .22s ease,
-    border-radius .22s ease,
-    box-shadow .22s ease,
-    opacity .22s ease
-
-}
-
-.vc-composer:not(.vc-active){
-
-  width:320px;
-
-  min-height:42px;
-
-  padding:3px 4px;
-
-  border-radius:22px;
-
-  opacity:.86
-
-}
-
-.vc-composer:not(.vc-active) .vc-chat-input{
-
-  min-height:32px;
-
-  padding-top:6px;
-
-  padding-bottom:6px;
-
-  font-size:15.5px;
-
-  font-weight:500
-
-}
-
-.vc-composer.vc-has-text,
-.vc-composer:focus-within,
-.vc-composer.vc-active{
-
-  min-height:54px;
-
-  padding:7px;
-
-  border-radius:28px;
-
-  opacity:1
-
-}
-
-.vc-composer-button{
-
-  width:36px;
-  height:36px;
-
-  flex:0 0 36px;
-
-  align-self:center;
-
-  display:flex;
-
-  align-items:center;
-  justify-content:center;
-
-  padding:0;
-
-  border-radius:50%;
-
-  color:var(--sub);
-
-  background:transparent;
-
-  cursor:pointer
-
-}
-
-.vc-composer-button:not(.vc-send-button):hover{
-
-  color:var(--text);
-
-  background:var(--soft)
-
-}
-
-.vc-send-button{transition:all 0.5s ease;}
-.vc-send-button:hover{opacity:0.75}
-
-.vc-composer-button:active{
-
-  transform:scale(.92)
-
-}
-
-.vc-attach-icon{
-
-  width:17px;
-  height:17px;
-
-  display:block
-
-}
-
-.vc-chat-input{
-
-  flex:1;
-
-  min-width:0;
-
-  min-height:38px;
-
-  max-height:115px;
-
-  resize:none;
-
-  padding:8px 6px 7px;
-
-  border:0;
-
-  outline:0;
-
-  color:var(--text);
-
-  background:transparent;
-
-  font-size:15px;
-
-  line-height:1.45;
-
-  letter-spacing:-.015em
-
-}
-
-.vc-chat-input::placeholder{
-
-  color:var(--faint)
-
-}
-
-.vc-send-button{
-
-  width:32px;
-  height:32px;
-
-  flex:0 0 32px;
-
-  align-self:center;
-
-  padding:0;
-
-  border-radius:50%!important;
-
-  color:#171717;
-
-  background:#fff;
-
-  border:1px solid rgba(0,0,0,.07);
-
-  box-shadow:
-    0 3px 9px rgba(0,0,0,.09),
-    inset 0 1px 0 rgba(255,255,255,.65);
-
-  display:flex;
-
-  align-items:center;
-  justify-content:center;
-
-  line-height:0
-
-}
-
-.vc-send-button svg{
-
-  width:15px;
-  height:15px;
-
-  display:block
-
-}
-
-.vc-send-button:active{
-
-  transform:scale(.93)
-
-}
-
-html.dark .vc-send-button{
-
-  background:#f4f4f4
-
-}
-
-.vc-zoom-indicator{
-
-  position:fixed;
-
-  left:14px;
-
-  top:max(14px,env(safe-area-inset-top));
-
-  z-index:90;
-
-  padding:7px 10px;
-
-  border-radius:10px;
-
-  background:var(--glass);
-
-  border:1px solid var(--soft);
-
-  color:var(--sub);
-
-  font-size:10px;
-
-  backdrop-filter:blur(18px);
-
-  opacity:.8
-
-}
-
-
-/* =========================================================
-   VALIDATION
-   ========================================================= */
-
-.vc-validation{
-
-  position:fixed;
-
-  left:14px;
-
-  bottom:max(
-    18px,
-    calc(env(safe-area-inset-bottom) + 8px)
-  );
-
-  z-index:250;
-
-  display:flex;
-
-  flex-direction:column;
-
-  gap:5px;
-
-  max-width:min(360px,calc(100% - 28px));
-
-  pointer-events:none
-
-}
-
-.vc-validation-item{
-
-  padding:8px 10px;
-
-  border-radius:10px;
-
-  background:var(--glass2);
-
-  border:1px solid var(--soft);
-
-  box-shadow:0 8px 22px rgba(0,0,0,.08);
-
-  font-size:10px;
-
-  line-height:1.4;
-
-  opacity:0;
-
-  transform:translateY(5px);
-
-  transition:
-    opacity .18s ease,
-    transform .18s ease
-
-}
-
-.vc-validation-item.vc-show{
-
-  opacity:1;
-
-  transform:none
-
-}
-
-.vc-validation-item.vc-error{
-
-  border-color:
-    color-mix(
-      in srgb,
-      var(--danger) 24%,
-      var(--soft)
-    );
-
-  color:var(--danger)
-
-}
-
-.vc-validation-item.vc-warning{
-
-  border-color:
-    color-mix(
-      in srgb,
-      #c48a18 24%,
-      var(--soft)
-    );
-
-  color:#a06d08
-
-}
-
-.vc-validation-item.vc-ok{
-
-  color:var(--sub)
-
-}
-
-
-/* =========================================================
-   MOBILE
-   ========================================================= */
-
-@media(max-width:600px){
-
-  .vc-node{
-
-    width:178px;
-
-    min-height:48px;
-
-    padding:10px 12px;
-
-    border-radius:16px
-
-  }
-
-  .vc-node-title{
-
-    font-size:12.5px
-
-  }
-
-  .vc-slot-description{
-
-    font-size:10.5px
-
-  }
-
-  .vc-start-badge{
-
-    font-size:7.5px;
-
-    padding:3px 5px
-
-  }
-
-  .vc-top-controls{
-
-    right:11px
-
-  }
-
-  .vc-add-menu{
-
-    right:11px
-
-  }
-
-  .vc-composer-wrap{
-
-    left:50%;
-
-    width:calc(100% - 22px);
-
-    bottom:max(
-      17px,
-      calc(env(safe-area-inset-bottom) + 8px)
-    );
-
-    transform:translateX(-50%)
-
-  }
-
-  .vc-composer{
-
-    left:50%;
-
-    transform:translateX(-50%);
-
-    min-height:47px;
-
-    border-radius:24px;
-
-    padding:4px
-
-  }
-
-  .vc-composer:not(.vc-active){
-
-    width:275px;
-
-    min-height:40px;
-
-    border-radius:21px;
-
-    padding:3px 4px
-
-  }
-
-  .vc-composer:not(.vc-active) .vc-chat-input{
-
-    min-height:31px;
-
-    font-size:15px
-
-  }
-
-  .vc-composer.vc-has-text,
-  .vc-composer:focus-within,
-  .vc-composer.vc-active{
-
-    min-height:52px;
-
-    border-radius:27px;
-
-    padding:6px
-
-  }
-
-  .vc-composer-button{
-
-    width:34px;
-
-    height:34px;
-
-    flex-basis:34px
-
-  }
-
-  .vc-send-button{
-
-    width:30px;
-
-    height:30px;
-
-    flex-basis:30px;
-
-    border-radius:50%!important
-
-  }
-
-  .vc-zoom-indicator{
-
-    left:11px
-
-  }
-
-  .vc-image-file-node{
-
-    width:222.5px
-
-  }
-
-}
-
-
-/* =========================================================
-   FILE / IMAGE NODE
    ========================================================= */
 
 .vc-file-node{
@@ -2181,15 +805,17 @@ html.dark .vc-send-button{
         var(--node)
       ),
       var(--node)
-    )
+    );
 
 }
+
 
 .vc-file-node .vc-node-head{
 
-  min-height:58px
+  min-height:3.625rem;
 
 }
+
 
 .vc-file-node .vc-node-icon{
 
@@ -2202,9 +828,10 @@ html.dark .vc-send-button{
       in srgb,
       var(--node-color) 22%,
       transparent
-    )
+    );
 
 }
+
 
 .vc-file-title-wrap{
 
@@ -2214,13 +841,89 @@ html.dark .vc-send-button{
 
   flex-direction:column;
 
-  gap:2px
+  gap:.125rem;
 
 }
 
+
+.vc-file-title{
+
+  font-size:.6875rem;
+
+  font-weight:700;
+
+  white-space:nowrap;
+
+  overflow:hidden;
+
+  text-overflow:ellipsis;
+
+  max-width:11.875rem;
+
+}
+
+
+.vc-file-type{
+
+  font-size:.5rem;
+
+  color:var(--faint);
+
+  font-weight:650;
+
+  letter-spacing:.04em;
+
+  text-transform:uppercase;
+
+}
+
+
+.vc-file-meta{
+
+  display:flex;
+
+  align-items:center;
+
+  gap:.375rem;
+
+  margin-top:.625rem;
+
+  font-size:.5625rem;
+
+  color:var(--sub);
+
+}
+
+
+.vc-file-meta span:first-child{
+
+  max-width:9.375rem;
+
+  overflow:hidden;
+
+  text-overflow:ellipsis;
+
+  white-space:nowrap;
+
+}
+
+
+.vc-file-node .vc-slot-description{
+
+  display:none;
+
+}
+
+
+/* =========================================================
+   IMAGE FILE NODE
+   ========================================================= */
+
 .vc-image-file-node{
 
-  width:237.5px;
+  width:9.375rem;
+
+  height:9.375rem!important;
 
   aspect-ratio:1/1;
 
@@ -2230,9 +933,10 @@ html.dark .vc-send-button{
 
   position:absolute;
 
-  background:var(--node)
+  background:var(--node);
 
 }
+
 
 .vc-image-file-node::before{
 
@@ -2240,7 +944,7 @@ html.dark .vc-send-button{
 
   position:absolute;
 
-  inset:-24px;
+  inset:-1.5rem;
 
   background-image:var(--vc-file-bg);
 
@@ -2248,15 +952,16 @@ html.dark .vc-send-button{
 
   background-position:center;
 
-  filter:blur(4px);
+  filter:blur:.25rem);
 
   transform:scale(1.08);
 
   opacity:.5;
 
-  z-index:0
+  z-index:0;
 
 }
+
 
 .vc-image-file-node::after{
 
@@ -2275,75 +980,1496 @@ html.dark .vc-send-button{
 
   z-index:0;
 
-  pointer-events:none
+  pointer-events:none;
 
 }
+
 
 .vc-image-file-node .vc-node-head,
 .vc-image-file-node .vc-node-body{
 
   position:relative;
 
-  z-index:2
+  z-index:2;
 
 }
+
 
 .vc-image-file-node .vc-port-hit{
 
-  z-index:40
+  z-index:40;
 
 }
 
-.vc-image-file-node{
 
-  width:150px;
-
-  height:150px!important
-
-}
-
-.vc-send-button:not(html.dark *){
-
-  filter:invert(1)
-
-}
+/* =========================================================
+   PARAMETER GROUP
+   ========================================================= */
 
 .vc-param-group{
 
-  margin-top:8px
+  margin-top:.5rem;
 
 }
+
 
 .vc-param-group:first-child{
 
-  margin-top:9px
+  margin-top:.5625rem;
 
 }
+
+
+/* =========================================================
+   PARAMETER LABEL
+   ========================================================= */
 
 .vc-param-label{
 
   display:block;
 
-  margin-bottom:4px;
+  margin-bottom:.25rem;
 
   color:var(--sub);
 
-  font-size:9px;
+  /*
+   * label은 작고 보조적
+   */
+  font-size:.5625rem;
 
-  font-weight:600;
+  font-weight:650;
 
-  letter-spacing:-.01em
+  letter-spacing:-.01em;
 
 }
+
+
+/* =========================================================
+   PARAMETER INPUT
+   ========================================================= */
+
+.vc-slot-param{
+
+  width:100%;
+
+  max-width:100%;
+
+  margin-top:.5625rem;
+
+  padding:.4rem .5625rem;
+
+  border:
+    1px solid
+    color-mix(
+      in srgb,
+      var(--node-color) 12%,
+      var(--border)
+    );
+
+  border-radius:var(--inner-radius);
+
+  outline:none;
+
+  appearance:none;
+  -webkit-appearance:none;
+
+  /*
+   * 파라미터 영역은 노드 본체와 분리된 입력 덩어리.
+   */
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(
+        in srgb,
+        var(--node-color-soft) 42%,
+        var(--node-inner)
+      ),
+      var(--node-inner)
+    );
+
+  color:var(--text);
+
+  font-size:.625rem;
+
+  font-weight:550;
+
+  line-height:1.25;
+
+  letter-spacing:-.01em;
+
+  transition:
+    border-color .16s ease,
+    background .16s ease,
+    box-shadow .16s ease;
+
+}
+
+
+.vc-slot-param::placeholder{
+
+  color:var(--faint);
+
+}
+
+
+.vc-slot-param:hover{
+
+  border-color:
+    color-mix(
+      in srgb,
+      var(--node-color) 22%,
+      var(--border)
+    );
+
+}
+
+
+.vc-slot-param:focus{
+
+  border-color:
+    color-mix(
+      in srgb,
+      var(--node-color) 48%,
+      transparent
+    );
+
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color-soft) 72%,
+      var(--node)
+    );
+
+  box-shadow:
+    0 0 0 .1rem var(--node-color-soft);
+
+}
+
+
+html.dark .vc-slot-param{
+
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color-soft) 55%,
+      var(--node)
+    );
+
+}
+
+
+/* =========================================================
+   NODE BODY
+   ========================================================= */
+
+.vc-node-body{
+
+  height:0;
+
+  overflow:hidden;
+
+  opacity:0;
+
+  transition:
+    height .32s cubic-bezier(.22,.8,.25,1),
+    opacity .18s ease;
+
+}
+
+
+.vc-node.vc-expanded .vc-node-body{
+
+  opacity:1;
+
+}
+
+
+/* =========================================================
+   DESCRIPTION
+   설명은 파라미터보다 훨씬 약하게.
+   ========================================================= */
+
+.vc-slot-description{
+
+  margin-top:.6875rem;
+
+  padding-top:.625rem;
+
+  color:var(--faint);
+
+  font-size:.575rem;
+
+  line-height:1.5;
+
+  letter-spacing:-.015em;
+
+  border-top:1px solid var(--line);
+
+}
+
+
+.vc-slot-custom{
+
+  margin-top:.5625rem;
+
+}
+
+
+/* =========================================================
+   START BADGE
+   ========================================================= */
+
+.vc-start-badge{
+
+  flex:none;
+
+  padding:.1875rem .375rem;
+
+  border-radius:999px;
+
+  color:var(--node-color);
+
+  background:var(--node-color-soft);
+
+  border:
+    1px solid
+    color-mix(
+      in srgb,
+      var(--node-color) 12%,
+      transparent
+    );
+
+  font-size:.5rem;
+
+  font-weight:800;
+
+  letter-spacing:.03em;
+
+}
+
+
+/* =========================================================
+   NODE DELETE ROW
+   ========================================================= */
+
+.vc-node-delete-row{
+
+  margin-top:.5625rem;
+
+  padding-top:.0625rem;
+
+}
+
+
+.vc-node-delete-button{
+
+  width:100%;
+
+  height:1.875rem;
+
+  display:flex;
+
+  align-items:center;
+
+  justify-content:center;
+
+  gap:.375rem;
+
+  border-radius:var(--inner-radius);
+
+  color:var(--danger);
+
+  background:var(--danger-soft);
+
+  font-size:.625rem;
+
+  font-weight:650;
+
+  cursor:pointer;
+
+  transition:
+    background .18s ease,
+    transform .18s cubic-bezier(.22,.8,.25,1);
+
+}
+
+
+.vc-node-delete-button:hover{
+
+  background:
+    color-mix(
+      in srgb,
+      var(--danger-soft) 70%,
+      var(--danger) 8%
+    );
+
+}
+
+
+.vc-node-delete-button:active{
+
+  transform:scale(.97);
+
+}
+
+
+.vc-node-delete-button svg{
+
+  width:.8125rem;
+  height:.8125rem;
+
+  display:block;
+
+}
+
+
+/* =========================================================
+   PORT
+   ========================================================= */
+
+.vc-port-hit{
+
+  position:absolute;
+
+  top:0;
+
+  width:2rem;
+
+  min-height:2rem;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  z-index:40;
+
+  cursor:crosshair;
+
+  touch-action:none;
+
+  user-select:none;
+  -webkit-user-select:none;
+
+}
+
+
+.vc-port-hit.vc-input{
+
+  left:-1rem;
+
+}
+
+
+.vc-port-hit.vc-output{
+
+  right:-1rem;
+
+}
+
+
+.vc-port-anchor{
+
+  width:.75rem;
+  height:.75rem;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+}
+
+
+.vc-port-pill{
+
+  width:.625rem;
+  height:.625rem;
+
+  border-radius:50%;
+
+  background:var(--canvas);
+
+  border:1.5px solid var(--text);
+
+  opacity:.18;
+
+  box-shadow:
+    0 .06rem .18rem rgba(0,0,0,.06);
+
+  transition:
+    opacity .15s ease,
+    transform .15s cubic-bezier(.22,.8,.25,1),
+    background .15s ease,
+    border-color .15s ease,
+    box-shadow .15s ease;
+
+}
+
+
+.vc-node.vc-selected .vc-port-pill,
+.vc-node.vc-expanded .vc-port-pill{
+
+  opacity:.9;
+
+  transform:scale(1.05);
+
+}
+
+
+.vc-port-pill.vc-connected{
+
+  background:var(--text);
+
+  opacity:.35;
+
+}
+
+
+.vc-node.vc-selected .vc-port-pill.vc-connected,
+.vc-node.vc-expanded .vc-port-pill.vc-connected{
+
+  opacity:1;
+
+}
+
+
+.vc-port-hit:hover .vc-port-pill{
+
+  opacity:1;
+
+  transform:scale(1.25);
+
+  background:var(--node-color);
+
+  border-color:var(--node-color);
+
+  box-shadow:
+    0 0 0 .1875rem
+      color-mix(
+        in srgb,
+        var(--node-color) 10%,
+        transparent
+      ),
+    0 .125rem .375rem
+      color-mix(
+        in srgb,
+        var(--node-color) 18%,
+        transparent
+      );
+
+}
+
 
 .vc-port-label{
 
-  transition:all .5s ease
+  position:absolute;
+
+  top:50%;
+
+  transform:translateY(-50%);
+
+  font-size:.5rem;
+
+  color:var(--sub);
+
+  white-space:nowrap;
+
+  pointer-events:none;
+
+  opacity:0;
+
+  transition:all .5s ease;
 
 }
 
+
+.vc-input .vc-port-label{
+
+  right:calc(100% - .5rem);
+
+}
+
+
+.vc-output .vc-port-label{
+
+  left:calc(100% - .5rem);
+
+}
+
+
+.vc-node.vc-selected .vc-port-label,
+.vc-node.vc-expanded .vc-port-label{
+
+  opacity:.75;
+
+}
+
+
 .vc-port-label:not(.vc-selected *){
 
-  opacity:0!important
+  opacity:0!important;
+
+}
+
+
+.vc-start-node .vc-port-hit.vc-input{
+
+  display:none;
+
+}
+
+
+/* =========================================================
+   CONNECTION
+   ========================================================= */
+
+.vc-connection{
+
+  fill:none;
+
+  stroke:var(--text);
+
+  stroke-width:1.8px;
+
+  stroke-linecap:round;
+  stroke-linejoin:round;
+
+  stroke-dasharray:2px 5px;
+
+  opacity:.18;
+
+  pointer-events:none;
+
+  transition:
+    opacity .18s ease,
+    stroke-width .18s ease,
+    stroke .18s ease;
+
+}
+
+
+.vc-connection.vc-active{
+
+  stroke:var(--node-color,var(--accent));
+
+  stroke-dasharray:none;
+
+  opacity:.7;
+
+  stroke-width:2.2px;
+
+}
+
+
+.vc-connection-dot{
+
+  fill:var(--canvas);
+
+  stroke:var(--text);
+
+  stroke-width:1.2px;
+
+  opacity:.35;
+
+}
+
+
+.vc-drag-connection{
+
+  fill:none;
+
+  stroke:var(--accent);
+
+  stroke-width:2.2px;
+
+  stroke-linecap:round;
+
+  opacity:.85;
+
+  pointer-events:none;
+
+}
+
+
+.vc-drag-source-dot{
+
+  fill:var(--accent);
+
+}
+
+
+/* =========================================================
+   TOP CONTROLS
+   ========================================================= */
+
+.vc-top-controls{
+
+  position:fixed;
+
+  top:max(.875rem,env(safe-area-inset-top));
+
+  right:.875rem;
+
+  z-index:300;
+
+  display:flex;
+
+  gap:.4375rem;
+
+}
+
+
+.vc-top-button{
+
+  width:2.5rem;
+  height:2.5rem;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  border-radius:50%;
+
+  cursor:pointer;
+
+  transition:
+    transform .18s cubic-bezier(.22,.8,.25,1),
+    background .18s ease;
+
+}
+
+
+.vc-top-button:active{
+
+  transform:scale(.93);
+
+}
+
+
+.vc-theme-button{
+
+  color:var(--text);
+
+  background:var(--glass);
+
+  border:1px solid var(--soft);
+
+  backdrop-filter:blur(1.125rem);
+
+  -webkit-backdrop-filter:blur(1.125rem);
+
+}
+
+
+.vc-add-button{
+
+  color:#171717;
+
+  background:#fff;
+
+  border:1px solid rgba(0,0,0,.07);
+
+  box-shadow:
+    0 .375rem 1.125rem rgba(0,0,0,.1);
+
+}
+
+
+html.dark .vc-add-button{
+
+  background:#f4f4f4;
+
+}
+
+
+.vc-add-node-icon{
+
+  width:1.1875rem;
+  height:1.1875rem;
+
+  display:block;
+
+  transition:
+    transform .28s cubic-bezier(.22,.8,.25,1),
+    opacity .18s ease;
+
+}
+
+
+.vc-add-button:hover .vc-add-node-icon{
+
+  transform:scale(1.04);
+
+}
+
+
+.vc-add-button.vc-open .vc-add-node-icon{
+
+  transform:rotate(90deg) scale(.96);
+
+}
+
+
+/* =========================================================
+   ADD MENU
+   ========================================================= */
+
+.vc-add-menu{
+
+  position:fixed;
+
+  top:
+    calc(
+      max(.875rem,env(safe-area-inset-top)) + 3rem
+    );
+
+  right:.875rem;
+
+  z-index:301;
+
+  width:14.375rem;
+
+  padding:.375rem;
+
+  border:1px solid var(--soft);
+
+  border-radius:1rem;
+
+  background:var(--glass2);
+
+  box-shadow:
+    0 1rem 2.625rem rgba(0,0,0,.12);
+
+  backdrop-filter:blur(1.5rem);
+
+  -webkit-backdrop-filter:blur(1.5rem);
+
+  opacity:0;
+
+  transform:
+    translateY(-.3125rem)
+    scale(.98);
+
+  pointer-events:none;
+
+  transition:
+    opacity .16s ease,
+    transform .18s cubic-bezier(.22,.8,.25,1);
+
+}
+
+
+.vc-add-menu.vc-open{
+
+  opacity:1;
+
+  transform:none;
+
+  pointer-events:auto;
+
+}
+
+
+.vc-menu-item{
+
+  width:100%;
+
+  display:flex;
+
+  align-items:center;
+
+  gap:.625rem;
+
+  padding:.5625rem;
+
+  border-radius:.625rem;
+
+  color:var(--text);
+
+  background:transparent;
+
+  text-align:left;
+
+  cursor:pointer;
+
+}
+
+
+.vc-menu-item:hover{
+
+  background:var(--soft);
+
+}
+
+
+.vc-menu-icon{
+
+  width:1.625rem;
+  height:1.625rem;
+
+  flex:0 0 1.625rem;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  border-radius:.5rem;
+
+  background:var(--soft);
+
+  border:
+    1px solid
+    color-mix(
+      in srgb,
+      var(--text) 6%,
+      transparent
+    );
+
+  color:var(--sub);
+
+}
+
+
+.vc-menu-icon svg{
+
+  width:.9375rem;
+  height:.9375rem;
+
+  display:block;
+
+}
+
+
+.vc-menu-name{
+
+  font-size:.71875rem;
+
+  font-weight:600;
+
+}
+
+
+.vc-menu-desc{
+
+  margin-left:auto;
+
+  color:var(--faint);
+
+  font-size:.5625rem;
+
+}
+
+
+/* =========================================================
+   COMPOSER
+   ========================================================= */
+
+.vc-composer-wrap{
+
+  position:fixed;
+
+  left:50%;
+
+  bottom:
+    max(
+      1.125rem,
+      calc(env(safe-area-inset-bottom) + .5rem)
+    );
+
+  width:
+    min(
+      calc(100% - 1.75rem),
+      33.75rem
+    );
+
+  transform:translateX(-50%);
+
+  z-index:200;
+
+  pointer-events:none;
+
+}
+
+
+.vc-composer{
+
+  position:relative;
+
+  left:50%;
+
+  transform:translateX(-50%);
+
+  pointer-events:auto;
+
+  width:100%;
+
+  min-height:3rem;
+
+  display:flex;
+
+  align-items:center;
+
+  gap:.25rem;
+
+  padding:.3125rem;
+
+  border:1px solid var(--soft);
+
+  border-radius:1.625rem;
+
+  background:var(--glass2);
+
+  box-shadow:
+    0 .625rem 2rem rgba(0,0,0,.09),
+    0 .06rem .125rem rgba(0,0,0,.04);
+
+  backdrop-filter:blur(1.625rem);
+
+  -webkit-backdrop-filter:blur(1.625rem);
+
+  transition:
+    width .28s cubic-bezier(.22,.8,.25,1),
+    min-height .22s ease,
+    padding .22s ease,
+    border-radius .22s ease,
+    box-shadow .22s ease,
+    opacity .22s ease;
+
+}
+
+
+.vc-composer:not(.vc-active){
+
+  width:20rem;
+
+  min-height:2.625rem;
+
+  padding:.1875rem .25rem;
+
+  border-radius:1.375rem;
+
+  opacity:.86;
+
+}
+
+
+.vc-composer:not(.vc-active) .vc-chat-input{
+
+  min-height:2rem;
+
+  padding-top:.375rem;
+  padding-bottom:.375rem;
+
+  font-size:.96875rem;
+
+  font-weight:500;
+
+}
+
+
+.vc-composer.vc-has-text,
+.vc-composer:focus-within,
+.vc-composer.vc-active{
+
+  min-height:3.375rem;
+
+  padding:.4375rem;
+
+  border-radius:1.75rem;
+
+  opacity:1;
+
+}
+
+
+.vc-composer-button{
+
+  width:2.25rem;
+  height:2.25rem;
+
+  flex:0 0 2.25rem;
+
+  align-self:center;
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  padding:0;
+
+  border-radius:50%;
+
+  color:var(--sub);
+
+  background:transparent;
+
+  cursor:pointer;
+
+}
+
+
+.vc-composer-button:not(.vc-send-button):hover{
+
+  color:var(--text);
+
+  background:var(--soft);
+
+}
+
+
+.vc-send-button{
+
+  transition:all .5s ease;
+
+  width:2rem;
+  height:2rem;
+
+  flex:0 0 2rem;
+
+  align-self:center;
+
+  padding:0;
+
+  border-radius:50%!important;
+
+  color:#171717;
+
+  background:#fff;
+
+  border:1px solid rgba(0,0,0,.07);
+
+  box-shadow:
+    0 .1875rem .5625rem rgba(0,0,0,.09),
+    inset 0 .06rem 0 rgba(255,255,255,.65);
+
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  line-height:0;
+
+}
+
+
+.vc-send-button:hover{
+
+  opacity:.75;
+
+}
+
+
+.vc-composer-button:active,
+.vc-send-button:active{
+
+  transform:scale(.92);
+
+}
+
+
+.vc-attach-icon{
+
+  width:1.0625rem;
+  height:1.0625rem;
+
+  display:block;
+
+}
+
+
+.vc-chat-input{
+
+  flex:1;
+
+  min-width:0;
+
+  min-height:2.375rem;
+
+  max-height:7.1875rem;
+
+  resize:none;
+
+  padding:.5rem .375rem .4375rem;
+
+  border:0;
+
+  outline:0;
+
+  color:var(--text);
+
+  background:transparent;
+
+  font-size:.9375rem;
+
+  line-height:1.45;
+
+  letter-spacing:-.015em;
+
+}
+
+
+.vc-chat-input::placeholder{
+
+  color:var(--faint);
+
+}
+
+
+.vc-send-button svg{
+
+  width:.9375rem;
+  height:.9375rem;
+
+  display:block;
+
+}
+
+
+html.dark .vc-send-button{
+
+  background:#f4f4f4;
+
+}
+
+
+.vc-zoom-indicator{
+
+  position:fixed;
+
+  left:.875rem;
+
+  top:max(.875rem,env(safe-area-inset-top));
+
+  z-index:90;
+
+  padding:.4375rem .625rem;
+
+  border-radius:.625rem;
+
+  background:var(--glass);
+
+  border:1px solid var(--soft);
+
+  color:var(--sub);
+
+  font-size:.625rem;
+
+  backdrop-filter:blur(1.125rem);
+
+  -webkit-backdrop-filter:blur(1.125rem);
+
+  opacity:.8;
+
+}
+
+
+/* =========================================================
+   VALIDATION
+   ========================================================= */
+
+.vc-validation{
+
+  position:fixed;
+
+  left:.875rem;
+
+  bottom:
+    max(
+      1.125rem,
+      calc(env(safe-area-inset-bottom) + .5rem)
+    );
+
+  z-index:250;
+
+  display:flex;
+
+  flex-direction:column;
+
+  gap:.3125rem;
+
+  max-width:
+    min(
+      22.5rem,
+      calc(100% - 1.75rem)
+    );
+
+  pointer-events:none;
+
+}
+
+
+.vc-validation-item{
+
+  padding:.5rem .625rem;
+
+  border-radius:.625rem;
+
+  background:var(--glass2);
+
+  border:1px solid var(--soft);
+
+  box-shadow:
+    0 .5rem 1.375rem rgba(0,0,0,.08);
+
+  font-size:.625rem;
+
+  line-height:1.4;
+
+  opacity:0;
+
+  transform:translateY(.3125rem);
+
+  transition:
+    opacity .18s ease,
+    transform .18s ease;
+
+}
+
+
+.vc-validation-item.vc-show{
+
+  opacity:1;
+
+  transform:none;
+
+}
+
+
+.vc-validation-item.vc-error{
+
+  border-color:
+    color-mix(
+      in srgb,
+      var(--danger) 24%,
+      var(--soft)
+    );
+
+  color:var(--danger);
+
+}
+
+
+.vc-validation-item.vc-warning{
+
+  border-color:
+    color-mix(
+      in srgb,
+      #c48a18 24%,
+      var(--soft)
+    );
+
+  color:#a06d08;
+
+}
+
+
+.vc-validation-item.vc-ok{
+
+  color:var(--sub);
+
+}
+
+
+/* =========================================================
+   MOBILE
+   기존 모바일 레이아웃 비율 유지.
+   ========================================================= */
+
+@media(max-width:600px){
+
+  .vc-node{
+
+    /*
+     * 기존 178px ≈ 11.125rem
+     */
+    width:11.125rem;
+
+    min-height:3rem;
+
+    padding:.625rem .75rem;
+
+    border-radius:1rem;
+
+  }
+
+
+  .vc-node-title{
+
+    font-size:.78125rem;
+
+  }
+
+
+  .vc-slot-description{
+
+    font-size:.65625rem;
+
+  }
+
+
+  .vc-start-badge{
+
+    font-size:.46875rem;
+
+    padding:.1875rem .3125rem;
+
+  }
+
+
+  .vc-top-controls{
+
+    right:.6875rem;
+
+  }
+
+
+  .vc-add-menu{
+
+    right:.6875rem;
+
+  }
+
+
+  .vc-composer-wrap{
+
+    left:50%;
+
+    width:
+      calc(100% - 1.375rem);
+
+    bottom:
+      max(
+        1.0625rem,
+        calc(env(safe-area-inset-bottom) + .5rem)
+      );
+
+    transform:translateX(-50%);
+
+  }
+
+
+  .vc-composer{
+
+    left:50%;
+
+    transform:translateX(-50%);
+
+    min-height:2.9375rem;
+
+    border-radius:1.5rem;
+
+    padding:.25rem;
+
+  }
+
+
+  .vc-composer:not(.vc-active){
+
+    /*
+     * 기존 275px ≈ 17.1875rem
+     */
+    width:17.1875rem;
+
+    min-height:2.5rem;
+
+    border-radius:1.3125rem;
+
+    padding:.1875rem .25rem;
+
+  }
+
+
+  .vc-composer:not(.vc-active) .vc-chat-input{
+
+    min-height:1.9375rem;
+
+    font-size:.9375rem;
+
+  }
+
+
+  .vc-composer.vc-has-text,
+  .vc-composer:focus-within,
+  .vc-composer.vc-active{
+
+    min-height:3.25rem;
+
+    border-radius:1.6875rem;
+
+    padding:.375rem;
+
+  }
+
+
+  .vc-composer-button{
+
+    width:2.125rem;
+
+    height:2.125rem;
+
+    flex-basis:2.125rem;
+
+  }
+
+
+  .vc-send-button{
+
+    width:1.875rem;
+
+    height:1.875rem;
+
+    flex-basis:1.875rem;
+
+    border-radius:50%!important;
+
+  }
+
+
+  .vc-zoom-indicator{
+
+    left:.6875rem;
+
+  }
+
+
+  .vc-image-file-node{
+
+    /*
+     * 기존 222.5px ≈ 13.90625rem
+     * 단, 마지막 기존 override가 150px이므로
+     * 실제 최종값은 아래에서 9.375rem으로 유지.
+     */
+    width:13.90625rem;
+
+  }
+
+}
+
+
+/* =========================================================
+   FINAL IMAGE NODE OVERRIDE
+   기존 마지막 override 유지
+   ========================================================= */
+
+.vc-image-file-node{
+
+  width:9.375rem;
+
+  height:9.375rem!important;
+
+}
+
+
+/* =========================================================
+   SEND BUTTON
+   ========================================================= */
+
+.vc-send-button:not(html.dark *){
+
+  filter:invert(1);
 
 }
