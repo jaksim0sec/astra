@@ -30,7 +30,7 @@ const htmlRoutes={
    CANONICAL NODE DEFINITION
    ========================================================= */
 
-const NODE_DEFINITIONS={
+const defaultNodeDef={
 
   start:{
     name:'시작하기',
@@ -484,26 +484,31 @@ const NODE_DEFINITIONS={
 
 
 /* =========================================================
-   NODE HELPERS
+   NODE ALIASES / DERIVED DATA
    ========================================================= */
+
+const NODE_DEFINITIONS=
+  defaultNodeDef;
 
 const nodeTypeNames=
   Object.keys(
-    NODE_DEFINITIONS
+    defaultNodeDef
   );
 
 const nodeDefinitionsPublic=
   JSON.parse(
     JSON.stringify(
-      NODE_DEFINITIONS
+      defaultNodeDef
     )
   );
 
+
 function getNodeDefinition(type){
 
-  return NODE_DEFINITIONS[type]||null;
+  return defaultNodeDef[type]||null;
 
 }
+
 
 function getPortDefinition(
   type,
@@ -512,10 +517,14 @@ function getPortDefinition(
 ){
 
   const def=
-    getNodeDefinition(type);
+    getNodeDefinition(
+      type
+    );
 
   if(!def){
+
     return null;
+
   }
 
   const ports=
@@ -532,13 +541,14 @@ function getPortDefinition(
 
 
 /* =========================================================
-   COMPACT NODE DEFINITION FOR LLM
+   LLM NODE DEFINITION
+   Derived only from defaultNodeDef
    ========================================================= */
 
 function buildNodeDefinitionPrompt(){
 
   return Object.entries(
-    NODE_DEFINITIONS
+    defaultNodeDef
   )
     .map(
       ([type,def])=>{
@@ -547,7 +557,7 @@ function buildNodeDefinitionPrompt(){
           (def.inputs||[])
             .map(
               port=>
-                `${port.id}:${port.name}`
+                port.id
             )
             .join(',')||
           '-';
@@ -556,7 +566,7 @@ function buildNodeDefinitionPrompt(){
           (def.outputs||[])
             .map(
               port=>
-                `${port.id}:${port.name}`
+                port.id
             )
             .join(',')||
           '-';
@@ -565,17 +575,18 @@ function buildNodeDefinitionPrompt(){
           (def.params||[])
             .map(
               param=>
-                `${param.id}:${param.name}`
+                param.id
             )
             .join(',')||
           '-';
 
         return [
-          `${type}=${def.name}`,
-          `설명=${def.desc}`,
-          `입력[${inputs}]`,
-          `출력[${outputs}]`,
-          `설정[${params}]`
+          type,
+          def.name,
+          `입력:${inputs}`,
+          `출력:${outputs}`,
+          `params:${params}`,
+          `설명:${def.desc}`
         ].join(' ');
 
       }
@@ -583,122 +594,147 @@ function buildNodeDefinitionPrompt(){
     .join('\n');
 
 }
+
+
 const NODE_DEFINITION_PROMPT=
   buildNodeDefinitionPrompt();
 
 
 /* =========================================================
-   PLANNER RULES
-   ========================================================= */
-
-const PLANNER_RULES=`
-
-노드:
-start=시작점 1개.
-research=정보 조사.
-organize=자료 구조화.
-judge=조건 분기.
-write=글/문서 작성.
-convert=형식/스타일 변환.
-file=사용자 제공 파일 입력.
-createFile=파일 생성 출력.
-
-필요한 노드만 사용한다.
-
-기존 Workflow가 있으면:
-- 요청과 기존 Workflow의 실제 관련성을 판단한다.
-- 판단 기준은 노드 목적, params, 입력/출력, 연결, 재사용 가치다.
-- 관련성이 있으면 기존 노드와 params를 최대한 유지한다.
-- 필요한 노드만 추가한다.
-- 필요한 params와 연결만 수정한다.
-- 불필요한 노드는 삭제한다.
-- 기존 node id는 가능한 한 유지한다.
-- 새 노드 id는 기존 id와 겹치지 않게 한다.
-- 관련성이 낮으면 기존 Workflow를 억지로 재사용하지 않고 새로 구성한다.
-- 출력은 항상 완성된 Workflow 전체다.
-
-파일:
-- 기존 파일이 없으면 file을 만들지 않는다.
-- 새 파일 생성은 createFile을 사용한다.
-- file1.file은 파일 출력 endpoint.
-- createFile1.in은 파일 생성 입력 endpoint.
-- file1/createFile1 자체는 endpoint가 아니다.
-
-Judge:
-- 실제 분기가 필요할 때만 사용한다.
-- 입력/출력 포트는 true,false만 사용한다.
-- judge.in, judge.truePath, judge.falsePath는 존재하지 않는다.
-
-연결:
-- ["출력endpoint","입력endpoint"] 형식만 사용한다.
-- endpoint는 nodeId.portId다.
-- 존재하지 않는 노드, 포트, params를 만들지 않는다.
-
-Params:
-- 모든 node에 params:{}를 포함한다.
-- 정의된 params만 사용한다.
-- 알 수 있는 값만 채운다.
-- 불필요한 params와 빈 문자열은 넣지 않는다.
-`;
-
-/* =========================================================
-   SYSTEM PROMPT
+   STATIC PLANNER PROMPT
    ========================================================= */
 
 const SYSTEM_PROMPT=`
 너는 Astra Workflow Planner다.
 
-자연어 요청을 실행 가능한 Workflow JSON으로 변환한다.
-설명 없이 JSON 객체 하나만 출력한다.
+현재 Workflow에 사용자 요청을 반영하기 위한
+최소한의 Patch를 만든다.
 
-형식:
-{
-  "nodes":[
-    {"id":"start","type":"start","params":{}}
-  ],
-  "links":[],
-  "data":[]
-}
-반드시:
-- start는 정확히 1개
-- 모든 node는 id,type,params를 포함한다.
-- 실제 존재하는 노드, 포트, params만 사용한다.
-- 결과 언어는 사용자가 사용한 언어로 한다. 단, 다른 언어를 사용하라는 요청은 예외다.
-- 기존 Workflow가 있으면 재활용 가능성을 먼저 판단한다.
-- 재활용하는 기존 node의 id는 가능한 한 유지한다.
-- 최종 결과는 항상 전체 Workflow다.
+절대 최종 Workflow 전체를 반환하지 않는다.
+설명, Markdown, 코드블록도 출력하지 않는다.
 
-연결:
-- 최종 Workflow는 실행 가능한 완성된 연결 구조여야 한다.
-- 필요한 실행 단계는 links로 연결하고, 입력 자료 전달은 data로 연결한다.
-- 기존 Workflow의 연결은 필요한 부분을 최대한 유지하고, 새 노드 추가나 구조 변경에 필요한 연결도 함께 구성한다.
-- 기존 연결이 없거나 불완전해도 최종 Workflow에서는 필요한 연결을 완성한다.
-- 모든 연결은 실제 존재하는 output과 input port를 사용한다.
-- 실제 연결이 필요한데 links를 비워두지 않는다.
-- 파라미터 및 자연어 값은 사용자 언어로 작성한다. 예시 : 한국어 요청에는 한국어만 사용한다.
-- type,id,port id,JSON 키 등 시스템 식별자는 그대로 유지한다.
+원칙:
+- 요청을 만족하는 가장 작은 실행 구조를 만든다.
+- 한 노드가 충분하면 불필요한 노드를 추가하지 않는다.
+- 요청에 없는 조사, 정리, 분기, 변환, 필터, 출력 형식을 임의로 추가하지 않는다.
+- 기존 Workflow와 관련된 부분은 최대한 재사용한다.
+- 기존 node id와 params는 요청에 필요한 경우가 아니면 유지한다.
+- 관련 없는 기존 구조는 억지로 재사용하지 않는다.
+- 필요한 변경만 Patch에 포함한다.
+- 변경할 것이 없으면 {"ops":[]}를 반환한다.
+- 정확한 노드/포트/params 기준은 항상 defaultNodeDef에서 파생된 아래 정의만 사용한다.
+- 없는 노드, 포트, params를 만들지 않는다.
+- 새 node id는 기존 id와 겹치지 않게 한다.
+- node id는 문자열이다.
+- start는 최종 Workflow에 정확히 하나여야 한다.
+- judge는 true/false 포트만 사용한다.
+- judge에 in/result 포트는 없다.
+- file은 사용자 파일 입력이다.
+- 새 결과 파일 생성은 createFile이다.
+- createFile.filename에는 확장자를 붙이지 않는다.
+- parameter 값은 사용자 언어를 사용한다.
+- 지정되지 않은 parameter는 만들지 않는다.
+- 빈 문자열 parameter를 만들지 않는다.
+- 기존 parameter는 요청에서 변경된 경우에만 수정한다.
 
-허용 노드:
+노드 정의:
 ${NODE_DEFINITION_PROMPT}
 
-규칙:
-${PLANNER_RULES}
+Patch 형식:
+["a",id,type,paramsJson]
+["m",id,paramsJson]
+["dn",id]
+["c",source,target]
+["dc",source,target]
+["d",source,target]
+["dd",source,target]
+
+a = 노드 추가
+m = 기존 노드 params 수정
+dn = 노드 삭제
+c = links 추가
+dc = links 삭제
+d = data 추가
+dd = data 삭제
+
+paramsJson은 JSON 문자열이다.
+예:
+["a","n2","research","{\\"topic\\":\\"일본어 단어\\"}"]
+
+연결 endpoint는 nodeId.portId 형식이다.
+
+Patch 적용 순서:
+dn → dc/dd → m → a → c/d
+
+중요:
+- c는 links에만 적용한다.
+- d는 data에만 적용한다.
+- file.file은 data 연결에 사용할 수 있다.
+- createFile.in은 입력 포트다.
 `;
 
+
 /* =========================================================
-   JSON PARSE
+   PATCH SCHEMA
+   ========================================================= */
+
+const PATCH_SCHEMA={
+
+  type:'object',
+
+  additionalProperties:false,
+
+  properties:{
+
+    ops:{
+
+      type:'array',
+
+      minItems:0,
+
+      maxItems:24,
+
+      items:{
+
+        type:'array',
+
+        minItems:2,
+
+        maxItems:4,
+
+        items:{
+          type:'string'
+        }
+
+      }
+
+    }
+
+  },
+
+  required:[
+    'ops'
+  ]
+
+};
+
+
+/* =========================================================
+   BASIC HELPERS
    ========================================================= */
 
 function parseJson(text){
 
   try{
 
-    return JSON.parse(text);
+    return JSON.parse(
+      text
+    );
 
-  }catch{
+  }catch(error){
 
     throw new Error(
-      'LLM이 올바른 JSON을 반환하지 않았습니다.'
+      `AI 응답 JSON 파싱 실패: ${error.message}`
     );
 
   }
@@ -706,9 +742,54 @@ function parseJson(text){
 }
 
 
-/* =========================================================
-   PARAM CLEANUP
-   ========================================================= */
+function cloneWorkflow(workflow){
+
+  if(
+    !workflow||
+    typeof workflow!=='object'||
+    Array.isArray(workflow)
+  ){
+
+    return {
+      nodes:[],
+      links:[],
+      data:[]
+    };
+
+  }
+
+  return {
+    nodes:
+      Array.isArray(workflow.nodes)
+        ?JSON.parse(
+            JSON.stringify(
+              workflow.nodes
+            )
+          )
+        :[],
+
+    links:
+      Array.isArray(workflow.links)
+        ?JSON.parse(
+            JSON.stringify(
+              workflow.links
+            )
+          )
+        :[],
+
+    data:
+      Array.isArray(workflow.data)
+        ?JSON.parse(
+            JSON.stringify(
+              workflow.data
+            )
+          )
+        :[]
+
+  };
+
+}
+
 
 function cleanParams(
   type,
@@ -726,11 +807,15 @@ function cleanParams(
   }
 
   const def=
-    getNodeDefinition(type);
+    getNodeDefinition(
+      type
+    );
 
   if(!def){
 
-    return {};
+    throw new Error(
+      `존재하지 않는 노드 타입: ${type}`
+    );
 
   }
 
@@ -739,14 +824,18 @@ function cleanParams(
       (def.params||[])
         .map(
           param=>
-            String(param.id)
+            String(
+              param.id
+            )
         )
     );
 
   const result={};
 
   for(
-    const key of Object.keys(params)
+    const key of Object.keys(
+      params
+    )
   ){
 
     if(!allowed.has(key)){
@@ -775,9 +864,52 @@ function cleanParams(
 }
 
 
-/* =========================================================
-   ENDPOINT
-   ========================================================= */
+function parsePatchParams(
+  value,
+  label='params'
+){
+
+  if(
+    typeof value!=='string'
+  ){
+
+    throw new Error(
+      `${label}가 문자열이 아닙니다.`
+    );
+
+  }
+
+  try{
+
+    const parsed=
+      JSON.parse(
+        value
+      );
+
+    if(
+      !parsed||
+      typeof parsed!=='object'||
+      Array.isArray(parsed)
+    ){
+
+      throw new Error(
+        '객체가 아닙니다.'
+      );
+
+    }
+
+    return parsed;
+
+  }catch(error){
+
+    throw new Error(
+      `${label} JSON 파싱 실패: ${error.message}`
+    );
+
+  }
+
+}
+
 
 function endpoint(value){
 
@@ -794,7 +926,9 @@ function endpoint(value){
   const i=
     value.lastIndexOf('.');
 
-  if(i===-1){
+  if(
+    i===-1
+  ){
 
     throw new Error(
       `포트가 지정되지 않았습니다: ${value}`
@@ -832,11 +966,606 @@ function endpoint(value){
 }
 
 
+function hasEdge(
+  edges,
+  source,
+  target
+){
+
+  return edges.some(
+    edge=>
+      Array.isArray(edge)&&
+      edge.length===2&&
+      edge[0]===source&&
+      edge[1]===target
+  );
+
+}
+
+
+function removeNodeEdges(
+  workflow,
+  nodeId
+){
+
+  workflow.links=
+    workflow.links.filter(
+      edge=>{
+
+        if(
+          !Array.isArray(edge)||
+          edge.length!==2
+        ){
+
+          return false;
+
+        }
+
+        return !(
+          String(edge[0])
+            .startsWith(
+              `${nodeId}.`
+            )||
+          String(edge[1])
+            .startsWith(
+              `${nodeId}.`
+            )
+        );
+
+      }
+    );
+
+  workflow.data=
+    workflow.data.filter(
+      edge=>{
+
+        if(
+          !Array.isArray(edge)||
+          edge.length!==2
+        ){
+
+          return false;
+
+        }
+
+        return !(
+          String(edge[0])
+            .startsWith(
+              `${nodeId}.`
+            )||
+          String(edge[1])
+            .startsWith(
+              `${nodeId}.`
+            )
+        );
+
+      }
+    );
+
+}
+
+
+/* =========================================================
+   PATCH VALIDATION
+   ========================================================= */
+
+function validatePatch(
+  patch
+){
+
+  if(
+    !patch||
+    typeof patch!=='object'||
+    Array.isArray(patch)
+  ){
+
+    throw new Error(
+      'Patch가 없습니다.'
+    );
+
+  }
+
+  if(
+    !Array.isArray(
+      patch.ops
+    )
+  ){
+
+    throw new Error(
+      'Patch ops가 배열이 아닙니다.'
+    );
+
+  }
+
+  if(
+    patch.ops.length>24
+  ){
+
+    throw new Error(
+      'Patch가 너무 큽니다.'
+    );
+
+  }
+
+  for(
+    const op
+      of patch.ops
+  ){
+
+    if(
+      !Array.isArray(op)||
+      op.length<2||
+      op.length>4
+    ){
+
+      throw new Error(
+        '잘못된 Patch operation입니다.'
+      );
+
+    }
+
+    const action=
+      op[0];
+
+    if(
+      typeof action!=='string'
+    ){
+
+      throw new Error(
+        'Patch operation이 문자열이 아닙니다.'
+      );
+
+    }
+
+
+    if(
+      action==='a'
+    ){
+
+      if(
+        op.length!==4
+      ){
+
+        throw new Error(
+          'add operation 형식이 잘못되었습니다.'
+        );
+
+      }
+
+      const id=
+        op[1];
+
+      const type=
+        op[2];
+
+      if(
+        typeof id!=='string'||
+        !id.trim()
+      ){
+
+        throw new Error(
+          '새 노드 ID가 잘못되었습니다.'
+        );
+
+      }
+
+      if(
+        typeof type!=='string'||
+        !getNodeDefinition(type)
+      ){
+
+        throw new Error(
+          `존재하지 않는 노드 타입: ${type}`
+        );
+
+      }
+
+      parsePatchParams(
+        op[3],
+        `${id}.params`
+      );
+
+      continue;
+
+    }
+
+
+    if(
+      action==='m'
+    ){
+
+      if(
+        op.length!==3
+      ){
+
+        throw new Error(
+          'modify operation 형식이 잘못되었습니다.'
+        );
+
+      }
+
+      if(
+        typeof op[1]!=='string'||
+        !op[1].trim()
+      ){
+
+        throw new Error(
+          '수정할 노드 ID가 잘못되었습니다.'
+        );
+
+      }
+
+      parsePatchParams(
+        op[2],
+        `${op[1]}.params`
+      );
+
+      continue;
+
+    }
+
+
+    if(
+      action==='dn'
+    ){
+
+      if(
+        op.length!==2||
+        typeof op[1]!=='string'
+      ){
+
+        throw new Error(
+          'delete node operation 형식이 잘못되었습니다.'
+        );
+
+      }
+
+      continue;
+
+    }
+
+
+    if(
+      action==='c'||
+      action==='dc'||
+      action==='d'||
+      action==='dd'
+    ){
+
+      if(
+        op.length!==3||
+        typeof op[1]!=='string'||
+        typeof op[2]!=='string'
+      ){
+
+        throw new Error(
+          `연결 operation 형식이 잘못되었습니다: ${action}`
+        );
+
+      }
+
+      endpoint(
+        op[1]
+      );
+
+      endpoint(
+        op[2]
+      );
+
+      continue;
+
+    }
+
+
+    throw new Error(
+      `알 수 없는 Patch operation: ${action}`
+    );
+
+  }
+
+  return patch;
+
+}
+
+
+/* =========================================================
+   PATCH APPLY
+   ========================================================= */
+
+function applyPatch(
+  currentWorkflow,
+  patch
+){
+
+  validatePatch(
+    patch
+  );
+
+  const workflow=
+    cloneWorkflow(
+      currentWorkflow
+    );
+
+  const nodeMap=
+    new Map(
+      workflow.nodes.map(
+        node=>[
+          node.id,
+          node
+        ]
+      )
+    );
+
+
+  /*
+    1. delete nodes
+  */
+
+  for(
+    const op
+      of patch.ops
+  ){
+
+    if(
+      op[0]!=='dn'
+    ){
+
+      continue;
+
+    }
+
+    const id=
+      op[1];
+
+    const node=
+      nodeMap.get(
+        id
+      );
+
+    if(!node){
+
+      throw new Error(
+        `삭제할 노드가 없습니다: ${id}`
+      );
+
+    }
+
+    workflow.nodes=
+      workflow.nodes.filter(
+        item=>
+          item.id!==id
+      );
+
+    nodeMap.delete(
+      id
+    );
+
+    removeNodeEdges(
+      workflow,
+      id
+    );
+
+  }
+
+
+  /*
+    2. delete connections
+  */
+
+  for(
+    const op
+      of patch.ops
+  ){
+
+    const action=
+      op[0];
+
+    if(
+      action!=='dc'&&
+      action!=='dd'
+    ){
+
+      continue;
+
+    }
+
+    const list=
+      action==='dc'
+        ?workflow.links
+        :workflow.data;
+
+    const index=
+      list.findIndex(
+        edge=>
+          Array.isArray(edge)&&
+          edge.length===2&&
+          edge[0]===op[1]&&
+          edge[1]===op[2]
+      );
+
+    if(index!==-1){
+
+      list.splice(
+        index,
+        1
+      );
+
+    }
+
+  }
+
+
+  /*
+    3. modify
+  */
+
+  for(
+    const op
+      of patch.ops
+  ){
+
+    if(
+      op[0]!=='m'
+    ){
+
+      continue;
+
+    }
+
+    const id=
+      op[1];
+
+    const node=
+      nodeMap.get(
+        id
+      );
+
+    if(!node){
+
+      throw new Error(
+        `수정할 노드가 없습니다: ${id}`
+      );
+
+    }
+
+    const params=
+      parsePatchParams(
+        op[2],
+        `${id}.params`
+      );
+
+    node.params=
+      cleanParams(
+        node.type,
+        params
+      );
+
+  }
+
+
+  /*
+    4. add
+  */
+
+  for(
+    const op
+      of patch.ops
+  ){
+
+    if(
+      op[0]!=='a'
+    ){
+
+      continue;
+
+    }
+
+    const id=
+      op[1];
+
+    const type=
+      op[2];
+
+    if(
+      nodeMap.has(id)
+    ){
+
+      throw new Error(
+        `중복된 노드 ID: ${id}`
+      );
+
+    }
+
+    const params=
+      parsePatchParams(
+        op[3],
+        `${id}.params`
+      );
+
+    const node={
+      id,
+      type,
+      params:
+        cleanParams(
+          type,
+          params
+        )
+    };
+
+    workflow.nodes.push(
+      node
+    );
+
+    nodeMap.set(
+      id,
+      node
+    );
+
+  }
+
+
+  /*
+    5. add connections
+  */
+
+  for(
+    const op
+      of patch.ops
+  ){
+
+    const action=
+      op[0];
+
+    if(
+      action!=='c'&&
+      action!=='d'
+    ){
+
+      continue;
+
+    }
+
+    const list=
+      action==='c'
+        ?workflow.links
+        :workflow.data;
+
+    const source=
+      op[1];
+
+    const target=
+      op[2];
+
+    if(
+      !hasEdge(
+        list,
+        source,
+        target
+      )
+    ){
+
+      list.push([
+        source,
+        target
+      ]);
+
+    }
+
+  }
+
+
+  return workflow;
+
+}
+
+
 /* =========================================================
    WORKFLOW VALIDATION
    ========================================================= */
 
-function validateWorkflow(spec){
+function validateWorkflow(
+  spec
+){
 
   if(
     !spec||
@@ -851,7 +1580,9 @@ function validateWorkflow(spec){
   }
 
   if(
-    !Array.isArray(spec.nodes)
+    !Array.isArray(
+      spec.nodes
+    )
   ){
 
     throw new Error(
@@ -861,7 +1592,9 @@ function validateWorkflow(spec){
   }
 
   if(
-    !Array.isArray(spec.links)
+    !Array.isArray(
+      spec.links
+    )
   ){
 
     throw new Error(
@@ -871,7 +1604,9 @@ function validateWorkflow(spec){
   }
 
   if(
-    !Array.isArray(spec.data)
+    !Array.isArray(
+      spec.data
+    )
   ){
 
     throw new Error(
@@ -884,11 +1619,13 @@ function validateWorkflow(spec){
   const ids=
     new Set();
 
-  let startCount=0;
+  let startCount=
+    0;
 
 
   for(
-    const node of spec.nodes
+    const node
+      of spec.nodes
   ){
 
     if(
@@ -907,7 +1644,9 @@ function validateWorkflow(spec){
 
 
     if(
-      ids.has(node.id)
+      ids.has(
+        node.id
+      )
     ){
 
       throw new Error(
@@ -973,7 +1712,8 @@ function validateWorkflow(spec){
       new Set();
 
     for(
-      const edge of edges
+      const edge
+        of edges
     ){
 
       if(
@@ -1004,13 +1744,15 @@ function validateWorkflow(spec){
       const fromNode=
         spec.nodes.find(
           node=>
-            node.id===from.node
+            node.id===
+            from.node
         );
 
       const toNode=
         spec.nodes.find(
           node=>
-            node.id===to.node
+            node.id===
+            to.node
         );
 
 
@@ -1069,7 +1811,9 @@ function validateWorkflow(spec){
         `${edge[0]}->${edge[1]}`;
 
       if(
-        seen.has(key)
+        seen.has(
+          key
+        )
       ){
 
         throw new Error(
@@ -1078,7 +1822,9 @@ function validateWorkflow(spec){
 
       }
 
-      seen.add(key);
+      seen.add(
+        key
+      );
 
     }
 
@@ -1102,127 +1848,324 @@ function validateWorkflow(spec){
 
 
 /* =========================================================
-   WORKFLOW JSON SCHEMA
+   PATCH REQUEST
    ========================================================= */
 
-function buildWorkflowSchema(){
+function buildUserPrompt(
+  text,
+  workflow
+){
 
-  const allParams={};
+  return [
+    'CURRENT WORKFLOW',
+    JSON.stringify(
+      workflow||null
+    ),
+    '',
+    'USER REQUEST',
+    text
+  ].join('\n');
 
-  for(
-    const def
-      of Object.values(
-        NODE_DEFINITIONS
-      )
-  ){
+}
 
-    for(
-      const param
-        of (def.params||[])
-    ){
 
-      allParams[param.id]={
-        type:'string'
-      };
+function buildRetryPrompt(
+  text,
+  workflow,
+  patch,
+  errorMessage
+){
 
-    }
+  return [
+    'CURRENT WORKFLOW',
+    JSON.stringify(
+      workflow||null
+    ),
+    '',
+    'PREVIOUS PATCH',
+    JSON.stringify(
+      patch
+    ),
+    '',
+    'VALIDATION ERROR',
+    errorMessage,
+    '',
+    'USER REQUEST',
+    text
+  ].join('\n');
+
+}
+
+
+async function requestPatch(
+  prompt
+){
+
+  const response=
+    await fetch(
+      'https://api.groq.com/openai/v1/chat/completions',
+      {
+        method:'POST',
+
+        headers:{
+          'Content-Type':
+            'application/json',
+
+          'Authorization':
+            `Bearer ${process.env.GROQ_API_KEY}`
+        },
+
+        body:JSON.stringify({
+
+          model:
+            process.env.GROQ_MODEL||
+            'openai/gpt-oss-120b',
+
+          messages:[
+
+            {
+              role:'system',
+              content:
+                SYSTEM_PROMPT
+            },
+
+            {
+              role:'user',
+              content:
+                prompt
+            }
+
+          ],
+
+          temperature:0.15,
+
+          response_format:{
+
+            type:'json_schema',
+
+            json_schema:{
+
+              name:'workflow_patch',
+
+              strict:true,
+
+              schema:
+                PATCH_SCHEMA
+
+            }
+
+          }
+
+        })
+
+      }
+    );
+
+
+  if(!response.ok){
+
+    const errorText=
+      await response.text();
+
+    throw new Error(
+      `Groq API 오류: ${response.status} ${errorText}`
+    );
 
   }
 
 
-  return {
+  const result=
+    await response.json();
 
-    type:'object',
+  const content=
+    result?.choices?.[0]?.message?.content;
 
-    additionalProperties:false,
 
-    properties:{
+  if(
+    typeof content!=='string'||
+    !content.trim()
+  ){
 
-      nodes:{
-        type:'array',
+    throw new Error(
+      'AI 응답이 비어 있습니다.'
+    );
 
-        items:{
-          type:'object',
+  }
 
-          additionalProperties:false,
 
-          properties:{
+  const patch=
+    parseJson(
+      content
+    );
 
-            id:{
-              type:'string'
-            },
-
-            type:{
-              type:'string',
-              enum:nodeTypeNames
-            },
-
-            params:{
-              type:'object',
-              additionalProperties:false,
-              properties:allParams
-            }
-
-          },
-
-          required:[
-            'id',
-            'type',
-            'params'
-          ]
-
-        }
-
-      },
-
-      links:{
-        type:'array',
-
-        items:{
-          type:'array',
-
-          minItems:2,
-          maxItems:2,
-
-          items:{
-            type:'string'
-          }
-
-        }
-
-      },
-
-      data:{
-        type:'array',
-
-        items:{
-          type:'array',
-
-          minItems:2,
-          maxItems:2,
-
-          items:{
-            type:'string'
-          }
-
-        }
-
-      }
-
-    },
-
-    required:[
-      'nodes',
-      'links',
-      'data'
-    ]
-
-  };
+  return validatePatch(
+    patch
+  );
 
 }
 
-const WORKFLOW_SCHEMA=
-  buildWorkflowSchema();
+
+/* =========================================================
+   WORKFLOW API
+   ========================================================= */
+
+app.post(
+  '/api/workflow',
+  async(
+    req,
+    res
+  )=>{
+
+    try{
+
+      const text=
+        String(
+          req.body?.text||
+          ''
+        ).trim();
+
+
+      const currentWorkflow=
+        req.body?.workflow||
+        null;
+
+
+      if(!text){
+
+        return res.status(400).json({
+
+          ok:false,
+
+          error:
+            '작업 내용을 입력해주세요.'
+
+        });
+
+      }
+
+
+      if(
+        !process.env.GROQ_API_KEY
+      ){
+
+        return res.status(500).json({
+
+          ok:false,
+
+          error:
+            'GROQ_API_KEY가 설정되지 않았습니다.'
+
+        });
+
+      }
+
+
+      /*
+        1차:
+        현재 Workflow + 요청 → 최소 Patch
+      */
+
+      let patch=
+        await requestPatch(
+          buildUserPrompt(
+            text,
+            currentWorkflow
+          )
+        );
+
+
+      /*
+        Patch 적용 + 검증
+      */
+
+      let workflow;
+
+      try{
+
+        workflow=
+          applyPatch(
+            currentWorkflow,
+            patch
+          );
+
+        workflow=
+          validateWorkflow(
+            workflow
+          );
+
+      }catch(firstError){
+
+        console.warn(
+          'Workflow patch validation failed. Retrying once:',
+          firstError.message
+        );
+
+
+        /*
+          2차:
+          전체 Workflow를 다시 만들지 않고
+          실패한 Patch만 수정한다.
+        */
+
+        patch=
+          await requestPatch(
+            buildRetryPrompt(
+              text,
+              currentWorkflow,
+              patch,
+              firstError.message
+            )
+          );
+
+
+        workflow=
+          applyPatch(
+            currentWorkflow,
+            patch
+          );
+
+        workflow=
+          validateWorkflow(
+            workflow
+          );
+
+      }
+
+
+      /*
+        프론트 계약은 기존과 동일하다.
+      */
+
+      return res.json({
+
+        ok:true,
+
+        workflow
+
+      });
+
+
+    }catch(error){
+
+      console.error(
+        error
+      );
+
+
+      return res.status(500).json({
+
+        ok:false,
+
+        error:
+          error.message||
+          '워크플로우 생성에 실패했습니다.'
+
+      });
+
+    }
+
+  }
+);
 
 
 /* =========================================================
@@ -1261,6 +2204,7 @@ app.get(
   }
 );
 
+
 app.get(
   '/*splat',
   (req,res,next)=>{
@@ -1281,11 +2225,13 @@ app.get(
 
     }
 
+
     const filePath=
       path.join(
         __dirname,
         req.path
       );
+
 
     res.sendFile(
       filePath,
@@ -1299,376 +2245,6 @@ app.get(
 
       }
     );
-
-  }
-);
-
-
-/* =========================================================
-   RETRY PROMPT
-   ========================================================= */
-
-function buildRetryPrompt(
-  text,
-  workflow,
-  errorMessage
-){
-
-  return `
-검증 오류:
-${errorMessage}
-
-같은 요청과 Workflow를 기준으로 오류만 수정해 전체 Workflow를 다시 출력한다.
-기존 Workflow가 있으면 재사용 가능한 노드와 id를 최대한 유지한다.
-
-사용자 요청:
-${text}
-
-현재 Workflow:
-${JSON.stringify(
-  workflow||null
-)}
-`;
-
-}
-/* =========================================================
-   LLM REQUEST
-   ========================================================= */
-
-async function requestWorkflow(
-  text,
-  workflow=null,
-  retry=false,
-  previousError=""
-){
-
-  const userPrompt=
-    retry
-      ?buildRetryPrompt(
-          text,
-          workflow,
-          previousError
-        )
-      :[
-          "사용자 요청:",
-          text,
-          "",
-          "현재 Workflow:",
-          JSON.stringify(
-            workflow,
-            null,
-            2
-          )
-        ].join("\n");
-
-
-  const response=
-    await fetch(
-      "https://api.groq.com/openai/v1/chat/completions",
-      {
-        method:"POST",
-
-        headers:{
-          "Content-Type":
-            "application/json",
-
-          "Authorization":
-            `Bearer ${process.env.GROQ_API_KEY}`
-        },
-
-        body:JSON.stringify({
-
-          model:
-  process.env.GROQ_MODEL||
-  "openai/gpt-oss-120b",
-
-          messages:[
-
-            {
-              role:"system",
-              content:
-                SYSTEM_PROMPT
-            },
-
-            {
-              role:"user",
-              content:
-                userPrompt
-            }
-
-          ],
-
-          temperature:0.2,
-
-          response_format:{
-            type:"json_object"
-          }
-
-        })
-      }
-    );
-
-
-  if(!response.ok){
-
-    const errorText=
-      await response.text();
-
-    throw new Error(
-      `Groq API 오류: ${response.status} ${errorText}`
-    );
-
-  }
-
-
-  const result=
-    await response.json();
-
-
-  const content=
-    result?.choices?.[0]?.message?.content;
-
-
-  if(
-    typeof content!=="string"||
-    !content.trim()
-  ){
-
-    throw new Error(
-      "AI 응답이 비어 있습니다."
-    );
-
-  }
-
-
-  let spec;
-
-  try{
-
-    spec=
-      JSON.parse(
-        content
-      );
-
-  }catch(error){
-
-    throw new Error(
-      `AI 응답 JSON 파싱 실패: ${error.message}`
-    );
-
-  }
-
-
-  /*
-    AI가 Workflow 자체를 반환하거나
-    {workflow:...} 형태로 반환할 수 있으므로
-    둘 다 허용한다.
-  */
-  if(
-    spec&&
-    typeof spec==="object"&&
-    spec.workflow&&
-    typeof spec.workflow==="object"
-  ){
-
-    spec=
-      spec.workflow;
-
-  }
-
-
-  if(
-    !spec||
-    typeof spec!=="object"
-  ){
-
-    throw new Error(
-      "AI가 올바른 Workflow를 반환하지 않았습니다."
-    );
-
-  }
-
-
-  /*
-    기본 배열 보정
-  */
-  if(
-    !Array.isArray(
-      spec.nodes
-    )
-  ){
-
-    spec.nodes=[];
-
-  }
-
-
-  if(
-    !Array.isArray(
-      spec.links
-    )
-  ){
-
-    spec.links=[];
-
-  }
-
-
-  if(
-    !Array.isArray(
-      spec.data
-    )
-  ){
-
-    spec.data=[];
-
-  }
-
-
-  /*
-    data는 현재 Canonical Workflow에서
-    ["node.port","node.port"] 형태의
-    정상 endpoint 연결만 허용한다.
-
-    AI가 객체나 다른 형태를 넣었으면
-    잘못된 항목만 제거한다.
-  */
-  spec.data=
-    spec.data.filter(
-      edge=>
-        Array.isArray(edge)&&
-        edge.length===2&&
-        typeof edge[0]==="string"&&
-        typeof edge[1]==="string"&&
-        edge[0].includes(".")&&
-        edge[1].includes(".")
-    );
-
-
-  /*
-    links 역시 같은 형태만 허용.
-  */
-  spec.links=
-    spec.links.filter(
-      edge=>
-        Array.isArray(edge)&&
-        edge.length===2&&
-        typeof edge[0]==="string"&&
-        typeof edge[1]==="string"&&
-        edge[0].includes(".")&&
-        edge[1].includes(".")
-    );
-
-
-  /*
-    검증
-  */
-  return validateWorkflow(
-    spec
-  );
-
-}
-
-/* =========================================================
-   WORKFLOW API
-   ========================================================= */
-
-app.post(
-  '/api/workflow',
-  async(req,res)=>{
-
-    try{
-
-      const text=
-        String(
-          req.body?.text||
-          ''
-        ).trim();
-
-
-      const currentWorkflow=
-        req.body?.workflow||
-        null;
-
-
-      if(!text){
-
-        return res.status(400).json({
-          ok:false,
-          error:
-            '작업 내용을 입력해주세요.'
-        });
-
-      }
-
-
-      if(
-        !process.env.GROQ_API_KEY
-      ){
-
-        return res.status(500).json({
-          ok:false,
-          error:
-            'GROQ_API_KEY가 설정되지 않았습니다.'
-        });
-
-      }
-
-
-      let workflow;
-
-
-      try{
-
-        workflow=
-          await requestWorkflow(
-            text,
-            currentWorkflow
-          );
-
-      }catch(firstError){
-
-        console.warn(
-          'Workflow validation failed. Retrying once:',
-          firstError.message
-        );
-
-
-        workflow=
-          await requestWorkflow(
-            text,
-            currentWorkflow,
-            true,
-            firstError.message
-          );
-
-      }
-
-
-      return res.json({
-        ok:true,
-        workflow
-      });
-
-
-    }catch(error){
-
-      console.error(
-        error
-      );
-
-
-      return res.status(500).json({
-
-        ok:false,
-
-        error:
-          error.message||
-          '워크플로우 생성에 실패했습니다.'
-
-      });
-
-    }
 
   }
 );
