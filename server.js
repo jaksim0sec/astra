@@ -26,11 +26,12 @@ const htmlRoutes={
 };
 
 
-/* =========================
-   Canonical Node Definition
-========================= */
+/* =========================================================
+   CANONICAL NODE DEFINITION
+   ========================================================= */
 
 const NODE_DEFINITIONS={
+
   start:{
     name:'시작하기',
     desc:'AI 작업을 시작하는 기준점입니다.',
@@ -46,7 +47,8 @@ const NODE_DEFINITIONS={
           stroke-linecap="round"/>
         <path d="M7.8 9.1L10 7l2.2 2.1"
           stroke="currentColor" stroke-width="1.55"
-          stroke-linecap="round" stroke-linejoin="round"/>
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
       </svg>
     `,
 
@@ -75,7 +77,8 @@ const NODE_DEFINITIONS={
         <circle cx="8" cy="8" r="5"
           stroke="currentColor" stroke-width="1.55"/>
         <path d="M11.6 11.6L15.8 15.8"
-          stroke="currentColor" stroke-width="1.6"
+          stroke="currentColor"
+          stroke-width="1.6"
           stroke-linecap="round"/>
       </svg>
     `,
@@ -480,12 +483,13 @@ const NODE_DEFINITIONS={
 
     outputs:[]
   }
+
 };
 
 
-/* =========================
-   Node Definition Helpers
-========================= */
+/* =========================================================
+   NODE HELPERS
+   ========================================================= */
 
 const nodeTypeNames=
   Object.keys(
@@ -499,50 +503,9 @@ const nodeDefinitionsPublic=
     )
   );
 
-const paramDefinitions=
-  Object.values(
-    NODE_DEFINITIONS
-  ).flatMap(
-    def=>
-      Array.isArray(def.params)
-        ?def.params
-        :[]
-  );
-
-const paramKeys=
-  new Set(
-    paramDefinitions.map(
-      param=>String(param.id)
-    )
-  );
-
 function getNodeDefinition(type){
 
   return NODE_DEFINITIONS[type]||null;
-
-}
-
-function getParamDefinition(
-  type,
-  paramId
-){
-
-  const def=
-    getNodeDefinition(type);
-
-  if(
-    !def||
-    !Array.isArray(def.params)
-  ){
-
-    return null;
-
-  }
-
-  return def.params.find(
-    param=>
-      param.id===paramId
-  )||null;
 
 }
 
@@ -556,9 +519,7 @@ function getPortDefinition(
     getNodeDefinition(type);
 
   if(!def){
-
     return null;
-
   }
 
   const ports=
@@ -573,106 +534,55 @@ function getPortDefinition(
 
 }
 
-function getDefinitionPortIds(
-  type,
-  direction
-){
 
-  const def=
-    getNodeDefinition(type);
-
-  if(!def){
-
-    return [];
-
-  }
-
-  const ports=
-    direction==='input'
-      ?def.inputs||[]
-      :def.outputs||[];
-
-  return ports.map(
-    port=>
-      String(port.id)
-  );
-
-}
-
-
-/* =========================
-   Definition Prompt Builder
-========================= */
+/* =========================================================
+   COMPACT NODE DEFINITION FOR LLM
+   ========================================================= */
 
 function buildNodeDefinitionPrompt(){
 
-  const lines=[];
+  return Object.entries(
+    NODE_DEFINITIONS
+  )
+    .map(
+      ([type,def])=>{
 
-  for(
-    const [type,def]
-      of Object.entries(
-        NODE_DEFINITIONS
-      )
-  ){
+        const inputs=
+          (def.inputs||[])
+            .map(
+              port=>
+                `${port.id}:${port.name}`
+            )
+            .join(',')||
+          '-';
 
-    lines.push(type);
+        const outputs=
+          (def.outputs||[])
+            .map(
+              port=>
+                `${port.id}:${port.name}`
+            )
+            .join(',')||
+          '-';
 
-    lines.push(
-      `- name: ${def.name}`
-    );
+        const params=
+          (def.params||[])
+            .map(
+              param=>
+                `${param.id}:${param.name}`
+            )
+            .join(',')||
+          '-';
 
-    lines.push(
-      `- inputs: ${
-        (def.inputs||[])
-          .map(
-            port=>
-              `${port.id} (${port.name})`
-          )
-          .join(', ')||
-        '없음'
-      }`
-    );
-
-    lines.push(
-      `- outputs: ${
-        (def.outputs||[])
-          .map(
-            port=>
-              `${port.id} (${port.name})`
-          )
-          .join(', ')||
-        '없음'
-      }`
-    );
-
-    const params=
-      Array.isArray(def.params)
-        ?def.params
-        :[];
-
-    if(params.length){
-
-      lines.push('- params:');
-
-      for(const param of params){
-
-        lines.push(
-          `  - ${param.id}: ${param.name}`
-        );
+        return [
+          `${type} | ${def.name}`,
+          `in[${inputs}] out[${outputs}] params[${params}]`,
+          def.desc
+        ].join('\n');
 
       }
-
-    }else{
-
-      lines.push('- params: 없음');
-
-    }
-
-    lines.push('');
-
-  }
-
-  return lines.join('\n');
+    )
+    .join('\n');
 
 }
 
@@ -680,25 +590,70 @@ const NODE_DEFINITION_PROMPT=
   buildNodeDefinitionPrompt();
 
 
-/* =========================
-   Prompt
-========================= */
+/* =========================================================
+   PLANNER RULES
+   ========================================================= */
+
+const PLANNER_RULES=`
+
+노드 선택:
+start=항상 시작점, 정확히 1개.
+research=정보 조사.
+organize=자료 구조화.
+judge=조건에 따른 실행 분기.
+write=글/문서 작성.
+convert=기존 결과의 형식/스타일 변환.
+file=사용자가 제공한 기존 파일 입력.
+createFile=새 파일 생성 출력.
+
+불필요한 노드는 만들지 않는다.
+모든 요청에 모든 노드를 넣지 않는다.
+
+파일:
+- file은 기존 파일 입력 전용.
+- file 출력은 file1.file.
+- 기존 파일이 없다면 file을 만들지 않는다.
+- createFile은 새 파일 출력 전용.
+- 파일 생성에는 기존 file이 필요하지 않다.
+- createFile 입력은 createFile1.in.
+- "file1", "createFile1"은 endpoint로 사용할 수 없다.
+
+Judge:
+- 조건에 따라 이후 실행 경로가 갈라질 때만 사용.
+- condition에 판단 기준을 적는다.
+- 입력: judge.true, judge.false
+- 출력: judge.true, judge.false
+- true/false는 boolean 값이 아니라 경로 포트다.
+- judge.in, judge.truePath, judge.falsePath는 존재하지 않는다.
+
+연결:
+모든 endpoint는 정확히 "nodeId.portId".
+["출력endpoint","입력endpoint"] 형식만 사용.
+존재하지 않는 노드/포트/params를 만들지 않는다.
+
+Params:
+- 모든 node에 params:{}를 포함한다.
+- 정의된 params만 사용한다.
+- 요청에서 알 수 있는 값은 채운다.
+- 불필요한 params는 생략한다.
+- 빈 문자열은 넣지 않는다.
+`;
+
+
+/* =========================================================
+   SYSTEM PROMPT
+   ========================================================= */
 
 const SYSTEM_PROMPT=`
-너는 AI 시각적 프로그래밍 캔버스의 Workflow Planner다.
+너는 Astra의 Workflow Planner다.
 
-사용자의 자연어 요청을 하나의 Workflow JSON으로 변환한다.
+사용자의 자연어 요청을 실행 가능한 Workflow JSON으로 변환한다.
+설명 없이 JSON 객체 하나만 출력한다.
 
-반드시 JSON 객체 하나만 출력한다.
-
-구조:
+형식:
 {
   "nodes":[
-    {
-      "id":"start",
-      "type":"start",
-      "params":{}
-    }
+    {"id":"start","type":"start","params":{}}
   ],
   "links":[
     ["start.out","research1.in"]
@@ -706,96 +661,85 @@ const SYSTEM_PROMPT=`
   "data":[]
 }
 
-허용되는 모든 노드와 포트와 파라미터는 아래 정의를 따른다.
-
+허용 정의:
 ${NODE_DEFINITION_PROMPT}
 
-중요:
-- start는 항상 포함한다.
-- 필요한 노드만 사용한다.
-- 요청에서 알 수 있거나 자연스럽게 추론할 수 있는 params는 최대한 채운다.
-- 의미 없는 params는 만들지 않는다.
-- 필요 없는 params는 params에서 생략한다.
-- nodes의 모든 원소는 반드시 객체다.
-- nodes 안에 문자열이나 ":"를 직접 넣지 않는다.
-- links와 data의 연결은 반드시 ["노드ID.출력포트","노드ID.입력포트"] 형식이다.
-- [ "1", "2" ] 같은 숫자 연결은 절대 사용하지 않는다.
-- 존재하지 않는 포트 이름을 만들지 않는다.
-- 존재하지 않는 파라미터 이름을 만들지 않는다.
-- 모든 연결 endpoint의 노드와 포트는 실제 정의에 존재해야 한다.
-- data는 필요하지 않으면 []이다.
+규칙:
+${PLANNER_RULES}
 
-Judge 규칙:
-- judge의 입력은 "true"와 "false" 두 포트다.
-- judge의 판단 기준은 condition 파라미터에 적는다.
-- judge의 출력은 "true"와 "false" 두 포트다.
-- true/false는 boolean 값 자체가 아니라 포트의 의미다.
-- 조건이 참이면 true 입력 쪽 데이터가 true 출력 경로로 전달된다.
-- 조건이 거짓이면 false 입력 쪽 데이터가 false 출력 경로로 전달된다.
-- 선택되지 않은 반대 경로는 이후 실행에서 SKIPPED로 취급될 수 있다.
-- judge.in, judge.truePath, judge.falsePath 같은 존재하지 않는 포트를 사용하지 않는다.
+예시 1:
+"최근 AI 시장을 조사해서 보고서를 작성해줘"
 
-노드 ID 형식:
-- start
-- research1
-- organize1
-- judge1
-- write1
-- convert1
-- file1
-- createFile1
-
-예:
-"최근 고라니 개체수 변화에 대해 조사하고 보고서를 작성해서 PDF로 만들어줘"
-
-research:
 {
-  "topic":"고라니 개체수 변화",
-  "filter":"최근"
+  "nodes":[
+    {"id":"start","type":"start","params":{}},
+    {"id":"research1","type":"research","params":{"topic":"AI 시장","filter":"최근"}},
+    {"id":"organize1","type":"organize","params":{"criteria":"시장 규모 / 주요 기업","format":"표"}},
+    {"id":"write1","type":"write","params":{"title":"AI 시장 보고서","length":"2페이지","style":"전문적","about":"AI 시장 현황"}}
+  ],
+  "links":[
+    ["start.out","research1.in"],
+    ["research1.result","organize1.in"],
+    ["organize1.result","write1.in"]
+  ],
+  "data":[]
 }
 
-organize:
+예시 2:
+"자료 없이 자기소개서를 작성해서 PDF로 만들어줘"
+
 {
-  "criteria":"개체수 변화와 주요 원인",
-  "format":"항목별 정리"
+  "nodes":[
+    {"id":"start","type":"start","params":{}},
+    {"id":"write1","type":"write","params":{"title":"자기소개서","style":"자연스럽고 전문적"}},
+    {"id":"createFile1","type":"createFile","params":{"format":"PDF","filename":"자기소개서"}}
+  ],
+  "links":[
+    ["start.out","write1.in"],
+    ["write1.result","createFile1.in"]
+  ],
+  "data":[]
 }
 
-write:
+예시 3:
+"첨부한 PDF를 요약해서 새로운 PDF로 만들어줘"
+
 {
-  "title":"고라니 개체수 변화 보고서",
-  "length":"2페이지",
-  "style":"보고서 형식, 객관적",
-  "about":"최근 고라니 개체수 변화와 주요 원인"
+  "nodes":[
+    {"id":"start","type":"start","params":{}},
+    {"id":"file1","type":"file","params":{}},
+    {"id":"write1","type":"write","params":{"title":"요약본","style":"간결하게"}},
+    {"id":"createFile1","type":"createFile","params":{"format":"PDF","filename":"요약본"}}
+  ],
+  "links":[
+    ["start.out","write1.in"],
+    ["file1.file","write1.in"],
+    ["write1.result","createFile1.in"]
+  ],
+  "data":[]
 }
 
-convert:
-{
-  "instruction":"PDF로 변환"
-}
+예시 4:
+"점수가 70점 이상이면 통과 문서, 아니면 보완 문서를 작성해줘"
 
-createFile:
-{
-  "format":"PDF",
-  "filename":"고라니 개체수 변화 보고서"
-}
+judge를 사용해 참/거짓 경로로 분기한다.
+condition은 "점수 >= 70"처럼 실제 기준을 적는다.
 
-links:
-[
-  ["start.out","research1.in"],
-  ["research1.result","organize1.in"],
-  ["organize1.result","write1.in"],
-  ["write1.result","convert1.in"],
-  ["convert1.result","createFile1.in"]
-]
-
-data:
-[]
+최종 검사:
+1. start가 정확히 1개인가?
+2. 필요한 노드만 있는가?
+3. 모든 node가 객체인가?
+4. 모든 params가 객체인가?
+5. 모든 endpoint가 nodeId.portId인가?
+6. 각 endpoint의 노드와 포트가 실제 정의에 존재하는가?
+7. 기존 파일이 없는데 file을 넣지 않았는가?
+8. 새 파일 생성이 필요하면 createFile을 사용했는가?
 `;
 
 
-/* =========================
-   JSON Parse
-========================= */
+/* =========================================================
+   JSON PARSE
+   ========================================================= */
 
 function parseJson(text){
 
@@ -814,9 +758,9 @@ function parseJson(text){
 }
 
 
-/* =========================
-   Param Cleanup
-========================= */
+/* =========================================================
+   PARAM CLEANUP
+   ========================================================= */
 
 function cleanParams(
   type,
@@ -857,9 +801,7 @@ function cleanParams(
     const key of Object.keys(params)
   ){
 
-    if(
-      !allowed.has(key)
-    ){
+    if(!allowed.has(key)){
 
       continue;
 
@@ -885,9 +827,9 @@ function cleanParams(
 }
 
 
-/* =========================
-   JSON Endpoint
-========================= */
+/* =========================================================
+   ENDPOINT
+   ========================================================= */
 
 function endpoint(value){
 
@@ -942,9 +884,9 @@ function endpoint(value){
 }
 
 
-/* =========================
-   Workflow Validation
-========================= */
+/* =========================================================
+   WORKFLOW VALIDATION
+   ========================================================= */
 
 function validateWorkflow(spec){
 
@@ -994,7 +936,6 @@ function validateWorkflow(spec){
   const ids=
     new Set();
 
-
   let startCount=0;
 
 
@@ -1036,7 +977,6 @@ function validateWorkflow(spec){
       getNodeDefinition(
         node.type
       );
-
 
     if(!def){
 
@@ -1213,9 +1153,9 @@ function validateWorkflow(spec){
 }
 
 
-/* =========================
-   Workflow JSON Schema
-========================= */
+/* =========================================================
+   WORKFLOW JSON SCHEMA
+   ========================================================= */
 
 function buildWorkflowSchema(){
 
@@ -1266,15 +1206,12 @@ function buildWorkflowSchema(){
 
             type:{
               type:'string',
-
               enum:nodeTypeNames
             },
 
             params:{
               type:'object',
-
               additionalProperties:false,
-
               properties:allParams
             }
 
@@ -1340,9 +1277,9 @@ const WORKFLOW_SCHEMA=
   buildWorkflowSchema();
 
 
-/* =========================
-   Node Definition API
-========================= */
+/* =========================================================
+   NODE DEFINITION API
+   ========================================================= */
 
 app.get(
   '/api/node-definitions',
@@ -1361,9 +1298,9 @@ app.get(
 );
 
 
-/* =========================
-   HTML / Static
-========================= */
+/* =========================================================
+   HTML / STATIC
+   ========================================================= */
 
 app.get(
   '/',
@@ -1419,41 +1356,33 @@ app.get(
 );
 
 
-/* =========================
-   Retry Prompt
-========================= */
+/* =========================================================
+   RETRY PROMPT
+   ========================================================= */
 
-function buildRetryPrompt(text){
+function buildRetryPrompt(
+  text,
+  errorMessage
+){
 
   return `
-이전 응답이 Workflow 검증에 실패했다.
+Workflow 검증 실패:
+${errorMessage}
 
-아래 Canonical Node Definition만 사용해서 다시 생성한다.
+같은 오류를 수정해서 전체 Workflow를 다시 생성한다.
 
-${NODE_DEFINITION_PROMPT}
-
-특히 Judge는 반드시 다음 구조를 사용한다.
-
-- 입력: judge.true, judge.false
-- 파라미터: condition
-- 출력: judge.true, judge.false
-
-judge.in은 존재하지 않는다.
-judge.truePath와 judge.falsePath도 존재하지 않는다.
-
-연결 형식:
-["출발노드.출력포트","도착노드.입력포트"]
-
-규칙:
-- nodes의 모든 원소는 객체
-- id는 start/research1/organize1/judge1/write1/convert1/file1/createFile1 형식
-- params는 객체
-- 필요한 params는 가능한 한 채운다
-- 필요 없는 params는 생략
-- 존재하지 않는 노드 타입을 만들지 않는다.
-- 존재하지 않는 포트를 사용하지 않는다.
-- 존재하지 않는 파라미터를 사용하지 않는다.
-- JSON만 출력한다.
+핵심:
+- JSON 객체 하나만 출력
+- start 정확히 1개
+- 모든 node는 {id,type,params}
+- endpoint는 반드시 nodeId.portId
+- file 출력 = file1.file
+- 새 파일 생성 = createFile1.in
+- file1/createFile1/judge1 자체는 endpoint가 아님
+- judge 입력/출력 = true,false
+- judge.in / judge.truePath / judge.falsePath 금지
+- 존재하지 않는 노드/포트/params 금지
+- 기존 파일이 없으면 file 노드를 만들지 않음
 
 사용자 요청:
 ${text}
@@ -1462,18 +1391,22 @@ ${text}
 }
 
 
-/* =========================
-   LLM Request
-========================= */
+/* =========================================================
+   LLM REQUEST
+   ========================================================= */
 
 async function requestWorkflow(
   text,
-  retry=false
+  retry=false,
+  previousError=''
 ){
 
   const prompt=
     retry
-      ?buildRetryPrompt(text)
+      ?buildRetryPrompt(
+          text,
+          previousError
+        )
       :text;
 
 
@@ -1530,7 +1463,7 @@ async function requestWorkflow(
 
           reasoning_format:'hidden',
 
-          max_completion_tokens:1200
+          max_completion_tokens:900
 
         })
 
@@ -1571,12 +1504,6 @@ async function requestWorkflow(
   }
 
 
-  console.log(
-    'LLM response:',
-    content
-  );
-
-
   return validateWorkflow(
     parseJson(
       content
@@ -1586,9 +1513,9 @@ async function requestWorkflow(
 }
 
 
-/* =========================
-   Workflow API
-========================= */
+/* =========================================================
+   WORKFLOW API
+   ========================================================= */
 
 app.post(
   '/api/workflow',
@@ -1634,8 +1561,7 @@ app.post(
 
         workflow=
           await requestWorkflow(
-            text,
-            false
+            text
           );
 
       }catch(firstError){
@@ -1649,7 +1575,8 @@ app.post(
         workflow=
           await requestWorkflow(
             text,
-            true
+            true,
+            firstError.message
           );
 
       }
@@ -1684,9 +1611,9 @@ app.post(
 );
 
 
-/* =========================
+/* =========================================================
    404
-========================= */
+   ========================================================= */
 
 app.use(
   (req,res)=>{
@@ -1699,9 +1626,9 @@ app.use(
 );
 
 
-/* =========================
-   Server
-========================= */
+/* =========================================================
+   SERVER
+   ========================================================= */
 
 app.listen(
   PORT,

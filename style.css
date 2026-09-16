@@ -76,9 +76,9 @@ html{
   min-height:100svh;
 
   font-size:clamp(
-    16px,
-    4.35vw,
-    21px
+    15px,
+    3.9vw,
+    19px
   );
 
 }
@@ -312,59 +312,45 @@ html.dark .vc-world::before{
    ========================================================= */
 
 .vc-node{
-
-  --node-color:var(--accent);
-
-  --node-color-soft:
+    --node-color:var(--accent);
+    --node-color-soft:
     color-mix(
       in srgb,
       var(--node-color) 10%,
       var(--node)
     );
-
-  --node-icon-color:
+    --node-icon-color:
     color-mix(
       in srgb,
-      var(--node-color) 10%,
+      var(--node-color) 15%,
       var(--node)
     );
 
   /* 아웃라인만 기존 12%에서 14%로 미세하게 진하게 */
-  --node-state-color:
+    --node-state-color:
     color-mix(
       in srgb,
       var(--node-color) 55%,
       var(--node)
     );
-
-  position:absolute;
-
-  width:11.875rem;
-
-  min-height:3.125rem;
-
-  padding:.625rem .75rem;
-
-  background:var(--node);
-
-  border:1.5px solid var(--border);
-
-  border-radius:var(--node-radius);
-
-  box-shadow:none;
-
-  cursor:grab;
-
-  overflow:visible;
-
-  transition:
+    position:absolute;
+    width:11.875rem;
+    min-height:3.125rem;
+    padding:.625rem .75rem;
+    background:rgb(from var(--node-state-color) r g b / 7.5%);
+    border:1.5px solid color-mix(in srgb, var(--node-state-color) 35%, transparent);
+    border-radius:var(--node-radius);
+    box-shadow:none;
+    cursor:grab;
+    overflow:visible;
+    transition:
     height .32s cubic-bezier(.22,.8,.25,1),
     box-shadow .18s ease,
     border-color .18s ease,
     background .18s ease,
     transform .18s cubic-bezier(.22,.8,.25,1);
-
-}
+    backdrop-filter:blur(0.5em);
+    }
 
 
 /* =========================================================
@@ -462,9 +448,23 @@ html.dark .vc-node:hover{
 
   cursor:grabbing;
 
-  transition:none;
+  transition:none !important;
 
   box-shadow:none;
+
+}
+
+
+.vc-node.vc-dragging .vc-node-body{
+
+  transition:none !important;
+
+}
+
+
+.vc-node.vc-dragging .vc-node-toggle svg{
+
+  transition:none !important;
 
 }
 
@@ -577,7 +577,7 @@ html.dark .vc-node:hover{
 
   color:var(--text);
 
-  font-size:.8125rem;
+  font-size:.8rem;
 
   font-weight:750;
 
@@ -731,9 +731,7 @@ html.dark .vc-node:hover{
    ========================================================= */
 
 .vc-node-delete{
-
   display:none;
-
 }
 
 
@@ -745,11 +743,8 @@ html.dark .vc-node:hover{
 
 
 .vc-node-delete{
-
   color:var(--danger)!important;
-
   background:var(--danger-soft)!important;
-
 }
 
 
@@ -758,15 +753,9 @@ html.dark .vc-node:hover{
    ========================================================= */
 
 .vc-node-body{
-
   height:0;
-
   overflow:hidden;
-
   opacity:0;
-
-  margin-top:.75rem;
-
   transition:
     height .32s cubic-bezier(.22,.8,.25,1),
     opacity .18s ease;
@@ -775,9 +764,8 @@ html.dark .vc-node:hover{
 
 
 .vc-node.vc-expanded .vc-node-body{
-
   opacity:1;
-
+  margin-top:.75rem;
 }
 
 
@@ -844,25 +832,16 @@ html.dark .vc-node:hover{
 
 }
 
-
 html.dark .vc-param-group{
-
   background:var(--node-soft);
-
 }
-
 
 .vc-param-group:first-child{
-
   margin-top:0;
-
 }
 
-
 .vc-param-group + .vc-param-group{
-
   margin-top:.5rem;
-
 }
 
 
@@ -1229,96 +1208,70 @@ html.dark .vc-param-group:focus-within{
    ========================================================= */
 
 .vc-node-delete-row{
-
   margin-top:.7rem;
-
   padding-top:0;
-
 }
-
-
-.vc-node-delete-button{
-
-  appearance:none;
-  -webkit-appearance:none;
-
+.vc-node-delete:not(.vc-expanded *){
+  height:0em;
+  overflow:hidden;
+  padding:0;
+  margin:0;
+}
+.vc-node-delete{
+  flex-shrink:0;
   width:100%;
-
-  height:1.875rem;
+  height:2.5em;
+  padding:0;
+  margin-top:0.75em;
 
   display:flex;
-
-  align-items:center;
   justify-content:center;
-
-  gap:.375rem;
-
-  margin:0;
-  padding:0;
+  align-items:center;
+  text-align:center;
+  gap:0;
 
   border:0;
-  outline:0;
+  border-radius:0.5em;
 
-  border-radius:var(--input-radius);
+  font-size:0.7em;
+  font-weight:800;
+  color:color-mix(
+    in srgb,
+    currentColor 55%,
+    transparent
+  );
 
-  color:var(--danger);
-
-  background:var(--danger-soft);
-
-  box-shadow:none;
-
-  font-size:.625rem;
-
-  font-weight:650;
+  background:color-mix(
+    in srgb,
+    currentColor 5%,
+    transparent
+  );
 
   cursor:pointer;
+  transition:all 0.25s ease;
 
-  transition:
-    background .16s ease,
-    transform .16s cubic-bezier(.22,.8,.25,1);
-
+  line-height:1em;
+  opacity:0.95;
+  filter:contrast(0.95);
 }
 
-
-.vc-node-delete-button:hover{
-
-  background:
-    color-mix(
-      in srgb,
-      var(--danger-soft) 72%,
-      var(--danger) 8%
-    );
-
+.vc-node-delete:hover{
+  color:var(--node-color);
+  opacity:1;
+  filter:contrast(1);
+  background:color-mix(
+    in srgb,
+    var(--node-color) 8%,
+    transparent
+  );
 }
 
-
-.vc-node-delete-button:active{
-
-  transform:scale(.97);
-
-}
-
-
-.vc-node-delete-button:focus-visible{
-
-  outline:
-    2px solid
-    color-mix(
-      in srgb,
-      var(--danger) 45%,
-      transparent
-    );
-
-  outline-offset:2px;
-
-}
-
-
-.vc-node-delete-button svg{
-
-  width:.8125rem;
-  height:.8125rem;
-
+.vc-node-delete *{
+  width:auto;
+  height:1.75em;
+  display:flex;
+  justify-content:center;
+  align-items:center;
 }
 
 
@@ -1357,11 +1310,9 @@ html.dark .vc-param-group:focus-within{
   left:-1rem;
 }
 
-
 .vc-port-hit.vc-output{
   right:-1rem;
 }
-
 
 .vc-port-anchor{
 
@@ -1488,17 +1439,12 @@ html.dark .vc-param-group:focus-within{
 
 
 .vc-output .vc-port-label{
-
   left:calc(100% - .5rem);
-
 }
 
-
-.vc-node.vc-selected .vc-port-label,
-.vc-node.vc-expanded .vc-port-label{
-
+.vc-port-label{opacity:0;}
+.vc-node.vc-selected .vc-port-label{
   opacity:.75;
-
 }
 
 
@@ -1651,6 +1597,10 @@ html.dark .vc-param-group:focus-within{
 
 }
 
+.highB{
+  filter:invert(1)
+}
+
 
 .vc-top-button:hover{
 
@@ -1726,148 +1676,88 @@ html.dark .vc-add-button{
    ========================================================= */
 
 .vc-add-menu{
-
   position:fixed;
-
   top:
     calc(
       max(.875rem,env(safe-area-inset-top)) + 3rem
     );
-
   right:.875rem;
-
   z-index:301;
-
-  width:14.375rem;
-
+  width:12rem;
   padding:.375rem;
-
   border:1px solid var(--border);
-
   border-radius:1rem;
-
   background:var(--glass2);
-
   box-shadow:none;
-
   backdrop-filter:blur(1rem);
   -webkit-backdrop-filter:blur(1rem);
-
   opacity:0;
-
   transform:
     translateY(-.3125rem)
     scale(.98);
-
   pointer-events:none;
-
   transition:
     opacity .16s ease,
     transform .18s cubic-bezier(.22,.8,.25,1);
 
 }
 
-
 .vc-add-menu.vc-open{
-
   opacity:1;
-
   transform:none;
-
   pointer-events:auto;
-
+  box-shadow: 0 0.5em 0.5em rgba(0, 0, 0, 0.05);
 }
 
 
 .vc-menu-item{
-
   appearance:none;
   -webkit-appearance:none;
-
   width:100%;
-
   display:flex;
-
   align-items:center;
-
-  gap:.625rem;
-
+  gap:.5em;
   margin:0;
-
-  padding:.5625rem;
-
+  padding:.5em;
   border:0;
-
   outline:0;
-
   border-radius:.625rem;
-
   color:var(--text);
-
   background:transparent;
-
   text-align:left;
-
-  cursor:pointer;
-
+  cursor:pointer;  
 }
-
 
 .vc-menu-item:hover{
-
   background:var(--soft);
-
 }
-
 
 .vc-menu-icon{
-
   width:1.625rem;
   height:1.625rem;
-
   flex:0 0 1.625rem;
-
   display:flex;
-
   align-items:center;
   justify-content:center;
-
   border-radius:.5rem;
-
   background:var(--soft);
-
   border:0;
-
   color:var(--sub);
-
 }
-
-
 .vc-menu-icon svg{
-
   width:.9375rem;
   height:.9375rem;
-
 }
-
 
 .vc-menu-name{
-
   font-size:.71875rem;
-
   font-weight:600;
-
 }
 
-
 .vc-menu-desc{
-
   margin-left:auto;
-
   color:var(--faint);
-
   font-size:.5625rem;
-
 }
 
 
@@ -1876,65 +1766,40 @@ html.dark .vc-add-button{
    ========================================================= */
 
 .vc-composer-wrap{
-
   position:fixed;
-
   left:50%;
-
   bottom:
     max(
       1.125rem,
       calc(env(safe-area-inset-bottom) + .5rem)
     );
-
   width:
     min(
       calc(100% - 1.75rem),
       33.75rem
     );
-
   transform:translateX(-50%);
-
   z-index:200;
-
   pointer-events:none;
-
 }
 
-
 .vc-composer{
-
   position:relative;
-
   left:50%;
-
   transform:translateX(-50%);
-
   pointer-events:auto;
-
-  width:100%;
-
+  width:90%;
   min-height:3rem;
-
   display:flex;
-
   align-items:center;
-
   gap:.25rem;
-
   padding:.3125rem;
-
   border:1px solid var(--border);
-
   border-radius:1.625rem;
-
   background:var(--glass2);
-
   box-shadow:none;
-
   backdrop-filter:blur(1.25rem);
   -webkit-backdrop-filter:blur(1.25rem);
-
   transition:
     width .28s cubic-bezier(.22,.8,.25,1),
     min-height .22s ease,
@@ -1942,376 +1807,240 @@ html.dark .vc-add-button{
     border-radius .22s ease,
     box-shadow .22s ease,
     opacity .22s ease;
-
 }
 
-
 .vc-composer:not(.vc-active){
-
   width:20rem;
-
   min-height:2.625rem;
-
   padding:.1875rem .25rem;
-
   border-radius:1.375rem;
-
   opacity:.86;
-
 }
 
 
 .vc-composer:not(.vc-active) .vc-chat-input{
-
   min-height:2rem;
-
   padding-top:.375rem;
-
   padding-bottom:.375rem;
-
   font-size:.96875rem;
-
   font-weight:500;
-
 }
 
 
 .vc-composer.vc-has-text,
 .vc-composer:focus-within,
 .vc-composer.vc-active{
-
   min-height:3.375rem;
-
   padding:.4375rem;
-
   border-radius:1.75rem;
-
   opacity:1;
-
 }
-
 
 /* =========================================================
    COMPOSER BUTTON
    ========================================================= */
-
 .vc-composer-button{
-
   appearance:none;
   -webkit-appearance:none;
-
   width:1.875rem;
   height:1.875rem;
-
   flex:0 0 1.875rem;
-
   align-self:center;
-
   display:flex;
-
   align-items:center;
   justify-content:center;
-
   margin:0;
   padding:0;
-
   border:0;
   outline:0;
-
   border-radius:50%;
-
   color:var(--sub);
-
   background:transparent;
-
   box-shadow:none;
-
   cursor:pointer;
-
   transition:
     background .16s ease,
     color .16s ease,
     transform .16s cubic-bezier(.22,.8,.25,1);
-
 }
-
 
 .vc-composer-button:not(.vc-send-button):hover{
-
   color:var(--text);
-
   background:var(--soft);
-
 }
-
 
 .vc-composer-button:active{
-
   transform:scale(.92);
-
 }
-
 
 .vc-attach-icon{
-
   width:.9375rem;
   height:.9375rem;
-
   display:block;
-
 }
-
 
 .vc-attach-button{
-
-  width:1.875rem;
-  height:1.875rem;
-
-  flex:0 0 1.875rem;
-
+  width:1.5em;
+  height:1.5em;
+  flex:0 0 1.35em;
+  margin-left:0.35em;
 }
-
 
 .vc-chat-input{
-
   flex:1;
-
   min-width:0;
-
   min-height:2.375rem;
-
   max-height:7.1875rem;
-
   resize:none;
-
-  padding:.5rem .375rem .4375rem;
-
+  padding:.25em .4375em;
   border:0;
   outline:0;
-
   color:var(--text);
-
   background:transparent;
-
-  font-size:.9375rem;
-
-  line-height:1.45;
-
+  font-size:.9rem;
+  line-height:1.45em;
   letter-spacing:-.015em;
-
 }
 
+.vc-active .L1{
+  line-height:1.75em;
+}
 
 .vc-chat-input::placeholder{
-
   color:var(--faint);
-
+  font-size:0.9em;
 }
 
-
 .vc-send-button{
-
-  width:2rem;
-  height:2rem;
-
-  flex:0 0 2rem;
+  width:1.85em;
+  height:1.85em;
+  aspect-ratio:1;
+  flex:0 0 1.75em;
+  box-sizing:border-box;
 
   align-self:center;
-
   display:flex;
-
   align-items:center;
   justify-content:center;
 
   padding:0;
-
   border-radius:50%!important;
 
   color:#171717;
-
   background:#fff;
-
   border:1px solid rgba(20,25,32,.1);
-
   box-shadow:none;
-
   line-height:0;
 
   transition:
     opacity .18s ease,
     transform .16s cubic-bezier(.22,.8,.25,1);
 
+  margin-right:.1em;
 }
-
-
 .vc-send-button:hover{
-
   opacity:.78;
-
 }
-
 
 .vc-send-button:active{
-
   transform:scale(.93);
-
 }
-
 
 .vc-send-button svg{
-
   width:.9375rem;
   height:.9375rem;
-
   display:block;
-
 }
-
 
 html.dark .vc-send-button{
-
   background:#f4f4f4;
-
 }
-
 
 /* =========================================================
    ZOOM
    ========================================================= */
 
 .vc-zoom-indicator{
-
   position:fixed;
-
   left:.875rem;
-
   top:max(.875rem,env(safe-area-inset-top));
-
   z-index:90;
-
   padding:.4375rem .625rem;
-
   border-radius:.625rem;
-
   background:var(--glass);
-
   border:1px solid var(--border);
-
   color:var(--sub);
-
   font-size:.625rem;
-
   backdrop-filter:blur(.9rem);
   -webkit-backdrop-filter:blur(.9rem);
-
   opacity:.8;
-
 }
 
 
 /* =========================================================
    VALIDATION
    ========================================================= */
-
 .vc-validation{
-
   position:fixed;
-
   left:.875rem;
-
   bottom:
     max(
       1.125rem,
       calc(env(safe-area-inset-bottom) + .5rem)
     );
-
   z-index:250;
-
   display:flex;
-
   flex-direction:column;
-
   gap:.3125rem;
-
   max-width:
     min(
       22.5rem,
       calc(100% - 1.75rem)
     );
-
   pointer-events:none;
-
 }
-
-
 .vc-validation-item{
-
   padding:.5rem .625rem;
-
   border-radius:.625rem;
-
   background:var(--glass2);
-
   border:1px solid var(--border);
-
   box-shadow:none;
-
   font-size:.625rem;
-
   line-height:1.4;
-
   opacity:0;
-
   transform:translateY(.3125rem);
-
   transition:
     opacity .18s ease,
     transform .18s ease;
-
 }
-
 
 .vc-validation-item.vc-show{
-
   opacity:1;
-
   transform:none;
-
 }
 
-
 .vc-validation-item.vc-error{
-
   border-color:
     color-mix(
       in srgb,
       var(--danger) 30%,
       var(--border)
     );
-
   color:var(--danger);
-
 }
 
-
 .vc-validation-item.vc-warning{
-
   border-color:
     color-mix(
       in srgb,
       #b27a14 30%,
       var(--border)
     );
-
   color:#9a6706;
-
 }
 
-
 .vc-validation-item.vc-ok{
-
   color:var(--sub);
-
 }
 
 
@@ -2320,81 +2049,45 @@ html.dark .vc-send-button{
    ========================================================= */
 
 @media(max-width:600px){
-
   .vc-node{
-
     width:11.125rem;
-
     min-height:3rem;
-
     padding:.625rem .75rem;
-
     border-radius:1rem;
-
   }
-
 
   .vc-node-title{
-
-    font-size:.78125rem;
-
+    font-size:.76875rem;
   }
-
-
   .vc-node-icon{
-
     width:1.75rem;
-
     height:1.75rem;
-
     flex-basis:1.75rem;
-
   }
-
 
   .vc-node-icon svg{
-
     width:1.125rem;
-
     height:1.125rem;
-
   }
-
 
   .vc-slot-description{
-
     font-size:.65625rem;
-
   }
-
-
   .vc-start-badge{
-
     font-size:.46875rem;
-
     padding:.1875rem .3125rem;
-
   }
-
 
   .vc-top-controls{
-
     right:.6875rem;
-
   }
-
 
   .vc-add-menu{
-
     right:.6875rem;
-
   }
 
-
   .vc-composer-wrap{
-
     left:50%;
-
     width:
       calc(100% - 1.375rem);
 
@@ -2403,108 +2096,63 @@ html.dark .vc-send-button{
         1.0625rem,
         calc(env(safe-area-inset-bottom) + .5rem)
       );
-
     transform:translateX(-50%);
-
   }
 
 
   .vc-composer{
-
     left:50%;
-
     transform:translateX(-50%);
-
     min-height:2.9375rem;
-
     border-radius:1.5rem;
-
     padding:.25rem;
-
   }
 
-
   .vc-composer:not(.vc-active){
-
     width:17.1875rem;
-
     min-height:2.5rem;
-
     border-radius:1.3125rem;
-
     padding:.1875rem .25rem;
-
   }
 
 
   .vc-composer:not(.vc-active) .vc-chat-input{
-
     min-height:1.9375rem;
-
     font-size:.9375rem;
-
   }
 
 
   .vc-composer.vc-has-text,
   .vc-composer:focus-within,
   .vc-composer.vc-active{
-
     min-height:3.25rem;
-
     border-radius:1.6875rem;
-
     padding:.375rem;
-
   }
 
 
   .vc-composer-button{
-
     width:1.875rem;
-
     height:1.875rem;
-
     flex-basis:1.875rem;
-
   }
-
-
   .vc-attach-button{
-
     width:1.875rem;
-
     height:1.875rem;
-
     flex-basis:1.875rem;
 
   }
-
-
   .vc-send-button{
-
     width:1.875rem;
-
     height:1.875rem;
-
     flex-basis:1.875rem;
-
   }
-
-
   .vc-zoom-indicator{
-
     left:.6875rem;
-
   }
-
-
   .vc-image-file-node{
-
     width:13.90625rem;
-
   }
-
 }
 
 
@@ -2513,9 +2161,6 @@ html.dark .vc-send-button{
    ========================================================= */
 
 .vc-image-file-node{
-
   width:9.375rem;
-
   height:9.375rem!important;
-
 }
