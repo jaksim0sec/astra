@@ -568,6 +568,10 @@ function validateWorkflowForCanvas(
    Workflow API
 ========================= */
 
+/* =========================
+   Workflow API
+========================= */
+
 async function workflowToCanvas(
   text,
   canvasApi
@@ -594,13 +598,141 @@ async function workflowToCanvas(
     await getNodeDefinitions();
 
 
+  let currentWorkflow=null;
+
+
+  try{
+
+    const workflow=
+      canvasApi.getWorkflow();
+
+
+    console.log(
+      "RAW CANVAS WORKFLOW:",
+      JSON.stringify(
+        workflow,
+        null,
+        2
+      )
+    );
+
+
+    if(
+      workflow&&
+      Array.isArray(
+        workflow.nodes
+      )&&
+      workflow.nodes.length>0
+    ){
+
+      const connections=
+        Array.isArray(
+          workflow.connections
+        )
+          ?workflow.connections
+          :[];
+
+
+      currentWorkflow={
+
+        nodes:
+          workflow.nodes.map(
+            node=>({
+
+              id:node.id,
+
+              type:node.type,
+
+              params:
+                node.data?.params||
+                {}
+
+            })
+          ),
+
+        links:
+          connections
+            .filter(
+              connection=>
+                connection?.from&&
+                connection?.to&&
+                typeof connection.from.node==="string"&&
+                typeof connection.from.port==="string"&&
+                typeof connection.to.node==="string"&&
+                typeof connection.to.port==="string"
+            )
+            .map(
+              connection=>[
+                `${connection.from.node}.${connection.from.port}`,
+                `${connection.to.node}.${connection.to.port}`
+              ]
+            ),
+
+        data:[]
+
+      };
+
+    }
+
+
+  }catch(error){
+
+    console.warn(
+      "현재 Workflow를 읽지 못했습니다:",
+      error
+    );
+
+    currentWorkflow=null;
+
+  }
+
+
+  /*
+    start 하나만 있는 경우
+    실질적으로 비어 있는 Workflow로 취급한다.
+  */
+  if(
+    currentWorkflow&&
+    currentWorkflow.nodes.length===1&&
+    currentWorkflow.nodes[0]?.id==="start"
+  ){
+
+    currentWorkflow=null;
+
+  }
+
+
+  console.log(
+    "CURRENT WORKFLOW:",
+    JSON.stringify(
+      currentWorkflow,
+      null,
+      2
+    )
+  );
+
+
   const result=
     await api(
       "workflow",
       {},
-      {text},
+      {
+        text,
+        workflow:
+          currentWorkflow
+      },
       true
     );
+
+
+  console.log(
+    "WORKFLOW API RESULT:",
+    JSON.stringify(
+      result,
+      null,
+      2
+    )
+  );
 
 
   if(
@@ -621,7 +753,6 @@ async function workflowToCanvas(
   );
 
 }
-
 
 /* =========================
    Workflow IR → Canvas

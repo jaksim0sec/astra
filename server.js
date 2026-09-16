@@ -192,8 +192,7 @@ const NODE_DEFINITIONS={
              L3 10
              L8.5 8.5
              Z"
-          stroke="currentColor"
-          stroke-width="1.45"
+          stroke="currentColor" stroke-width="1.45"
           stroke-linecap="round"
           stroke-linejoin="round"
         />
@@ -261,17 +260,14 @@ const NODE_DEFINITIONS={
              C13.7 4.3 14.7 4.3 15.3 4.9
              L16 5.6C16.6 6.2 16.6 7.2 16 7.8
              L9.1 14.7L5.1 14.9Z"
-          stroke="currentColor"
-          stroke-width="1.45"
+          stroke="currentColor" stroke-width="1.45"
           stroke-linejoin="round"
         />
         <path d="M12.4 5.6L15.1 8.3"
-          stroke="currentColor"
-          stroke-width="1.35"
+          stroke="currentColor" stroke-width="1.35"
           stroke-linecap="round"/>
         <path d="M5.1 14.9L7.9 14.2"
-          stroke="currentColor"
-          stroke-width="1.45"
+          stroke="currentColor" stroke-width="1.45"
           stroke-linecap="round"/>
       </svg>
     `,
@@ -575,17 +571,18 @@ function buildNodeDefinitionPrompt(){
           '-';
 
         return [
-          `${type} | ${def.name}`,
-          `in[${inputs}] out[${outputs}] params[${params}]`,
-          def.desc
-        ].join('\n');
+          `${type}=${def.name}`,
+          `설명=${def.desc}`,
+          `입력[${inputs}]`,
+          `출력[${outputs}]`,
+          `설정[${params}]`
+        ].join(' ');
 
       }
     )
     .join('\n');
 
 }
-
 const NODE_DEFINITION_PROMPT=
   buildNodeDefinitionPrompt();
 
@@ -596,58 +593,62 @@ const NODE_DEFINITION_PROMPT=
 
 const PLANNER_RULES=`
 
-노드 선택:
-start=항상 시작점, 정확히 1개.
+노드:
+start=시작점 1개.
 research=정보 조사.
 organize=자료 구조화.
-judge=조건에 따른 실행 분기.
+judge=조건 분기.
 write=글/문서 작성.
-convert=기존 결과의 형식/스타일 변환.
-file=사용자가 제공한 기존 파일 입력.
-createFile=새 파일 생성 출력.
+convert=형식/스타일 변환.
+file=사용자 제공 파일 입력.
+createFile=파일 생성 출력.
 
-불필요한 노드는 만들지 않는다.
-모든 요청에 모든 노드를 넣지 않는다.
+필요한 노드만 사용한다.
+
+기존 Workflow가 있으면:
+- 요청과 기존 Workflow의 실제 관련성을 판단한다.
+- 판단 기준은 노드 목적, params, 입력/출력, 연결, 재사용 가치다.
+- 관련성이 있으면 기존 노드와 params를 최대한 유지한다.
+- 필요한 노드만 추가한다.
+- 필요한 params와 연결만 수정한다.
+- 불필요한 노드는 삭제한다.
+- 기존 node id는 가능한 한 유지한다.
+- 새 노드 id는 기존 id와 겹치지 않게 한다.
+- 관련성이 낮으면 기존 Workflow를 억지로 재사용하지 않고 새로 구성한다.
+- 출력은 항상 완성된 Workflow 전체다.
 
 파일:
-- file은 기존 파일 입력 전용.
-- file 출력은 file1.file.
-- 기존 파일이 없다면 file을 만들지 않는다.
-- createFile은 새 파일 출력 전용.
-- 파일 생성에는 기존 file이 필요하지 않다.
-- createFile 입력은 createFile1.in.
-- "file1", "createFile1"은 endpoint로 사용할 수 없다.
+- 기존 파일이 없으면 file을 만들지 않는다.
+- 새 파일 생성은 createFile을 사용한다.
+- file1.file은 파일 출력 endpoint.
+- createFile1.in은 파일 생성 입력 endpoint.
+- file1/createFile1 자체는 endpoint가 아니다.
 
 Judge:
-- 조건에 따라 이후 실행 경로가 갈라질 때만 사용.
-- condition에 판단 기준을 적는다.
-- 입력: judge.true, judge.false
-- 출력: judge.true, judge.false
-- true/false는 boolean 값이 아니라 경로 포트다.
+- 실제 분기가 필요할 때만 사용한다.
+- 입력/출력 포트는 true,false만 사용한다.
 - judge.in, judge.truePath, judge.falsePath는 존재하지 않는다.
 
 연결:
-모든 endpoint는 정확히 "nodeId.portId".
-["출력endpoint","입력endpoint"] 형식만 사용.
-존재하지 않는 노드/포트/params를 만들지 않는다.
+- ["출력endpoint","입력endpoint"] 형식만 사용한다.
+- endpoint는 nodeId.portId다.
+- 존재하지 않는 노드, 포트, params를 만들지 않는다.
 
 Params:
 - 모든 node에 params:{}를 포함한다.
 - 정의된 params만 사용한다.
-- 요청에서 알 수 있는 값은 채운다.
-- 불필요한 params는 생략한다.
-- 빈 문자열은 넣지 않는다.
+- 알 수 있는 값만 채운다.
+- 불필요한 params와 빈 문자열은 넣지 않는다.
 `;
-
 
 /* =========================================================
    SYSTEM PROMPT
    ========================================================= */
 
 const SYSTEM_PROMPT=`
-너는 Astra의 Workflow Planner다.
+너는 Astra Workflow Planner다.
 
-사용자의 자연어 요청을 실행 가능한 Workflow JSON으로 변환한다.
+자연어 요청을 실행 가능한 Workflow JSON으로 변환한다.
 설명 없이 JSON 객체 하나만 출력한다.
 
 형식:
@@ -655,87 +656,34 @@ const SYSTEM_PROMPT=`
   "nodes":[
     {"id":"start","type":"start","params":{}}
   ],
-  "links":[
-    ["start.out","research1.in"]
-  ],
+  "links":[],
   "data":[]
 }
+반드시:
+- start는 정확히 1개
+- 모든 node는 id,type,params를 포함한다.
+- 실제 존재하는 노드, 포트, params만 사용한다.
+- 결과 언어는 사용자가 사용한 언어로 한다. 단, 다른 언어를 사용하라는 요청은 예외다.
+- 기존 Workflow가 있으면 재활용 가능성을 먼저 판단한다.
+- 재활용하는 기존 node의 id는 가능한 한 유지한다.
+- 최종 결과는 항상 전체 Workflow다.
 
-허용 정의:
+연결:
+- 최종 Workflow는 실행 가능한 완성된 연결 구조여야 한다.
+- 필요한 실행 단계는 links로 연결하고, 입력 자료 전달은 data로 연결한다.
+- 기존 Workflow의 연결은 필요한 부분을 최대한 유지하고, 새 노드 추가나 구조 변경에 필요한 연결도 함께 구성한다.
+- 기존 연결이 없거나 불완전해도 최종 Workflow에서는 필요한 연결을 완성한다.
+- 모든 연결은 실제 존재하는 output과 input port를 사용한다.
+- 실제 연결이 필요한데 links를 비워두지 않는다.
+- 파라미터 및 자연어 값은 사용자 언어로 작성한다. 예시 : 한국어 요청에는 한국어만 사용한다.
+- type,id,port id,JSON 키 등 시스템 식별자는 그대로 유지한다.
+
+허용 노드:
 ${NODE_DEFINITION_PROMPT}
 
 규칙:
 ${PLANNER_RULES}
-
-예시 1:
-"최근 AI 시장을 조사해서 보고서를 작성해줘"
-
-{
-  "nodes":[
-    {"id":"start","type":"start","params":{}},
-    {"id":"research1","type":"research","params":{"topic":"AI 시장","filter":"최근"}},
-    {"id":"organize1","type":"organize","params":{"criteria":"시장 규모 / 주요 기업","format":"표"}},
-    {"id":"write1","type":"write","params":{"title":"AI 시장 보고서","length":"2페이지","style":"전문적","about":"AI 시장 현황"}}
-  ],
-  "links":[
-    ["start.out","research1.in"],
-    ["research1.result","organize1.in"],
-    ["organize1.result","write1.in"]
-  ],
-  "data":[]
-}
-
-예시 2:
-"자료 없이 자기소개서를 작성해서 PDF로 만들어줘"
-
-{
-  "nodes":[
-    {"id":"start","type":"start","params":{}},
-    {"id":"write1","type":"write","params":{"title":"자기소개서","style":"자연스럽고 전문적"}},
-    {"id":"createFile1","type":"createFile","params":{"format":"PDF","filename":"자기소개서"}}
-  ],
-  "links":[
-    ["start.out","write1.in"],
-    ["write1.result","createFile1.in"]
-  ],
-  "data":[]
-}
-
-예시 3:
-"첨부한 PDF를 요약해서 새로운 PDF로 만들어줘"
-
-{
-  "nodes":[
-    {"id":"start","type":"start","params":{}},
-    {"id":"file1","type":"file","params":{}},
-    {"id":"write1","type":"write","params":{"title":"요약본","style":"간결하게"}},
-    {"id":"createFile1","type":"createFile","params":{"format":"PDF","filename":"요약본"}}
-  ],
-  "links":[
-    ["start.out","write1.in"],
-    ["file1.file","write1.in"],
-    ["write1.result","createFile1.in"]
-  ],
-  "data":[]
-}
-
-예시 4:
-"점수가 70점 이상이면 통과 문서, 아니면 보완 문서를 작성해줘"
-
-judge를 사용해 참/거짓 경로로 분기한다.
-condition은 "점수 >= 70"처럼 실제 기준을 적는다.
-
-최종 검사:
-1. start가 정확히 1개인가?
-2. 필요한 노드만 있는가?
-3. 모든 node가 객체인가?
-4. 모든 params가 객체인가?
-5. 모든 endpoint가 nodeId.portId인가?
-6. 각 endpoint의 노드와 포트가 실제 정의에 존재하는가?
-7. 기존 파일이 없는데 file을 넣지 않았는가?
-8. 새 파일 생성이 필요하면 createFile을 사용했는가?
 `;
-
 
 /* =========================================================
    JSON PARSE
@@ -1362,111 +1310,101 @@ app.get(
 
 function buildRetryPrompt(
   text,
+  workflow,
   errorMessage
 ){
 
   return `
-Workflow 검증 실패:
+검증 오류:
 ${errorMessage}
 
-같은 오류를 수정해서 전체 Workflow를 다시 생성한다.
-
-핵심:
-- JSON 객체 하나만 출력
-- start 정확히 1개
-- 모든 node는 {id,type,params}
-- endpoint는 반드시 nodeId.portId
-- file 출력 = file1.file
-- 새 파일 생성 = createFile1.in
-- file1/createFile1/judge1 자체는 endpoint가 아님
-- judge 입력/출력 = true,false
-- judge.in / judge.truePath / judge.falsePath 금지
-- 존재하지 않는 노드/포트/params 금지
-- 기존 파일이 없으면 file 노드를 만들지 않음
+같은 요청과 Workflow를 기준으로 오류만 수정해 전체 Workflow를 다시 출력한다.
+기존 Workflow가 있으면 재사용 가능한 노드와 id를 최대한 유지한다.
 
 사용자 요청:
 ${text}
+
+현재 Workflow:
+${JSON.stringify(
+  workflow||null
+)}
 `;
 
 }
-
-
 /* =========================================================
    LLM REQUEST
    ========================================================= */
 
 async function requestWorkflow(
   text,
+  workflow=null,
   retry=false,
-  previousError=''
+  previousError=""
 ){
 
-  const prompt=
+  const userPrompt=
     retry
       ?buildRetryPrompt(
           text,
+          workflow,
           previousError
         )
-      :text;
+      :[
+          "사용자 요청:",
+          text,
+          "",
+          "현재 Workflow:",
+          JSON.stringify(
+            workflow,
+            null,
+            2
+          )
+        ].join("\n");
 
 
   const response=
     await fetch(
-      'https://api.groq.com/openai/v1/chat/completions',
+      "https://api.groq.com/openai/v1/chat/completions",
       {
-
-        method:'POST',
+        method:"POST",
 
         headers:{
-          'Content-Type':
-            'application/json',
+          "Content-Type":
+            "application/json",
 
-          Authorization:
+          "Authorization":
             `Bearer ${process.env.GROQ_API_KEY}`
         },
 
         body:JSON.stringify({
 
           model:
-            'openai/gpt-oss-20b',
+  process.env.GROQ_MODEL||
+  "openai/gpt-oss-120b",
 
           messages:[
 
             {
-              role:'system',
-              content:SYSTEM_PROMPT
+              role:"system",
+              content:
+                SYSTEM_PROMPT
             },
 
             {
-              role:'user',
-              content:prompt
+              role:"user",
+              content:
+                userPrompt
             }
 
           ],
 
+          temperature:0.2,
+
           response_format:{
-            type:'json_schema',
-
-            json_schema:{
-              name:'workflow',
-
-              strict:false,
-
-              schema:
-                WORKFLOW_SCHEMA
-            }
-          },
-
-          temperature:0,
-
-          reasoning_effort:'low',
-
-          reasoning_format:'hidden',
-
-          max_completion_tokens:900
+            type:"json_object"
+          }
 
         })
-
       }
     );
 
@@ -1477,7 +1415,7 @@ async function requestWorkflow(
       await response.text();
 
     throw new Error(
-      `Groq 요청 실패: ${errorText}`
+      `Groq API 오류: ${response.status} ${errorText}`
     );
 
   }
@@ -1488,30 +1426,148 @@ async function requestWorkflow(
 
 
   const content=
-    result?.
-    choices?.
-    [0]?.
-    message?.
-    content;
+    result?.choices?.[0]?.message?.content;
 
 
-  if(!content){
+  if(
+    typeof content!=="string"||
+    !content.trim()
+  ){
 
     throw new Error(
-      'LLM 응답이 비어 있습니다.'
+      "AI 응답이 비어 있습니다."
     );
 
   }
 
 
-  return validateWorkflow(
-    parseJson(
-      content
+  let spec;
+
+  try{
+
+    spec=
+      JSON.parse(
+        content
+      );
+
+  }catch(error){
+
+    throw new Error(
+      `AI 응답 JSON 파싱 실패: ${error.message}`
+    );
+
+  }
+
+
+  /*
+    AI가 Workflow 자체를 반환하거나
+    {workflow:...} 형태로 반환할 수 있으므로
+    둘 다 허용한다.
+  */
+  if(
+    spec&&
+    typeof spec==="object"&&
+    spec.workflow&&
+    typeof spec.workflow==="object"
+  ){
+
+    spec=
+      spec.workflow;
+
+  }
+
+
+  if(
+    !spec||
+    typeof spec!=="object"
+  ){
+
+    throw new Error(
+      "AI가 올바른 Workflow를 반환하지 않았습니다."
+    );
+
+  }
+
+
+  /*
+    기본 배열 보정
+  */
+  if(
+    !Array.isArray(
+      spec.nodes
     )
+  ){
+
+    spec.nodes=[];
+
+  }
+
+
+  if(
+    !Array.isArray(
+      spec.links
+    )
+  ){
+
+    spec.links=[];
+
+  }
+
+
+  if(
+    !Array.isArray(
+      spec.data
+    )
+  ){
+
+    spec.data=[];
+
+  }
+
+
+  /*
+    data는 현재 Canonical Workflow에서
+    ["node.port","node.port"] 형태의
+    정상 endpoint 연결만 허용한다.
+
+    AI가 객체나 다른 형태를 넣었으면
+    잘못된 항목만 제거한다.
+  */
+  spec.data=
+    spec.data.filter(
+      edge=>
+        Array.isArray(edge)&&
+        edge.length===2&&
+        typeof edge[0]==="string"&&
+        typeof edge[1]==="string"&&
+        edge[0].includes(".")&&
+        edge[1].includes(".")
+    );
+
+
+  /*
+    links 역시 같은 형태만 허용.
+  */
+  spec.links=
+    spec.links.filter(
+      edge=>
+        Array.isArray(edge)&&
+        edge.length===2&&
+        typeof edge[0]==="string"&&
+        typeof edge[1]==="string"&&
+        edge[0].includes(".")&&
+        edge[1].includes(".")
+    );
+
+
+  /*
+    검증
+  */
+  return validateWorkflow(
+    spec
   );
 
 }
-
 
 /* =========================================================
    WORKFLOW API
@@ -1528,6 +1584,11 @@ app.post(
           req.body?.text||
           ''
         ).trim();
+
+
+      const currentWorkflow=
+        req.body?.workflow||
+        null;
 
 
       if(!text){
@@ -1561,7 +1622,8 @@ app.post(
 
         workflow=
           await requestWorkflow(
-            text
+            text,
+            currentWorkflow
           );
 
       }catch(firstError){
@@ -1575,6 +1637,7 @@ app.post(
         workflow=
           await requestWorkflow(
             text,
+            currentWorkflow,
             true,
             firstError.message
           );
