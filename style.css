@@ -1900,6 +1900,7 @@ html.dark .vc-add-button{
   font-size:.9rem;
   line-height:1.45em;
   letter-spacing:-.015em;
+  padding-left:0.25em;
 }
 
 .vc-active .L1{
@@ -2137,10 +2138,9 @@ html.dark .vc-send-button{
     flex-basis:1.875rem;
   }
   .vc-attach-button{
-    width:1.875rem;
-    height:1.875rem;
-    flex-basis:1.875rem;
-
+    width: 1.5em;
+    height: 1.5em;
+    flex-basis: 1.5em;
   }
   .vc-send-button{
     width:1.875rem;

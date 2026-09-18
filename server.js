@@ -35,6 +35,7 @@ const defaultNodeDef={
   start:{
     name:'시작하기',
     desc:'AI 작업을 시작하는 기준점입니다.',
+    llmdesc:'workflow의 실행 흐름의 origin임',
     tag:'START',
     color:'#10B981',
 
@@ -69,6 +70,7 @@ const defaultNodeDef={
   research:{
     name:'조사하기',
     desc:'필요한 정보를 찾아 수집합니다.',
+    llmdesc:'추가적으로 필요한 정보를 조사함. 입력 자료가 있으면 이를 참고하여 추가 조사가 가능.',
     tag:'RESEARCH',
     color:'#3B82F6',
 
@@ -124,6 +126,7 @@ const defaultNodeDef={
   organize:{
     name:'정리하기',
     desc:'자료를 기준에 따라 구조화합니다.',
+    llmdesc:'입력된 자료를 기준에 따라 구조화함.굳이쓸필요없',
     tag:'ORGANIZE',
     color:'#F59E0B',
 
@@ -176,7 +179,8 @@ const defaultNodeDef={
 
   judge:{
     name:'판단하기',
-    desc:'조건을 판단하고 참 또는 거짓 경로로 데이터를 전달합니다.',
+    desc:`'조건을 판단하고 참 또는 거짓 경로로 데이터를 전달합니다.'`,
+    llmdesc:'참자료→참출구, 거짓자료→거짓출구로 연결됨. condition이 참이면 참출구, 거짓이면 거짓출구만 활성화되어 자료와 flow가 해당 경로만 활성됨.',
     tag:'JUDGE',
     color:'#8B5CF6',
 
@@ -250,6 +254,7 @@ const defaultNodeDef={
   write:{
     name:'작성하기',
     desc:'주어진 정보를 글 형태로 작성합니다.',
+    llmdesc:'입력된 자료를 바탕으로 문서를 작성함. 제목 분량,스타일,내용 parameter를 통해 특성을 조정함.정리가 필요한 경우, 작성후 정리 보다 정리후 작성이 바람직함.',
     tag:'WRITE',
     color:'#EF4444',
 
@@ -325,6 +330,7 @@ const defaultNodeDef={
   convert:{
     name:'변형하기',
     desc:'자료의 형식이나 스타일을 변형합니다.',
+    llmdesc:'입력된 자료를 필요한 형식이나 스타일로 변환함.',
     tag:'CONVERT',
     color:'#EC4899',
 
@@ -386,6 +392,7 @@ const defaultNodeDef={
   file:{
     name:'파일추가하기',
     desc:'작업에 사용할 파일을 추가합니다.',
+    llmdesc:'사용자가 제공한 파일을 워크플로우에 입력함. 파일 자체를 생성하거나 변환하는 노드가 아님. 연결이 있어야만 실제로 참조가 가능.',
     tag:'INPUT',
     color:'#64748B',
 
@@ -421,9 +428,9 @@ const defaultNodeDef={
   },
 
   createFile:{
-    hidden:true,
     name:'내보내기',
     desc:'완성된 결과물을 파일로 생성합니다.',
+    llmdesc:'입력된 결과물을 지정한 파일 형식으로 내보내는 최종 출력 노드임. 파일 형식과 파일명을 지정하여 결과 파일을 생성함.질문에 대한 답변과 같은 단순 자연어 결과는 굳이 필요없.',
     tag:'OUTPUT',
     color:'#F97316',
 
@@ -487,13 +494,14 @@ const defaultNodeDef={
    NODE ALIASES / DERIVED DATA
    ========================================================= */
 
-const NODE_DEFINITIONS=
+/*const NODE_DEFINITIONS=
   defaultNodeDef;
 
 const nodeTypeNames=
   Object.keys(
     defaultNodeDef
   );
+*/
 
 const nodeDefinitionsPublic=
   JSON.parse(
@@ -582,11 +590,11 @@ function buildNodeDefinitionPrompt(){
 
         return [
           type,
-          def.name,
+          `name:${def.name}`,
           `입력:${inputs}`,
           `출력:${outputs}`,
           `params:${params}`,
-          `설명:${def.desc}`
+          `설명:${def.llmdesc}`
         ].join(' ');
 
       }
@@ -598,44 +606,51 @@ function buildNodeDefinitionPrompt(){
 
 const NODE_DEFINITION_PROMPT=
   buildNodeDefinitionPrompt();
-
-
 /* =========================================================
    STATIC PLANNER PROMPT
    ========================================================= */
 
 const SYSTEM_PROMPT=`
 너는 Astra Workflow Planner다.
+현Workflow에 사용자 요청을 반영한 Patch를 만든다.
 
-현재 Workflow에 사용자 요청을 반영하기 위한
-최소한의 Patch를 만든다.
-
-절대 최종 Workflow 전체를 반환하지 않는다.
-설명, Markdown, 코드블록도 출력하지 않는다.
+절대 설명, Markdown, 코드블록을 출력하지 않는다.
 
 원칙:
-- 요청을 만족하는 가장 작은 실행 구조를 만든다.
-- 한 노드가 충분하면 불필요한 노드를 추가하지 않는다.
-- 요청에 없는 조사, 정리, 분기, 변환, 필터, 출력 형식을 임의로 추가하지 않는다.
-- 기존 Workflow와 관련된 부분은 최대한 재사용한다.
-- 기존 node id와 params는 요청에 필요한 경우가 아니면 유지한다.
-- 관련 없는 기존 구조는 억지로 재사용하지 않는다.
-- 필요한 변경만 Patch에 포함한다.
-- 변경할 것이 없으면 {"ops":[]}를 반환한다.
-- 정확한 노드/포트/params 기준은 항상 defaultNodeDef에서 파생된 아래 정의만 사용한다.
-- 없는 노드, 포트, params를 만들지 않는다.
-- 새 node id는 기존 id와 겹치지 않게 한다.
-- node id는 문자열이다.
-- start는 최종 Workflow에 정확히 하나여야 한다.
-- judge는 true/false 포트만 사용한다.
-- judge에 in/result 포트는 없다.
-- file은 사용자 파일 입력이다.
-- 새 결과 파일 생성은 createFile이다.
-- createFile.filename에는 확장자를 붙이지 않는다.
-- parameter 값은 사용자 언어를 사용한다.
-- 지정되지 않은 parameter는 만들지 않는다.
-- 빈 문자열 parameter를 만들지 않는다.
-- 기존 parameter는 요청에서 변경된 경우에만 수정한다.
+* 수행에 불필요한 노드를 덧붙이지 않음.
+* 요청에 관련없는 조사, 정리, 분기, 변환, 필터, 출력 형식을 이유없이 추가하지 않음.
+* 필요한 변경만 Patch에 포함한다.
+- 후속 요청은 기존 Workflow의 현재 상태를 기준으로 해석한다.
+- 사용자의 요청이 기존 Workflow에 대한 추가, 수정, 삭제, 대체 중 무엇인지 판단한다.
+- 새로운 내용을 요청한 경우 필요한 노드를 추가하거나 기존 구조에 연결한다.
+- 기존 설정이나 값을 다른 것으로 바꾸라는 의미인 경우 기존 노드 또는 parameter를 수정한다.
+- 기존 작업이나 구조를 제거하거나 더 이상 필요하지 않다고 요청한 경우 해당 노드, 연결 또는 parameter를 삭제한다.
+- 기존 설정을 새로운 설정으로 바꾸는 요청은 기존 값을 유지한 채 새 값을 추가하지 말고, 기존 값을 적절히 수정하거나 대체한다.
+- 요청의 일부만 변경되는 경우 변경되는 부분만 수정하고, 변경과 무관한 기존 구조와 parameter는 유지한다.
+- parameter의 이름이나 ID가 요청에 직접 언급되지 않아도 현재 값, parameter의 역할, 노드의 의미, 기존 Workflow와의 문맥을 바탕으로 변경 대상을 판단한다.
+- 짧거나 생략된 후속 요청도 기존 Workflow와 자연스럽게 연결되는 의미가 있으면 그에 맞게 기존 구조를 수정한다.
+* 변경할 것이 없으면 {"ops":[]}를 반환.
+* 기존 Workflow를 적절히 재사용.
+* 기존 node id및 params는 요청에 필요한 경우가 아니면 최대유지.
+* 직접 수정 대상이 아닌 기존 parameter을 소실하지 않도록 주의.
+* 정확한 노드/포트/params 기준은 항상 defaultNodeDef에서 파생된 아래 정의만 사용.
+* 없는 노드, 포트, params를 절대 만들지 않음.
+* 새 node id는 기존 id와 겹치지 않게 한다.
+* node id는 문자열.
+* start는 최종 Workflow에 정확히 하나.
+* start은 코드 흐름에 포함된 이외의 노드의 origin이 되도록 최소 한번의 연결이 존재.
+* judge는 true/false 포트만 사용한다.
+* judge에 in/result 포트는 없다.
+* file은 사용자 파일 입력이다.
+* 새 결과 파일 생성은 createFile이다.
+* 지정되지 않은 parameter는 만들지 않는다.
+* 기존 parameter는 요청에서 변경된 경우에만 수정한다.
+* 빈 문자열 parameter를 만들지 않는다.
+* createFile.filename에는 확장자를 붙이지 않는다.
+* parameter 등의 값은 다른 요청이 없으면 사용자가 사용한 언어를 사용.
+* 파일 형식과 같은 규격이 있는 것이 아닌 경우 parameter는 사용자 언어의 자연어 형태를 넣는 것이 바람직.
+* 최종적으로 무언가를 작성해야하면 write가 사용될 것을 권장함.
+* 조건이나 분기가 있으면 judge를 활용함.
 
 노드 정의:
 ${NODE_DEFINITION_PROMPT}
@@ -658,8 +673,7 @@ d = data 추가
 dd = data 삭제
 
 paramsJson은 JSON 문자열이다.
-예:
-["a","n2","research","{\\"topic\\":\\"일본어 단어\\"}"]
+예:["a","n2","research","{\\"topic\\":\\"일본어 단어\\"}"]
 
 연결 endpoint는 nodeId.portId 형식이다.
 
@@ -1437,7 +1451,10 @@ function applyPatch(
     node.params=
       cleanParams(
         node.type,
-        params
+        {
+          ...(node.params||{}),
+          ...params
+        }
       );
 
   }
@@ -1557,7 +1574,6 @@ function applyPatch(
   return workflow;
 
 }
-
 
 /* =========================================================
    WORKFLOW VALIDATION
