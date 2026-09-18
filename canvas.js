@@ -2,11 +2,15 @@
   'use strict';
 
   const SVG_NS = 'http://www.w3.org/2000/svg';
+  const MAX_CHAT_HISTORY = 40;
   let instanceSeq = 0;
 
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
   const dist = (a, b) => Math.hypot(b.x - a.x, b.y - a.y);
-  const mid = (a, b) => ({ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+  const mid = (a, b) => ({
+    x: (a.x + b.x) / 2,
+    y: (a.y + b.y) / 2
+  });
 
   const icons = {
     delete: `
@@ -48,6 +52,115 @@
       </svg>`
   };
 
+  const waitStyle = `
+    .vc-composer.vc-ai-busy{cursor:wait}
+    .vc-composer.vc-ai-busy .vc-chat-input{opacity:.62}
+    .vc-composer.vc-ai-busy .vc-composer-button{cursor:wait}
+    .vc-composer-button:disabled{opacity:.55}
+
+    .vc-ai-spinner{
+      display:block;
+      width:15px;
+      height:15px;
+      border:1.7px solid currentColor;
+      border-right-color:transparent;
+      border-radius:50%;
+      animation:vc-ai-spin .72s linear infinite
+    }
+
+    @keyframes vc-ai-spin{
+      to{transform:rotate(360deg)}
+    }
+
+    .vc-chat-history{
+      width:min(calc(100% - 28px),560px);
+      max-height:min(38vh,320px);
+      margin:0 auto 10px;
+      overflow-y:auto;
+      overflow-x:hidden;
+      display:flex;
+      flex-direction:column;
+      gap:7px;
+      scrollbar-width:none;
+      pointer-events:auto;
+    }
+
+    .vc-chat-history::-webkit-scrollbar{
+      display:none;
+    }
+
+    .vc-chat-message{
+      display:flex;
+      flex-direction:column;
+      max-width:88%;
+      animation:vc-chat-in .2s ease both;
+    }
+
+    .vc-chat-message.user{
+      align-self:flex-end;
+      align-items:flex-end;
+    }
+
+    .vc-chat-message.assistant{
+      align-self:flex-start;
+      align-items:flex-start;
+    }
+
+    .vc-chat-bubble{
+      max-width:100%;
+      padding:9px 11px;
+      border:1px solid var(--border);
+      border-radius:13px;
+      color:var(--text);
+      font-size:11px;
+      line-height:1.5;
+      letter-spacing:-.015em;
+      white-space:pre-wrap;
+      word-break:keep-all;
+      background:var(--glass2);
+      box-shadow:0 6px 20px rgba(0,0,0,.055);
+      backdrop-filter:blur(18px);
+      -webkit-backdrop-filter:blur(18px);
+    }
+
+    .vc-chat-message.user .vc-chat-bubble{
+      color:var(--text);
+      background:var(--accent-soft);
+      border-color:transparent;
+    }
+
+    .vc-chat-question{
+      margin-top:5px;
+      padding-left:2px;
+      color:var(--sub);
+      font-size:10px;
+      line-height:1.45;
+      white-space:pre-wrap;
+      word-break:keep-all;
+    }
+
+    @keyframes vc-chat-in{
+      from{
+        opacity:0;
+        transform:translateY(5px);
+      }
+      to{
+        opacity:1;
+        transform:translateY(0);
+      }
+    }
+  `;
+
+  function createStyle() {
+    if (document.getElementById('vc-ai-wait-style')) return;
+
+    const style = document.createElement('style');
+    style.id = 'vc-ai-wait-style';
+    style.textContent = waitStyle;
+
+    document.head.appendChild(style);
+  }
+
   function escapeHtml(value) {
     return String(value).replace(/[&<>'"]/g, c => ({
       '&': '&amp;',
@@ -60,7 +173,11 @@
 
   function svgEl(name, attrs = {}) {
     const el = document.createElementNS(SVG_NS, name);
-    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+
+    for (const [key, value] of Object.entries(attrs)) {
+      el.setAttribute(key, value);
+    }
+
     return el;
   }
 
@@ -72,26 +189,58 @@
     }
   }
 
-  function createStyle() {
-    if (document.getElementById('vc-ai-wait-style')) return;
+  /*
+    Chat history용 snapshot
 
-    const style = document.createElement('style');
-    style.id = 'vc-ai-wait-style';
-    style.textContent = `
-      .vc-composer.vc-ai-busy{cursor:wait}
-      .vc-composer.vc-ai-busy .vc-chat-input{opacity:.62}
-      .vc-composer.vc-ai-busy .vc-composer-button{cursor:wait}
-      .vc-composer-button:disabled{opacity:.55}
-      .vc-ai-spinner{
-        display:block;width:15px;height:15px;
-        border:1.7px solid currentColor;
-        border-right-color:transparent;
-        border-radius:50%;
-        animation:vc-ai-spin .72s linear infinite
-      }
-      @keyframes vc-ai-spin{to{transform:rotate(360deg)}}
-    `;
-    document.head.appendChild(style);
+    일반 workflow clone과 달리
+    File 같은 큰 객체는 그대로 참조하고
+    실제로 변할 수 있는 params만 얕게 복제한다.
+
+    따라서 같은 파일을 40번 깊은 복사하지 않는다.
+  */
+  function snapshotWorkflow(workflow) {
+    return {
+      nodes:
+        workflow.nodes.map(node => ({
+          ...node,
+
+          data:
+            node.data
+              ? {
+                  ...node.data,
+
+                  ...(node.data.params
+                    ? {
+                        params: {
+                          ...node.data.params
+                        }
+                      }
+                    : {})
+                }
+              : {}
+        })),
+
+      connections:
+        workflow.connections.map(connection => ({
+          ...connection,
+
+          from: {
+            ...connection.from
+          },
+
+          to: {
+            ...connection.to
+          },
+
+          ...(connection.data
+            ? {
+                data: {
+                  ...connection.data
+                }
+              }
+            : {})
+        }))
+    };
   }
 
   window.mountVisualCanvas = async function (target, options = {}) {
@@ -100,12 +249,12 @@
     }
 
     if (!(target instanceof Element)) {
-      throw new TypeError('target must be a DOM Element or selector');
+      throw new TypeError(
+        'target must be a DOM Element or selector'
+      );
     }
 
-    if (target._visualCanvas?.destroy) {
-      target._visualCanvas.destroy();
-    }
+    target._visualCanvas?.destroy?.();
 
     const definitions =
       options.nodeDefinitions ||
@@ -120,19 +269,26 @@
       nodes: [],
       connections: [],
       selectedNode: null,
+
       scale: 1,
       offset: { x: 0, y: 0 },
+
       pointers: new Map(),
       nodeDrag: null,
       canvasPan: null,
       pinch: null,
       connectionDrag: null,
+
       expansionAnimation: null,
       rafIds: new Set(),
+
       destroyed: false,
       addMenuOpen: false,
       validationTimer: null,
-      aiBusy: false
+      aiBusy: false,
+
+      chatRuns: [],
+      pendingChatRun: null
     };
 
     const registry = new Map(
@@ -153,22 +309,34 @@
     root.innerHTML = `
       <div class="vc-canvas">
         <div class="vc-world">
-          <svg class="vc-svg" viewBox="0 0 3000 3000" preserveAspectRatio="none">
+          <svg
+            class="vc-svg"
+            viewBox="0 0 3000 3000"
+            preserveAspectRatio="none"
+          >
             <defs>
-              <marker class="vc-arrow-marker"
+              <marker
+                class="vc-arrow-marker"
                 viewBox="0 0 10 10"
-                refX="8" refY="5"
-                markerWidth="5" markerHeight="5"
-                orient="auto">
-                <path d="M1 1L8 5L1 9"
+                refX="8"
+                refY="5"
+                markerWidth="5"
+                markerHeight="5"
+                orient="auto"
+              >
+                <path
+                  d="M1 1L8 5L1 9"
                   fill="none"
                   stroke="currentColor"
-                  stroke-width="1.5"/>
+                  stroke-width="1.5"
+                />
               </marker>
             </defs>
+
             <g class="vc-connection-layer"></g>
             <g class="vc-drag-connection-layer"></g>
           </svg>
+
           <div class="vc-nodes"></div>
         </div>
       </div>
@@ -177,14 +345,18 @@
       <div class="vc-validation"></div>
 
       <div class="vc-top-controls">
-        <button type="button"
+        <button
+          type="button"
           class="vc-top-button vc-theme-button"
-          aria-label="다크 모드">◐</button>
+          aria-label="다크 모드"
+        >◐</button>
 
-        <button type="button"
+        <button
+          type="button"
           class="vc-top-button vc-add-button highB"
           aria-label="노드 추가"
-          aria-expanded="false">
+          aria-expanded="false"
+        >
           ${icons.add}
         </button>
       </div>
@@ -192,63 +364,105 @@
       <div class="vc-add-menu"></div>
 
       <div class="vc-composer-wrap">
+
+        <div
+          class="vc-chat-history"
+          aria-live="polite"
+          aria-label="Workflow 대화"
+        ></div>
+
         <form class="vc-composer">
-          <button type="button"
+
+          <button
+            type="button"
             class="vc-composer-button vc-attach-button"
-            aria-label="파일 추가">
+            aria-label="파일 추가"
+          >
             ${icons.attach}
           </button>
 
           <textarea
             rows="1"
             class="vc-chat-input"
-            placeholder="무엇을 만들까요?"></textarea>
+            placeholder="무엇을 만들까요?"
+          ></textarea>
 
-          <button type="submit"
+          <button
+            type="submit"
             class="vc-composer-button vc-send-button highB"
-            aria-label="보내기">
+            aria-label="보내기"
+          >
             ${icons.send}
           </button>
         </form>
 
-        <input class="vc-file-input" type="file" multiple hidden>
+        <input
+          class="vc-file-input"
+          type="file"
+          multiple
+          hidden
+        >
       </div>
     `;
 
     target.appendChild(root);
     target._visualCanvas = null;
 
-    const $ = s => root.querySelector(s);
+    const $ = selector => root.querySelector(selector);
+    const $$ = selector => [...root.querySelectorAll(selector)];
+
     const canvas = $('.vc-canvas');
     const world = $('.vc-world');
     const nodesLayer = $('.vc-nodes');
+
     const connectionLayer = $('.vc-connection-layer');
     const dragConnectionLayer = $('.vc-drag-connection-layer');
+
     const zoomIndicator = $('.vc-zoom-indicator');
     const validationLayer = $('.vc-validation');
+
     const addButton = $('.vc-add-button');
     const addMenu = $('.vc-add-menu');
     const themeButton = $('.vc-theme-button');
+
     const chatForm = $('.vc-composer');
     const chatInput = $('.vc-chat-input');
     const attachButton = $('.vc-attach-button');
     const fileInput = $('.vc-file-input');
+    const chatHistory = $('.vc-chat-history');
 
     const markerId = `${uid}-arrow`;
     $('.vc-arrow-marker').setAttribute('id', markerId);
 
-    const nodeResizeObserver = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        const node = getNode(entry.target.dataset.nodeId);
-        if (node) positionPorts(entry.target, getNodeType(node));
-      }
-      renderConnections();
-    });
+    const nodeResizeObserver =
+      new ResizeObserver(entries => {
+        for (const entry of entries) {
+          const node = getNode(
+            entry.target.dataset.nodeId
+          );
+
+          if (node) {
+            positionPorts(
+              entry.target,
+              getNodeType(node)
+            );
+          }
+        }
+
+        renderConnections();
+      });
 
     function on(event, handler) {
-      if (typeof handler !== 'function') return () => {};
-      if (!events.has(event)) events.set(event, new Set());
+      if (typeof handler !== 'function') {
+        return () => {};
+      }
+
+      if (!events.has(event)) {
+        events.set(event, new Set());
+      }
+
       events.get(event).add(handler);
+
       return () => off(event, handler);
     }
 
@@ -268,20 +482,28 @@
 
     function listen(el, type, fn, opts) {
       el.addEventListener(type, fn, opts);
-      listeners.push(() => el.removeEventListener(type, fn, opts));
+      listeners.push(
+        () => el.removeEventListener(type, fn, opts)
+      );
     }
 
     function raf(fn) {
       const id = requestAnimationFrame(t => {
         state.rafIds.delete(id);
-        if (!state.destroyed) fn(t);
+
+        if (!state.destroyed) {
+          fn(t);
+        }
       });
+
       state.rafIds.add(id);
       return id;
     }
 
     function getNode(id) {
-      return state.nodes.find(n => n.id === id) || null;
+      return state.nodes.find(
+        node => node.id === id
+      ) || null;
     }
 
     function getNodeElement(id) {
@@ -291,7 +513,9 @@
     }
 
     function getNodeType(node) {
-      return node ? registry.get(node.type) || null : null;
+      return node
+        ? registry.get(node.type) || null
+        : null;
     }
 
     function screenToWorld(x, y) {
@@ -303,23 +527,34 @@
 
     function renderTransform() {
       world.style.transform =
-        `translate(${state.offset.x}px,${state.offset.y}px) scale(${state.scale})`;
-      zoomIndicator.textContent = `${Math.round(state.scale * 100)}%`;
+        `translate(${state.offset.x}px,${state.offset.y}px) ` +
+        `scale(${state.scale})`;
+
+      zoomIndicator.textContent =
+        `${Math.round(state.scale * 100)}%`;
     }
 
-    function connectionKey(c) {
-      return `${c.from.node}:${c.from.port}->${c.to.node}:${c.to.port}`;
+    function connectionKey(connection) {
+      return [
+        connection.from.node,
+        connection.from.port,
+        connection.to.node,
+        connection.to.port
+      ].join(':');
     }
 
     function portDef(nodeId, portId, direction) {
       const type = getNodeType(getNode(nodeId));
       if (!type) return null;
+
       const ports =
         direction === 'input'
           ? type.inputs
           : type.outputs;
 
-      return ports.find(p => String(p.id) === String(portId)) || null;
+      return ports.find(
+        port => String(port.id) === String(portId)
+      ) || null;
     }
 
     function portEl(nodeId, portId, direction) {
@@ -331,32 +566,44 @@
     }
 
     function portPoint(nodeId, portId, direction) {
-      const element = portEl(nodeId, portId, direction);
+      const element =
+        portEl(nodeId, portId, direction);
+
       if (!element) return null;
 
       const anchor =
-        element.querySelector('.vc-port-anchor') || element;
+        element.querySelector('.vc-port-anchor') ||
+        element;
 
       const rect = anchor.getBoundingClientRect();
-      const canvasRect = canvas.getBoundingClientRect();
+      const canvasRect =
+        canvas.getBoundingClientRect();
 
       return {
         x:
-          (rect.left + rect.width / 2 -
+          (
+            rect.left +
+            rect.width / 2 -
             canvasRect.left -
-            state.offset.x) / state.scale,
+            state.offset.x
+          ) / state.scale,
 
         y:
-          (rect.top + rect.height / 2 -
+          (
+            rect.top +
+            rect.height / 2 -
             canvasRect.top -
-            state.offset.y) / state.scale
+            state.offset.y
+          ) / state.scale
       };
     }
 
     function curve(a, b) {
       const dx = b.x - a.x;
+
       const bend = clamp(
-        Math.abs(dx) * .22 + Math.abs(b.y - a.y) * .05,
+        Math.abs(dx) * .22 +
+        Math.abs(b.y - a.y) * .05,
         28,
         85
       );
@@ -372,28 +619,62 @@
     function normalizePort(port, index, direction) {
       return {
         ...port,
-        id: String(port.id ?? `${direction}-${index}`),
-        name: port.name ?? port.id,
-        type: port.type || 'any',
-        required: !!port.required,
-        multiple: port.multiple !== false,
+
+        id: String(
+          port.id ??
+          `${direction}-${index}`
+        ),
+
+        name:
+          port.name ??
+          port.id,
+
+        type:
+          port.type ||
+          'any',
+
+        required:
+          !!port.required,
+
+        multiple:
+          port.multiple !== false,
+
         accepts:
-          Array.isArray(port.accepts) && port.accepts.length
+          Array.isArray(port.accepts) &&
+          port.accepts.length
             ? [...port.accepts]
             : ['any']
       };
     }
 
     function normalizeNodeType(type, definition) {
-      const d = { ...(definition || {}) };
+      const d = {
+        ...(definition || {})
+      };
 
       d.inputs = (d.inputs || [])
-        .map((p, i) => normalizePort(p, i, 'input'));
+        .map((port, i) =>
+          normalizePort(
+            port,
+            i,
+            'input'
+          )
+        );
 
       d.outputs = (d.outputs || [])
-        .map((p, i) => normalizePort(p, i, 'output'));
+        .map((port, i) =>
+          normalizePort(
+            port,
+            i,
+            'output'
+          )
+        );
 
-      d.params = Array.isArray(d.params) ? d.params : [];
+      d.params =
+        Array.isArray(d.params)
+          ? d.params
+          : [];
+
       d.slots = {
         description: true,
         param: true,
@@ -402,9 +683,18 @@
         ...(d.slots || {})
       };
 
-      d.tag = d.tag || type.toUpperCase();
-      d.color = d.color || '#888';
-      d.icon = typeof d.icon === 'string' ? d.icon : '';
+      d.tag =
+        d.tag ||
+        type.toUpperCase();
+
+      d.color =
+        d.color ||
+        '#888';
+
+      d.icon =
+        typeof d.icon === 'string'
+          ? d.icon
+          : '';
 
       return d;
     }
@@ -418,7 +708,11 @@
       ) {
         body.push(`
           <div class="vc-slot-description">
-            ${escapeHtml(type.desc || type.description || '')}
+            ${escapeHtml(
+              type.desc ||
+              type.description ||
+              ''
+            )}
           </div>
         `);
       }
@@ -427,31 +721,39 @@
         type.slots.param !== false &&
         Array.isArray(type.params)
       ) {
-        const values = node.data?.params || {};
+        const values =
+          node.data?.params || {};
 
         for (const param of type.params) {
-          const value = values[param.id] ?? '';
-
           body.push(`
             <div class="vc-param-group">
               <label class="vc-param-label">
-                ${escapeHtml(param.name || param.id)}
+                ${escapeHtml(
+                  param.name ||
+                  param.id
+                )}
               </label>
 
               <input
                 class="vc-slot-param"
                 type="text"
                 data-param-id="${escapeHtml(param.id)}"
-                value="${escapeHtml(value)}"
-                placeholder="${escapeHtml(param.placeholder || '')}">
+                value="${escapeHtml(values[param.id] ?? '')}"
+                placeholder="${escapeHtml(param.placeholder || '')}"
+              >
             </div>
           `);
         }
       }
 
       if (node.type === 'file') {
-        const mime = node.data?.mime || '알 수 없는 형식';
-        const size = Number(node.data?.size || 0);
+        const mime =
+          node.data?.mime ||
+          '알 수 없는 형식';
+
+        const size =
+          Number(node.data?.size || 0);
+
         const sizeText =
           size < 1024
             ? `${size} B`
@@ -469,16 +771,21 @@
         `);
       }
 
-      if (type.slots.footer !== false && type.footer) {
+      if (
+        type.slots.footer !== false &&
+        type.footer
+      ) {
         body.push(`
           <div class="vc-slot-custom">
             ${
               typeof type.footer === 'function'
-                ? type.footer(node, {
-                    node,
-                    type,
-                    instance: api
-                  }) || ''
+                ? (
+                    type.footer(node, {
+                      node,
+                      type,
+                      instance: api
+                    }) || ''
+                  )
                 : type.footer
             }
           </div>
@@ -488,199 +795,271 @@
       return body.join('');
     }
 
-    function renderNodes() {
-  nodesLayer.textContent = '';
+    function renderPorts(node, ports, direction) {
+      const className =
+        direction === 'input'
+          ? 'vc-input'
+          : 'vc-output';
 
-  for (const node of state.nodes) {
-    const type = getNodeType(node);
-    if (!type) continue;
+      return ports.map(port => `
+        <div
+          class="vc-port-hit ${className}"
+          data-port-dir="${direction}"
+          data-port-id="${escapeHtml(port.id)}"
+          data-node-id="${escapeHtml(node.id)}"
+        >
+          <span class="vc-port-anchor">
+            <span class="vc-port-pill"></span>
+          </span>
 
-    const el = document.createElement('div');
-
-    const isImageFile =
-      node.type === 'file' &&
-      node.data?.mime?.startsWith('image/');
-
-    el.className =
-      `vc-node` +
-      (node.type === 'start' ? ' vc-start-node' : '') +
-      (node.type === 'file' ? ' vc-file-node' : '') +
-      (isImageFile ? ' vc-image-file-node' : '') +
-      (node.id === state.selectedNode ? ' vc-selected' : '') +
-      (node.expanded ? ' vc-expanded' : '');
-
-    if (isImageFile && node.data?.previewUrl) {
-      el.style.setProperty(
-        '--vc-file-bg',
-        `url("${node.data.previewUrl}")`
-      );
+          <span class="vc-port-label">
+            ${escapeHtml(port.name)}
+          </span>
+        </div>
+      `).join('');
     }
 
-    el.dataset.nodeId = node.id;
-    el.style.left = `${node.x}px`;
-    el.style.top = `${node.y}px`;
-    el.style.setProperty('--node-color', type.color);
+    function renderNodes() {
+      nodeResizeObserver.disconnect();
 
-    const fileName =
-      node.type === 'file'
-        ? node.data?.name || '이름 없는 파일'
-        : type.name;
+      nodesLayer.textContent = '';
 
-    const fileExt =
-      node.type === 'file' && fileName.includes('.')
-        ? fileName.split('.').pop().toUpperCase()
-        : 'FILE';
+      for (const node of state.nodes) {
+        const type = getNodeType(node);
 
-    el.innerHTML = `
-      <div class="vc-node-head">
-        <span class="vc-node-icon">${type.icon || ''}</span>
+        if (!type) continue;
 
-        ${
+        const el = document.createElement('div');
+
+        const isImageFile =
+          node.type === 'file' &&
+          node.data?.mime?.startsWith('image/');
+
+        el.className =
+          'vc-node' +
+          (node.type === 'start'
+            ? ' vc-start-node'
+            : '') +
+          (node.type === 'file'
+            ? ' vc-file-node'
+            : '') +
+          (isImageFile
+            ? ' vc-image-file-node'
+            : '') +
+          (node.id === state.selectedNode
+            ? ' vc-selected'
+            : '') +
+          (node.expanded
+            ? ' vc-expanded'
+            : '');
+
+        if (
+          isImageFile &&
+          node.data?.previewUrl
+        ) {
+          el.style.setProperty(
+            '--vc-file-bg',
+            `url("${node.data.previewUrl}")`
+          );
+        }
+
+        el.dataset.nodeId = node.id;
+        el.style.left = `${node.x}px`;
+        el.style.top = `${node.y}px`;
+        el.style.setProperty(
+          '--node-color',
+          type.color
+        );
+
+        const fileName =
           node.type === 'file'
-            ? `
-              <span class="vc-file-title-wrap">
-                <span class="vc-file-title"
-                  title="${escapeHtml(fileName)}">
-                  ${escapeHtml(fileName)}
-                </span>
-                <span class="vc-file-type">
-                  ${escapeHtml(fileExt)}
-                </span>
-              </span>
-            `
-            : `
-              <span class="vc-node-title">
-                ${escapeHtml(type.name || node.type)}
-              </span>
-            `
-        }
+            ? node.data?.name ||
+              '이름 없는 파일'
+            : type.name;
 
-        ${
-          node.type === 'start'
-            ? `<span class="vc-start-badge">START</span>`
-            : ''
-        }
+        const fileExt =
+          node.type === 'file' &&
+          fileName.includes('.')
+            ? fileName
+                .split('.')
+                .pop()
+                .toUpperCase()
+            : 'FILE';
 
-        <div class="vc-node-actions">
-          <button type="button"
-            class="vc-node-action vc-node-toggle"
-            data-action="toggle"
-            aria-label="상세 내용 열기"
-            aria-expanded="${!!node.expanded}">
-            ${icons.toggle}
-          </button>
-        </div>
-      </div>
+        el.innerHTML = `
+          <div class="vc-node-head">
 
-      <div class="vc-node-body">
-        ${renderSlotContent(node, type)}
-      </div>
+            <span class="vc-node-icon">
+              ${type.icon || ''}
+            </span>
 
-      ${
-        node.type !== 'start'
-          ? `
-            <div class="vc-node-footer">
-              <button type="button"
-                class="vc-node-delete"
-                data-action="delete"
-                aria-label="노드 삭제">
-                ${icons.delete}
-                <span>삭제하기</span>
+            ${
+              node.type === 'file'
+                ? `
+                  <span class="vc-file-title-wrap">
+                    <span
+                      class="vc-file-title"
+                      title="${escapeHtml(fileName)}"
+                    >
+                      ${escapeHtml(fileName)}
+                    </span>
+
+                    <span class="vc-file-type">
+                      ${escapeHtml(fileExt)}
+                    </span>
+                  </span>
+                `
+                : `
+                  <span class="vc-node-title">
+                    ${escapeHtml(
+                      type.name ||
+                      node.type
+                    )}
+                  </span>
+                `
+            }
+
+            ${
+              node.type === 'start'
+                ? `
+                  <span class="vc-start-badge">
+                    START
+                  </span>
+                `
+                : ''
+            }
+
+            <div class="vc-node-actions">
+              <button
+                type="button"
+                class="vc-node-action vc-node-toggle"
+                data-action="toggle"
+                aria-label="${
+                  node.expanded
+                    ? '상세 내용 닫기'
+                    : '상세 내용 열기'
+                }"
+                aria-expanded="${!!node.expanded}"
+              >
+                ${icons.toggle}
               </button>
             </div>
-          `
-          : ''
+
+          </div>
+
+          <div class="vc-node-body">
+            ${renderSlotContent(node, type)}
+          </div>
+
+          ${
+            node.type !== 'start'
+              ? `
+                <div class="vc-node-footer">
+                  <button
+                    type="button"
+                    class="vc-node-delete"
+                    data-action="delete"
+                    aria-label="노드 삭제"
+                  >
+                    ${icons.delete}
+                    <span>삭제하기</span>
+                  </button>
+                </div>
+              `
+              : ''
+          }
+
+          ${renderPorts(
+            node,
+            type.inputs || [],
+            'input'
+          )}
+
+          ${renderPorts(
+            node,
+            type.outputs || [],
+            'output'
+          )}
+        `;
+
+        nodesLayer.appendChild(el);
+        positionPorts(el, type);
+        nodeResizeObserver.observe(el);
+
+        setNodeExpanded(
+          el,
+          !!node.expanded,
+          true
+        );
       }
 
-      ${type.inputs.map(port => `
-        <div
-          class="vc-port-hit vc-input"
-          data-port-dir="input"
-          data-port-id="${escapeHtml(port.id)}"
-          data-node-id="${escapeHtml(node.id)}">
-
-          <span class="vc-port-anchor">
-            <span class="vc-port-pill"></span>
-          </span>
-
-          <span class="vc-port-label">
-            ${escapeHtml(port.name)}
-          </span>
-        </div>
-      `).join('')}
-
-      ${type.outputs.map(port => `
-        <div
-          class="vc-port-hit vc-output"
-          data-port-dir="output"
-          data-port-id="${escapeHtml(port.id)}"
-          data-node-id="${escapeHtml(node.id)}">
-
-          <span class="vc-port-anchor">
-            <span class="vc-port-pill"></span>
-          </span>
-
-          <span class="vc-port-label">
-            ${escapeHtml(port.name)}
-          </span>
-        </div>
-      `).join('')}
-    `;
-
-    nodesLayer.appendChild(el);
-
-    el.querySelectorAll('.vc-slot-param').forEach(input => {
-      listen(input, 'pointerdown', e => e.stopPropagation());
-
-      listen(input, 'input', e => {
-        node.data ||= {};
-        node.data.params ||= {};
-
-        node.data.params[e.target.dataset.paramId] =
-          e.target.value;
-
-        emit('change', getWorkflow());
-      });
-    });
-
-    positionPorts(el, type);
-    nodeResizeObserver.observe(el);
-    setNodeExpanded(el, !!node.expanded, true);
-  }
-
-  markConnectedPorts();
-  raf(renderConnections);
-}
+      markConnectedPorts();
+      raf(renderConnections);
+    }
 
     function positionPorts(nodeEl, type) {
       if (!type) return;
 
-      const height = Math.max(50, nodeEl.offsetHeight);
-      const inputs = [...nodeEl.querySelectorAll('.vc-port-hit.vc-input')];
-      const outputs = [...nodeEl.querySelectorAll('.vc-port-hit.vc-output')];
+      const height =
+        Math.max(
+          50,
+          nodeEl.offsetHeight
+        );
 
-      const place = (list, ports) => {
-        const count = Math.max(1, ports.length);
+      const place = (
+        selector,
+        ports
+      ) => {
+        const elements =
+          [...nodeEl.querySelectorAll(selector)];
 
-        list.forEach((el, index) => {
-          const y = ((index + 1) / (count + 1)) * height;
-          el.style.height = '32px';
-          el.style.top = `${y - 16}px`;
-          el.dataset.portId = ports[index].id;
-        });
+        const count =
+          Math.max(
+            1,
+            ports.length
+          );
+
+        elements.forEach(
+          (el, index) => {
+            const y =
+              ((index + 1) /
+                (count + 1)) *
+              height;
+
+            el.style.height = '32px';
+            el.style.top = `${y - 16}px`;
+            el.dataset.portId =
+              ports[index].id;
+          }
+        );
       };
 
-      place(inputs, type.inputs || []);
-      place(outputs, type.outputs || []);
+      place(
+        '.vc-port-hit.vc-input',
+        type.inputs || []
+      );
+
+      place(
+        '.vc-port-hit.vc-output',
+        type.outputs || []
+      );
     }
 
     function markConnectedPorts() {
-      for (const c of state.connections) {
-        portEl(c.from.node, c.from.port, 'output')
+      for (const connection of state.connections) {
+        portEl(
+          connection.from.node,
+          connection.from.port,
+          'output'
+        )
           ?.querySelector('.vc-port-pill')
           ?.classList.add('vc-connected');
 
-        portEl(c.to.node, c.to.port, 'input')
+        portEl(
+          connection.to.node,
+          connection.to.port,
+          'input'
+        )
           ?.querySelector('.vc-port-pill')
           ?.classList.add('vc-connected');
       }
@@ -689,31 +1068,56 @@
     function renderConnections() {
       connectionLayer.textContent = '';
 
-      for (const c of state.connections) {
-        const a = portPoint(c.from.node, c.from.port, 'output');
-        const b = portPoint(c.to.node, c.to.port, 'input');
+      for (const connection of state.connections) {
+        const a = portPoint(
+          connection.from.node,
+          connection.from.port,
+          'output'
+        );
+
+        const b = portPoint(
+          connection.to.node,
+          connection.to.port,
+          'input'
+        );
 
         if (!a || !b) continue;
 
         const active =
-          state.selectedNode === c.from.node ||
-          state.selectedNode === c.to.node;
+          state.selectedNode ===
+            connection.from.node ||
+          state.selectedNode ===
+            connection.to.node;
 
-        const path = svgEl('path', { d: curve(a, b) });
-        path.classList.add('vc-connection');
+        const path = svgEl(
+          'path',
+          {
+            d: curve(a, b),
+            ...(active
+              ? {
+                  class: 'vc-connection vc-active'
+                }
+              : {
+                  class: 'vc-connection'
+                })
+          }
+        );
 
         if (active) {
-          path.classList.add('vc-active');
+          const node =
+            getNode(
+              state.selectedNode ===
+                connection.from.node
+                ? connection.from.node
+                : connection.to.node
+            );
 
-          const activeNode = getNode(
-            state.selectedNode === c.from.node
-              ? c.from.node
-              : c.to.node
-          );
+          const type =
+            getNodeType(node);
 
-          const activeType = getNodeType(activeNode);
-          if (activeType?.color) {
-            path.style.stroke = activeType.color;
+          if (type?.color) {
+            path.style.stroke =
+              type.color;
           }
         }
 
@@ -725,7 +1129,8 @@
               cx: a.x,
               cy: a.y,
               r: 2.8,
-              class: 'vc-connection-dot'
+              class:
+                'vc-connection-dot'
             })
           );
 
@@ -734,18 +1139,23 @@
               cx: b.x,
               cy: b.y,
               r: 2.8,
-              class: 'vc-connection-dot'
+              class:
+                'vc-connection-dot'
             })
           );
         }
       }
 
-      if (state.connectionDrag) renderDragConnection();
+      if (state.connectionDrag) {
+        renderDragConnection();
+      }
     }
 
     function trackExpansion() {
       if (state.expansionAnimation) {
-        cancelAnimationFrame(state.expansionAnimation);
+        cancelAnimationFrame(
+          state.expansionAnimation
+        );
       }
 
       const start = performance.now();
@@ -758,8 +1168,8 @@
           state.expansionAnimation =
             requestAnimationFrame(tick);
         } else {
-          state.expansionAnimation = null;
-          renderConnections();
+          state.expansionAnimation =
+            null;
         }
       };
 
@@ -767,99 +1177,187 @@
         requestAnimationFrame(tick);
     }
 
-    function setNodeExpanded(element, expanded, immediate=false){
-  const node=getNode(element?.dataset.nodeId);
-  if(!element||!node)return;
-  const body=element.querySelector('.vc-node-body');
-  const toggle=element.querySelector('.vc-node-toggle');
-  const type=getNodeType(node);
+    function setNodeExpanded(
+      element,
+      expanded,
+      immediate = false
+    ) {
+      const node =
+        getNode(
+          element?.dataset.nodeId
+        );
 
-  node.expanded=expanded;
-  element.classList.toggle('vc-expanded',expanded);
-  toggle?.setAttribute('aria-expanded',String(expanded));
-  toggle?.setAttribute('aria-label',expanded?'상세 내용 닫기':'상세 내용 열기');
+      if (!element || !node) return;
 
-  if(immediate){
-    body.style.transition='none';
-    element.style.transition='none';
+      const body =
+        element.querySelector(
+          '.vc-node-body'
+        );
 
-    if(expanded){
-      element.style.height='auto';
-      body.style.height='auto';
-    }else{
-      const head=element.querySelector('.vc-node-head');
-      const collapsedHeight=head.offsetHeight+20;
-      body.style.height='0px';
-      element.style.height=`${collapsedHeight}px`;
-    }
+      const toggle =
+        element.querySelector(
+          '.vc-node-toggle'
+        );
 
-    positionPorts(element,type);
+      const type =
+        getNodeType(node);
 
-    raf(()=>{
-      body.style.transition='';
-      element.style.transition='';
-      positionPorts(element,type);
-      renderConnections();
-    });
+      node.expanded = expanded;
 
-    return;
-  }
+      element.classList.toggle(
+        'vc-expanded',
+        expanded
+      );
 
-  if(expanded){
-    element.style.height='auto';
-    body.style.height='0px';
-    void element.offsetHeight;
+      toggle?.setAttribute(
+        'aria-expanded',
+        String(expanded)
+      );
 
-    const targetBody=body.scrollHeight;
+      toggle?.setAttribute(
+        'aria-label',
+        expanded
+          ? '상세 내용 닫기'
+          : '상세 내용 열기'
+      );
 
-    raf(()=>{
-      body.style.height=`${targetBody}px`;
-      trackExpansion();
+      const finish = () => {
+        positionPorts(
+          element,
+          type
+        );
 
-      const finish=event=>{
-        if(event.propertyName!=='height')return;
-        body.removeEventListener('transitionend',finish);
-        if(!node.expanded)return;
-        body.style.height='auto';
-        positionPorts(element,type);
         renderConnections();
       };
 
-      body.addEventListener('transitionend',finish);
-    });
+      if (immediate) {
+        body.style.transition = 'none';
+        element.style.transition = 'none';
 
-    return;
-  }
+        if (expanded) {
+          element.style.height = 'auto';
+          body.style.height = 'auto';
+        } else {
+          const head =
+            element.querySelector(
+              '.vc-node-head'
+            );
 
-  const currentBodyHeight=body.scrollHeight;
-  body.style.height=`${currentBodyHeight}px`;
-  element.style.height='auto';
-  void element.offsetHeight;
+          const collapsedHeight =
+            head.offsetHeight + 20;
 
-  raf(()=>{
-    body.style.height='0px';
-    trackExpansion();
+          body.style.height = '0px';
+          element.style.height =
+            `${collapsedHeight}px`;
+        }
 
-    const finish=event=>{
-      if(event.propertyName!=='height')return;
-      body.removeEventListener('transitionend',finish);
-      if(node.expanded)return;
+        positionPorts(
+          element,
+          type
+        );
 
-      element.style.height='auto';
-      positionPorts(element,type);
-      renderConnections();
-    };
+        raf(() => {
+          body.style.transition = '';
+          element.style.transition = '';
+          finish();
+        });
 
-    body.addEventListener('transitionend',finish);
-  });
-}
+        return;
+      }
+
+      if (expanded) {
+        element.style.height = 'auto';
+        body.style.height = '0px';
+
+        void element.offsetHeight;
+
+        const targetHeight =
+          body.scrollHeight;
+
+        raf(() => {
+          body.style.height =
+            `${targetHeight}px`;
+
+          trackExpansion();
+
+          const end = event => {
+            if (
+              event.propertyName !==
+              'height'
+            ) {
+              return;
+            }
+
+            body.removeEventListener(
+              'transitionend',
+              end
+            );
+
+            if (!node.expanded) return;
+
+            body.style.height = 'auto';
+            finish();
+          };
+
+          body.addEventListener(
+            'transitionend',
+            end
+          );
+        });
+
+        return;
+      }
+
+      const currentHeight =
+        body.scrollHeight;
+
+      body.style.height =
+        `${currentHeight}px`;
+
+      element.style.height = 'auto';
+
+      void element.offsetHeight;
+
+      raf(() => {
+        body.style.height = '0px';
+
+        trackExpansion();
+
+        const end = event => {
+          if (
+            event.propertyName !==
+            'height'
+          ) {
+            return;
+          }
+
+          body.removeEventListener(
+            'transitionend',
+            end
+          );
+
+          if (node.expanded) return;
+
+          element.style.height = 'auto';
+          finish();
+        };
+
+        body.addEventListener(
+          'transitionend',
+          end
+        );
+      });
+    }
+
     function uniqueId(prefix = 'n') {
       let id;
 
       do {
         id =
           `${prefix}${Date.now().toString(36)}` +
-          `${Math.random().toString(36).slice(2, 7)}`;
+          `${Math.random()
+            .toString(36)
+            .slice(2, 7)}`;
       } while (getNode(id));
 
       return id;
@@ -867,43 +1365,71 @@
 
     function normalizeNode(input) {
       return {
-        id: String(input.id || uniqueId()),
-        type: String(input.type),
-        x: Number(input.x) || 0,
-        y: Number(input.y) || 0,
-        expanded: !!input.expanded,
-        data: clone(input.data || {})
+        id: String(
+          input.id ||
+          uniqueId()
+        ),
+
+        type: String(
+          input.type
+        ),
+
+        x:
+          Number(input.x) || 0,
+
+        y:
+          Number(input.y) || 0,
+
+        expanded:
+          !!input.expanded,
+
+        data:
+          clone(input.data || {})
       };
     }
 
     function findNewNodePosition() {
-      const rect = canvas.getBoundingClientRect();
-      const mobile = window.innerWidth <= 600;
-      const nodeWidth = mobile ? 178 : 190;
+      const rect =
+        canvas.getBoundingClientRect();
+
+      const mobile =
+        window.innerWidth <= 600;
+
+      const width =
+        mobile ? 178 : 190;
+
       const margin = 28;
 
       const minX =
-        (margin - state.offset.x) / state.scale;
+        (margin - state.offset.x) /
+        state.scale;
 
       const minY =
-        (margin - state.offset.y) / state.scale;
+        (margin - state.offset.y) /
+        state.scale;
 
       const maxX =
-        (rect.width -
+        (
+          rect.width -
           margin -
-          nodeWidth * state.scale -
-          state.offset.x) /
-        state.scale;
+          width * state.scale -
+          state.offset.x
+        ) / state.scale;
 
       const maxY =
-        (rect.height -
+        (
+          rect.height -
           115 -
-          nodeWidth * .4 * state.scale -
-          state.offset.y) /
-        state.scale;
+          width * .4 * state.scale -
+          state.offset.y
+        ) / state.scale;
 
-      const centerX = (minX + maxX) / 2;
-      const centerY = (minY + maxY) / 2;
+      const centerX =
+        (minX + maxX) / 2;
+
+      const centerY =
+        (minY + maxY) / 2;
+
       const gap = 24;
       const h = 54;
 
@@ -911,38 +1437,65 @@
         [0, 0],
         [0, h + gap],
         [0, -h - gap],
-        [-nodeWidth - gap, 0],
-        [nodeWidth + gap, 0]
+        [-width - gap, 0],
+        [width + gap, 0]
       ].map(([dx, dy]) => ({
-        x: centerX - nodeWidth / 2 + dx,
-        y: centerY - h / 2 + dy
+        x:
+          centerX -
+          width / 2 +
+          dx,
+
+        y:
+          centerY -
+          h / 2 +
+          dy
       }));
 
-      const valid = spots.find(p =>
-        p.x >= minX &&
-        p.x <= maxX &&
-        p.y >= minY &&
-        p.y <= maxY &&
-        !state.nodes.some(n =>
-          Math.abs(n.x - p.x) < nodeWidth + gap &&
-          Math.abs(n.y - p.y) < h + gap
-        )
-      );
+      return (
+        spots.find(
+          p =>
+            p.x >= minX &&
+            p.x <= maxX &&
+            p.y >= minY &&
+            p.y <= maxY &&
+            !state.nodes.some(node =>
+              Math.abs(node.x - p.x) <
+                width + gap &&
+              Math.abs(node.y - p.y) <
+                h + gap
+            )
+        ) || {
+          x: clamp(
+            centerX - width / 2,
+            minX,
+            maxX
+          ),
 
-      return valid || {
-        x: clamp(centerX - nodeWidth / 2, minX, maxX),
-        y: clamp(centerY - h / 2, minY, maxY)
-      };
+          y: clamp(
+            centerY - h / 2,
+            minY,
+            maxY
+          )
+        }
+      );
     }
 
-    function addNode(type, nodeData = {}) {
+    function addNode(
+      type,
+      nodeData = {}
+    ) {
       if (!registry.has(type)) {
-        throw new Error(`Unknown node type: ${type}`);
+        throw new Error(
+          `Unknown node type: ${type}`
+        );
       }
 
       if (type === 'start') {
         const existing =
-          state.nodes.find(n => n.type === 'start');
+          state.nodes.find(
+            node =>
+              node.type === 'start'
+          );
 
         if (existing) {
           selectNode(existing.id);
@@ -952,18 +1505,34 @@
       }
 
       const position =
-        nodeData.x != null && nodeData.y != null
-          ? { x: Number(nodeData.x), y: Number(nodeData.y) }
+        nodeData.x != null &&
+        nodeData.y != null
+          ? {
+              x: Number(nodeData.x),
+              y: Number(nodeData.y)
+            }
           : findNewNodePosition();
 
-      const node = normalizeNode({
-        id: nodeData.id || uniqueId(),
-        type,
-        x: position.x,
-        y: position.y,
-        expanded: true,
-        data: nodeData.data
-      });
+      const node =
+        normalizeNode({
+          id:
+            nodeData.id ||
+            uniqueId(),
+
+          type,
+
+          x:
+            position.x,
+
+          y:
+            position.y,
+
+          expanded:
+            true,
+
+          data:
+            nodeData.data
+        });
 
       state.nodes.push(node);
       state.selectedNode = node.id;
@@ -977,35 +1546,62 @@
 
     function removeNode(id) {
       const node = getNode(id);
-      if (!node || node.type === 'start') return false;
 
-      state.connections = state.connections.filter(
-        c => c.from.node !== id && c.to.node !== id
-      );
+      if (
+        !node ||
+        node.type === 'start'
+      ) {
+        return false;
+      }
 
-      const index = state.nodes.findIndex(n => n.id === id);
-      if (index < 0) return false;
+      state.connections =
+        state.connections.filter(
+          connection =>
+            connection.from.node !== id &&
+            connection.to.node !== id
+        );
+
+      const index =
+        state.nodes.findIndex(
+          node =>
+            node.id === id
+        );
+
+      if (index < 0) {
+        return false;
+      }
 
       state.nodes.splice(index, 1);
 
-      if (state.selectedNode === id) {
+      if (
+        state.selectedNode === id
+      ) {
         state.selectedNode = null;
       }
 
       render();
       emit('change', getWorkflow());
+
       return true;
     }
 
-    function setNodePosition(node, x, y) {
+    function setNodePosition(
+      node,
+      x,
+      y
+    ) {
       node.x = x;
       node.y = y;
 
-      const el = getNodeElement(node.id);
+      const element =
+        getNodeElement(node.id);
 
-      if (el) {
-        el.style.left = `${x}px`;
-        el.style.top = `${y}px`;
+      if (element) {
+        element.style.left =
+          `${x}px`;
+
+        element.style.top =
+          `${y}px`;
       }
 
       renderConnections();
@@ -1013,58 +1609,86 @@
     }
 
     function selectNode(id) {
-      if (id !== null && !getNode(id)) id = null;
+      if (
+        id !== null &&
+        !getNode(id)
+      ) {
+        id = null;
+      }
 
       state.selectedNode = id;
 
-      nodesLayer.querySelectorAll('.vc-node').forEach(el =>
-        el.classList.toggle(
-          'vc-selected',
-          el.dataset.nodeId === id
-        )
+      $$('.vc-node').forEach(
+        element =>
+          element.classList.toggle(
+            'vc-selected',
+            element.dataset.nodeId === id
+          )
       );
 
       renderConnections();
       updateComposerState();
+
       emit('select', id);
     }
 
     function toggleNodeExpanded(id) {
       const node = getNode(id);
-      const el = getNodeElement(id);
+      const element =
+        getNodeElement(id);
 
-      if (!node || !el) return;
+      if (!node || !element) return;
 
-      setNodeExpanded(el, !node.expanded);
+      setNodeExpanded(
+        element,
+        !node.expanded
+      );
+
       selectNode(id);
       emit('change', getWorkflow());
     }
 
-    function wouldCreateCycle(fromId, toId) {
+    function wouldCreateCycle(
+      fromId,
+      toId
+    ) {
       if (fromId === toId) return true;
 
-      const adjacency = new Map();
+      const graph = new Map();
 
-      for (const c of state.connections) {
-        if (!adjacency.has(c.from.node)) {
-          adjacency.set(c.from.node, []);
+      for (const connection of state.connections) {
+        if (!graph.has(connection.from.node)) {
+          graph.set(
+            connection.from.node,
+            []
+          );
         }
-        adjacency.get(c.from.node).push(c.to.node);
+
+        graph
+          .get(connection.from.node)
+          .push(connection.to.node);
       }
 
       const stack = [toId];
       const seen = new Set();
 
       while (stack.length) {
-        const current = stack.pop();
+        const current =
+          stack.pop();
 
-        if (current === fromId) return true;
-        if (seen.has(current)) continue;
+        if (current === fromId) {
+          return true;
+        }
+
+        if (seen.has(current)) {
+          continue;
+        }
 
         seen.add(current);
 
         for (
-          const next of adjacency.get(current) || []
+          const next of
+            graph.get(current) || []
         ) {
           stack.push(next);
         }
@@ -1073,57 +1697,99 @@
       return false;
     }
 
-    function connectionValid(fromNodeId, fromPortId, toNodeId, toPortId) {
+    function portsCompatible(
+      output,
+      input
+    ) {
+      if (!output || !input) {
+        return false;
+      }
+
+      const accepts =
+        Array.isArray(input.accepts)
+          ? input.accepts
+          : ['any'];
+
+      return (
+        accepts.includes('any') ||
+        accepts.includes(output.type) ||
+        output.type === 'any'
+      );
+    }
+
+    function connectionValid(
+      fromNodeId,
+      fromPortId,
+      toNodeId,
+      toPortId
+    ) {
       const errors = [];
       const warnings = [];
 
-      if (fromNodeId === toNodeId) {
+      if (
+        fromNodeId ===
+        toNodeId
+      ) {
         errors.push({
           code: 'SELF_CONNECTION',
-          message: '노드는 자기 자신에게 연결할 수 없습니다.'
+          message:
+            '노드는 자기 자신에게 연결할 수 없습니다.'
         });
       }
 
-      const source = getNode(fromNodeId);
-      const target = getNode(toNodeId);
+      const source =
+        getNode(fromNodeId);
+
+      const target =
+        getNode(toNodeId);
 
       if (!source) {
         errors.push({
-          code: 'MISSING_SOURCE_NODE',
-          message: `출발 노드 ${fromNodeId}가 존재하지 않습니다.`
+          code:
+            'MISSING_SOURCE_NODE',
+          message:
+            `출발 노드 ${fromNodeId}가 존재하지 않습니다.`
         });
       }
 
       if (!target) {
         errors.push({
-          code: 'MISSING_TARGET_NODE',
-          message: `대상 노드 ${toNodeId}가 존재하지 않습니다.`
+          code:
+            'MISSING_TARGET_NODE',
+          message:
+            `대상 노드 ${toNodeId}가 존재하지 않습니다.`
         });
       }
 
-      const output = portDef(
-        fromNodeId,
-        fromPortId,
-        'output'
-      );
+      const output =
+        portDef(
+          fromNodeId,
+          fromPortId,
+          'output'
+        );
 
-      const input = portDef(
-        toNodeId,
-        toPortId,
-        'input'
-      );
+      const input =
+        portDef(
+          toNodeId,
+          toPortId,
+          'input'
+        );
 
       if (!output) {
         errors.push({
-          code: 'MISSING_SOURCE_PORT',
-          message: `출력 포트 ${fromPortId}가 존재하지 않습니다.`
+          code:
+            'MISSING_SOURCE_PORT',
+          message:
+            `출력 포트 ${fromPortId}가 존재하지 않습니다.`
         });
       }
 
       if (!input) {
         errors.push({
-          code: 'MISSING_TARGET_PORT',
-          message: `입력 포트 ${toPortId}가 존재하지 않습니다.`
+          code:
+            'MISSING_TARGET_PORT',
+          message:
+            `입력 포트 ${toPortId}가 존재하지 않습니다.`
         });
       }
 
@@ -1136,52 +1802,66 @@
       }
 
       if (
-        state.connections.some(c =>
-          c.from.node === fromNodeId &&
-          c.from.port === fromPortId &&
-          c.to.node === toNodeId &&
-          c.to.port === toPortId
+        state.connections.some(
+          connection =>
+            connection.from.node === fromNodeId &&
+            connection.from.port === fromPortId &&
+            connection.to.node === toNodeId &&
+            connection.to.port === toPortId
         )
       ) {
         errors.push({
-          code: 'DUPLICATE_CONNECTION',
-          message: '동일한 연결이 이미 존재합니다.'
+          code:
+            'DUPLICATE_CONNECTION',
+          message:
+            '동일한 연결이 이미 존재합니다.'
         });
       }
 
-      const incoming = state.connections.filter(c =>
-        c.to.node === toNodeId &&
-        c.to.port === toPortId
-      );
+      const incoming =
+        state.connections.filter(
+          connection =>
+            connection.to.node === toNodeId &&
+            connection.to.port === toPortId
+        );
 
-      if (!input.multiple && incoming.length) {
+      if (
+        !input.multiple &&
+        incoming.length
+      ) {
         errors.push({
-          code: 'INPUT_MULTIPLE',
-          message: `입력 포트 ${input.name}은 하나의 연결만 허용합니다.`
+          code:
+            'INPUT_MULTIPLE',
+          message:
+            `입력 포트 ${input.name}은 하나의 연결만 허용합니다.`
         });
       }
 
-      const accepts = Array.isArray(input.accepts)
-        ? input.accepts
-        : ['any'];
-
-      const accepted =
-        accepts.includes('any') ||
-        accepts.includes(output.type) ||
-        output.type === 'any';
-
-      if (!accepted) {
+      if (
+        !portsCompatible(
+          output,
+          input
+        )
+      ) {
         errors.push({
-          code: 'TYPE_MISMATCH',
+          code:
+            'TYPE_MISMATCH',
           message:
             `${output.type} → ${input.type} 타입을 연결할 수 없습니다.`
         });
       }
 
-      if (wouldCreateCycle(fromNodeId, toNodeId)) {
+      if (
+        wouldCreateCycle(
+          fromNodeId,
+          toNodeId
+        )
+      ) {
         errors.push({
-          code: 'CYCLE',
-          message: '이 연결은 순환 구조(Cycle)를 만듭니다.'
+          code:
+            'CYCLE',
+          message:
+            '이 연결은 순환 구조(Cycle)를 만듭니다.'
         });
       }
 
@@ -1192,15 +1872,22 @@
       };
     }
 
-    function canConnect(specification) {
-      const result = connectionValid(
-        specification.from.node,
-        specification.from.port,
-        specification.to.node,
-        specification.to.port
+    function canConnect(
+      specification
+    ) {
+      const result =
+        connectionValid(
+          specification.from.node,
+          specification.from.port,
+          specification.to.node,
+          specification.to.port
+        );
+
+      emit(
+        'validate',
+        result
       );
 
-      emit('validate', result);
       return result;
     }
 
@@ -1210,74 +1897,125 @@
       do {
         id =
           `c${Date.now().toString(36)}` +
-          Math.random().toString(36).slice(2, 7);
+          Math.random()
+            .toString(36)
+            .slice(2, 7);
       } while (
-        state.connections.some(c => c.id === id)
+        state.connections.some(
+          connection =>
+            connection.id === id
+        )
       );
 
       return id;
     }
 
-    function connect(from, to, options = {}) {
+    function connect(
+      from,
+      to,
+      options = {}
+    ) {
       const specification = {
         from: {
           node: from.node,
           port: from.port
         },
+
         to: {
           node: to.node,
           port: to.port
         }
       };
 
-      const duplicate = state.connections.find(c =>
-        c.from.node === specification.from.node &&
-        c.from.port === specification.from.port &&
-        c.to.node === specification.to.node &&
-        c.to.port === specification.to.port
-      );
+      const duplicate =
+        state.connections.find(
+          connection =>
+            connection.from.node ===
+              specification.from.node &&
+            connection.from.port ===
+              specification.from.port &&
+            connection.to.node ===
+              specification.to.node &&
+            connection.to.port ===
+              specification.to.port
+        );
 
       if (duplicate) {
         disconnect(duplicate.id);
         return null;
       }
 
-      const check = canConnect(specification);
+      const check =
+        canConnect(
+          specification
+        );
 
       if (!check.ok) {
-        showValidation(check.errors, check.warnings);
+        showValidation(
+          check.errors,
+          check.warnings
+        );
+
         return null;
       }
 
       const connection = {
-        id: uniqueConnectionId(),
-        from: specification.from,
-        to: specification.to,
-        ...(options.data
-          ? { data: clone(options.data) }
-          : {})
+        id:
+          uniqueConnectionId(),
+
+        from:
+          specification.from,
+
+        to:
+          specification.to
       };
 
-      state.connections.push(connection);
+      if (options.data) {
+        connection.data =
+          clone(options.data);
+      }
+
+      state.connections.push(
+        connection
+      );
 
       render();
-      emit('connect', connection);
-      emit('change', getWorkflow());
+
+      emit(
+        'connect',
+        connection
+      );
+
+      emit(
+        'change',
+        getWorkflow()
+      );
 
       return connection;
     }
 
     function disconnect(id) {
-      const index = state.connections.findIndex(
-        c => c.id === id
+      const index =
+        state.connections.findIndex(
+          connection =>
+            connection.id === id
+        );
+
+      if (index < 0) {
+        return false;
+      }
+
+      state.connections.splice(
+        index,
+        1
       );
 
-      if (index < 0) return false;
-
-      state.connections.splice(index, 1);
-
       render();
-      emit('change', getWorkflow());
+
+      emit(
+        'change',
+        getWorkflow()
+      );
 
       return true;
     }
@@ -1290,9 +2028,14 @@
       for (const node of state.nodes) {
         if (ids.has(node.id)) {
           errors.push({
-            code: 'DUPLICATE_NODE_ID',
-            node: node.id,
-            message: `노드 ID ${node.id}가 중복됩니다.`
+            code:
+              'DUPLICATE_NODE_ID',
+
+            node:
+              node.id,
+
+            message:
+              `노드 ID ${node.id}가 중복됩니다.`
           });
         }
 
@@ -1300,25 +2043,38 @@
 
         if (!registry.has(node.type)) {
           errors.push({
-            code: 'UNKNOWN_NODE_TYPE',
-            node: node.id,
+            code:
+              'UNKNOWN_NODE_TYPE',
+
+            node:
+              node.id,
+
             message:
               `노드 타입 ${node.type}이 등록되어 있지 않습니다.`
           });
         }
       }
 
-      const nodeSet = new Set(
-        state.nodes.map(node => node.id)
-      );
+      const nodeSet =
+        new Set(
+          state.nodes.map(
+            node =>
+              node.id
+          )
+        );
 
-      const connectionKeys = new Set();
+      const connectionKeys =
+        new Set();
 
       for (const connection of state.connections) {
         if (!nodeSet.has(connection.from.node)) {
           errors.push({
-            code: 'MISSING_SOURCE_NODE',
-            connection: connection.id,
+            code:
+              'MISSING_SOURCE_NODE',
+
+            connection:
+              connection.id,
+
             message:
               `연결 ${connection.id}의 출발 노드가 없습니다.`
           });
@@ -1326,8 +2082,12 @@
 
         if (!nodeSet.has(connection.to.node)) {
           errors.push({
-            code: 'MISSING_TARGET_NODE',
-            connection: connection.id,
+            code:
+              'MISSING_TARGET_NODE',
+
+            connection:
+              connection.id,
+
             message:
               `연결 ${connection.id}의 대상 노드가 없습니다.`
           });
@@ -1338,19 +2098,30 @@
           connection.to.node
         ) {
           errors.push({
-            code: 'SELF_CONNECTION',
-            connection: connection.id,
+            code:
+              'SELF_CONNECTION',
+
+            connection:
+              connection.id,
+
             message:
               `연결 ${connection.id}가 자기 자신을 가리킵니다.`
           });
         }
 
-        const key = connectionKey(connection);
+        const key =
+          connectionKey(
+            connection
+          );
 
         if (connectionKeys.has(key)) {
           errors.push({
-            code: 'DUPLICATE_CONNECTION',
-            connection: connection.id,
+            code:
+              'DUPLICATE_CONNECTION',
+
+            connection:
+              connection.id,
+
             message:
               `연결 ${connection.id}가 중복됩니다.`
           });
@@ -1358,22 +2129,28 @@
 
         connectionKeys.add(key);
 
-        const output = portDef(
-          connection.from.node,
-          connection.from.port,
-          'output'
-        );
+        const output =
+          portDef(
+            connection.from.node,
+            connection.from.port,
+            'output'
+          );
 
-        const input = portDef(
-          connection.to.node,
-          connection.to.port,
-          'input'
-        );
+        const input =
+          portDef(
+            connection.to.node,
+            connection.to.port,
+            'input'
+          );
 
         if (!output) {
           errors.push({
-            code: 'MISSING_SOURCE_PORT',
-            connection: connection.id,
+            code:
+              'MISSING_SOURCE_PORT',
+
+            connection:
+              connection.id,
+
             message:
               `연결 ${connection.id}의 출력 포트가 없습니다.`
           });
@@ -1381,60 +2158,85 @@
 
         if (!input) {
           errors.push({
-            code: 'MISSING_TARGET_PORT',
-            connection: connection.id,
+            code:
+              'MISSING_TARGET_PORT',
+
+            connection:
+              connection.id,
+
             message:
               `연결 ${connection.id}의 입력 포트가 없습니다.`
           });
         }
 
-        if (output && input) {
-          const accepts = Array.isArray(input.accepts)
-            ? input.accepts
-            : ['any'];
+        if (
+          output &&
+          input &&
+          !portsCompatible(
+            output,
+            input
+          )
+        ) {
+          errors.push({
+            code:
+              'TYPE_MISMATCH',
 
-          const compatible =
-            accepts.includes('any') ||
-            accepts.includes(output.type) ||
-            output.type === 'any';
+            connection:
+              connection.id,
 
-          if (!compatible) {
-            errors.push({
-              code: 'TYPE_MISMATCH',
-              connection: connection.id,
-              message:
-                `${output.type} → ${input.type} 타입이 호환되지 않습니다.`
-            });
-          }
+            message:
+              `${output.type} → ${input.type} 타입이 호환되지 않습니다.`
+          });
         }
       }
 
       for (const node of state.nodes) {
-        const type = getNodeType(node);
+        const type =
+          getNodeType(node);
+
         if (!type) continue;
 
         for (const port of type.inputs) {
-          const incoming = state.connections.filter(
-            c =>
-              c.to.node === node.id &&
-              c.to.port === port.id
-          );
+          const incoming =
+            state.connections.filter(
+              connection =>
+                connection.to.node === node.id &&
+                connection.to.port === port.id
+            );
 
-          if (port.required && !incoming.length) {
+          if (
+            port.required &&
+            !incoming.length
+          ) {
             errors.push({
-              code: 'REQUIRED_INPUT',
-              node: node.id,
-              port: port.id,
+              code:
+                'REQUIRED_INPUT',
+
+              node:
+                node.id,
+
+              port:
+                port.id,
+
               message:
                 `${type.name}의 필수 입력 '${port.name}'이 연결되지 않았습니다.`
             });
           }
 
-          if (!port.multiple && incoming.length > 1) {
+          if (
+            !port.multiple &&
+            incoming.length > 1
+          ) {
             errors.push({
-              code: 'INPUT_MULTIPLE',
-              node: node.id,
-              port: port.id,
+              code:
+                'INPUT_MULTIPLE',
+
+              node:
+                node.id,
+
+              port:
+                port.id,
+
               message:
                 `${type.name}의 '${port.name}'은 단일 입력만 허용합니다.`
             });
@@ -1442,16 +2244,24 @@
         }
       }
 
-      const connectedNodes = new Set();
+      const connectedNodes =
+        new Set();
 
       for (const connection of state.connections) {
-        connectedNodes.add(connection.from.node);
-        connectedNodes.add(connection.to.node);
+        connectedNodes.add(
+          connection.from.node
+        );
+
+        connectedNodes.add(
+          connection.to.node
+        );
       }
 
-      const starts = state.nodes.filter(
-        node => node.type === 'start'
-      );
+      const starts =
+        state.nodes.filter(
+          node =>
+            node.type === 'start'
+        );
 
       for (const node of state.nodes) {
         if (
@@ -1459,8 +2269,12 @@
           !connectedNodes.has(node.id)
         ) {
           warnings.push({
-            code: 'ISOLATED_NODE',
-            node: node.id,
+            code:
+              'ISOLATED_NODE',
+
+            node:
+              node.id,
+
             message:
               `노드 '${getNodeType(node)?.name || node.type}'가 그래프와 연결되지 않았습니다.`
           });
@@ -1469,15 +2283,21 @@
 
       if (!starts.length) {
         warnings.push({
-          code: 'NO_START_NODE',
-          message: '시작 노드가 없습니다.'
+          code:
+            'NO_START_NODE',
+
+          message:
+            '시작 노드가 없습니다.'
         });
       }
 
       if (starts.length > 1) {
         warnings.push({
-          code: 'MULTIPLE_START_NODE',
-          message: '시작 노드가 여러 개입니다.'
+          code:
+            'MULTIPLE_START_NODE',
+
+          message:
+            '시작 노드가 여러 개입니다.'
         });
       }
 
@@ -1485,7 +2305,10 @@
 
       for (const connection of state.connections) {
         if (!graph.has(connection.from.node)) {
-          graph.set(connection.from.node, []);
+          graph.set(
+            connection.from.node,
+            []
+          );
         }
 
         graph
@@ -1493,41 +2316,54 @@
           .push(connection.to.node);
       }
 
-      function cycleFrom(node, visiting, visited) {
-        if (visiting.has(node)) return true;
-        if (visited.has(node)) return false;
+      const visiting = new Set();
+      const visited = new Set();
+      const cycleNodes = new Set();
+
+      function dfs(node) {
+        if (visiting.has(node)) {
+          cycleNodes.add(node);
+          return true;
+        }
+
+        if (visited.has(node)) {
+          return false;
+        }
 
         visiting.add(node);
 
-        for (const next of graph.get(node) || []) {
-          if (cycleFrom(next, visiting, visited)) {
-            return true;
+        let found = false;
+
+        for (
+          const next of
+            graph.get(node) || []
+        ) {
+          if (dfs(next)) {
+            found = true;
+            cycleNodes.add(node);
           }
         }
 
         visiting.delete(node);
         visited.add(node);
-        return false;
+
+        return found;
       }
 
-      const cycleNodes = new Set();
-
       for (const node of state.nodes) {
-        if (
-          cycleFrom(
-            node.id,
-            new Set(),
-            new Set()
-          )
-        ) {
-          cycleNodes.add(node.id);
+        if (!visited.has(node.id)) {
+          dfs(node.id);
         }
       }
 
       if (cycleNodes.size) {
         errors.push({
-          code: 'CYCLE',
-          nodes: [...cycleNodes],
+          code:
+            'CYCLE',
+
+          nodes:
+            [...cycleNodes],
+
           message:
             '워크플로우에 순환 구조(Cycle)가 존재합니다.'
         });
@@ -1539,136 +2375,234 @@
         warnings
       };
 
-      emit('validate', result);
+      emit(
+        'validate',
+        result
+      );
+
       return result;
     }
 
     function getWorkflow() {
       return {
-        nodes: clone(state.nodes),
-        connections: clone(state.connections)
+        nodes:
+          clone(state.nodes),
+
+        connections:
+          clone(state.connections)
       };
     }
 
     function getState() {
       return {
-        workflow: getWorkflow(),
+        workflow:
+          getWorkflow(),
+
         viewport: {
-          scale: state.scale,
-          offset: { ...state.offset }
-        }
+          scale:
+            state.scale,
+
+          offset: {
+            ...state.offset
+          }
+        },
+
+        chatRuns:
+          clone(
+            state.chatRuns
+          )
       };
     }
 
     function setState(saved = {}) {
-      const workflow = saved.workflow || saved;
+      const workflow =
+        saved.workflow ||
+        saved;
 
       state.nodes =
         Array.isArray(workflow.nodes)
           ? workflow.nodes
               .map(normalizeNode)
-              .filter(node => registry.has(node.type))
+              .filter(node =>
+                registry.has(node.type)
+              )
           : [];
 
       state.connections =
-        Array.isArray(workflow.connections)
-          ? clone(workflow.connections).map(c => ({
-              id: String(
-                c.id ||
-                uniqueConnectionId()
-              ),
+        Array.isArray(
+          workflow.connections
+        )
+          ? clone(
+              workflow.connections
+            ).map(connection => ({
+              id:
+                String(
+                  connection.id ||
+                  uniqueConnectionId()
+                ),
+
               from: {
-                node: String(
-                  c.from?.node ??
-                  c.from ??
-                  ''
-                ),
-                port: String(
-                  c.from?.port ??
-                  'out'
-                )
+                node:
+                  String(
+                    connection.from?.node ??
+                    connection.from ??
+                    ''
+                  ),
+
+                port:
+                  String(
+                    connection.from?.port ??
+                    'out'
+                  )
               },
+
               to: {
-                node: String(
-                  c.to?.node ??
-                  c.to ??
-                  ''
-                ),
-                port: String(
-                  c.to?.port ??
-                  'in'
-                )
+                node:
+                  String(
+                    connection.to?.node ??
+                    connection.to ??
+                    ''
+                  ),
+
+                port:
+                  String(
+                    connection.to?.port ??
+                    'in'
+                  )
               },
-              ...(c.data
-                ? { data: clone(c.data) }
+
+              ...(connection.data
+                ? {
+                    data:
+                      clone(
+                        connection.data
+                      )
+                  }
                 : {})
             }))
           : [];
 
       if (saved.viewport) {
-        state.scale = clamp(
-          Number(saved.viewport.scale) || 1,
-          .12,
-          3
-        );
+        state.scale =
+          clamp(
+            Number(
+              saved.viewport.scale
+            ) || 1,
+            .12,
+            3
+          );
 
         state.offset = {
           x:
-            Number(saved.viewport.offset?.x) ||
-            0,
+            Number(
+              saved.viewport.offset?.x
+            ) || 0,
+
           y:
-            Number(saved.viewport.offset?.y) ||
-            0
+            Number(
+              saved.viewport.offset?.y
+            ) || 0
         };
       }
+
+      if (
+        Array.isArray(
+          saved.chatRuns
+        )
+      ) {
+        state.chatRuns =
+          clone(
+            saved.chatRuns
+          ).slice(
+            -MAX_CHAT_HISTORY
+          );
+      }
+
+      state.pendingChatRun =
+        null;
 
       state.selectedNode = null;
 
       render();
-      emit('change', getWorkflow());
+
+      emit(
+        'change',
+        getWorkflow()
+      );
 
       return api;
     }
 
-    function showValidation(errors = [], warnings = []) {
+    function showValidation(
+      errors = [],
+      warnings = []
+    ) {
       validationLayer.textContent = '';
 
       const items = [
-        ...errors.slice(0, 3).map(item => ({
-          cls: 'vc-error',
-          text: item.message
-        })),
-        ...warnings.slice(0, 2).map(item => ({
-          cls: 'vc-warning',
-          text: item.message
-        }))
+        ...errors.slice(0, 3).map(
+          item => ({
+            cls:
+              'vc-error',
+
+            text:
+              item.message
+          })
+        ),
+
+        ...warnings.slice(0, 2).map(
+          item => ({
+            cls:
+              'vc-warning',
+
+            text:
+              item.message
+          })
+        )
       ];
 
       if (!items.length) return;
 
       for (const item of items) {
-        const el = document.createElement('div');
+        const el =
+          document.createElement('div');
 
         el.className =
           `vc-validation-item ${item.cls}`;
 
-        el.textContent = item.text;
+        el.textContent =
+          item.text;
+
         validationLayer.appendChild(el);
 
-        raf(() => el.classList.add('vc-show'));
+        raf(() =>
+          el.classList.add(
+            'vc-show'
+          )
+        );
       }
 
-      clearTimeout(state.validationTimer);
+      clearTimeout(
+        state.validationTimer
+      );
 
-      state.validationTimer = setTimeout(() => {
-        validationLayer
-          .querySelectorAll('.vc-validation-item')
-          .forEach(el => el.classList.remove('vc-show'));
-
+      state.validationTimer =
         setTimeout(() => {
-          validationLayer.textContent = '';
-        }, 200);
-      }, 2800);
+          validationLayer
+            .querySelectorAll(
+              '.vc-validation-item'
+            )
+            .forEach(
+              element =>
+                element.classList.remove(
+                  'vc-show'
+                )
+            );
+
+          setTimeout(() => {
+            validationLayer.textContent = '';
+          }, 200);
+        }, 2800);
     }
 
     function render() {
@@ -1681,27 +2615,42 @@
     function renderMenu() {
       addMenu.textContent = '';
 
-      for (const [typeName, type] of registry) {
+      for (
+        const [typeName, type]
+          of registry
+      ) {
         if (type.hidden) continue;
 
-        const button = document.createElement('button');
+        const button =
+          document.createElement('button');
 
         button.type = 'button';
-        button.className = 'vc-menu-item';
-        button.dataset.nodeType = typeName;
+        button.className =
+          'vc-menu-item';
+
+        button.dataset.nodeType =
+          typeName;
 
         button.innerHTML = `
-          <span class="vc-menu-icon"
-            style="color:${type.color || 'var(--sub)'}">
+          <span
+            class="vc-menu-icon"
+            style="color:${type.color || 'var(--sub)'}"
+          >
             ${type.icon || ''}
           </span>
 
           <span class="vc-menu-name">
-            ${escapeHtml(type.name || typeName)}
+            ${escapeHtml(
+              type.name ||
+              typeName
+            )}
           </span>
 
           <span class="vc-menu-desc">
-            ${escapeHtml(type.tag || '')}
+            ${escapeHtml(
+              type.tag ||
+              ''
+            )}
           </span>
         `;
 
@@ -1710,17 +2659,37 @@
     }
 
     function openAddMenu() {
-      addMenu.classList.add('vc-open');
-      addButton.classList.add('vc-open');
-      addButton.setAttribute('aria-expanded', 'true');
       state.addMenuOpen = true;
+
+      addMenu.classList.add(
+        'vc-open'
+      );
+
+      addButton.classList.add(
+        'vc-open'
+      );
+
+      addButton.setAttribute(
+        'aria-expanded',
+        'true'
+      );
     }
 
     function closeAddMenu() {
-      addMenu.classList.remove('vc-open');
-      addButton.classList.remove('vc-open');
-      addButton.setAttribute('aria-expanded', 'false');
       state.addMenuOpen = false;
+
+      addMenu.classList.remove(
+        'vc-open'
+      );
+
+      addButton.classList.remove(
+        'vc-open'
+      );
+
+      addButton.setAttribute(
+        'aria-expanded',
+        'false'
+      );
     }
 
     function toggleAddMenu() {
@@ -1730,96 +2699,154 @@
     }
 
     function startNodeDrag() {
-      const drag = state.nodeDrag;
-      if (!drag || drag.moved) return;
+      const drag =
+        state.nodeDrag;
 
-      const el = getNodeElement(drag.node.id);
-      if (!el) return;
-
-      drag.moved = true;
-      drag.wasExpanded = !!drag.node.expanded;
-
-      if (drag.wasExpanded) {
-        setNodeExpanded(el, false);
+      if (!drag || drag.moved) {
+        return;
       }
 
-      el.classList.add('vc-dragging');
+      const element =
+        getNodeElement(
+          drag.node.id
+        );
+
+      if (!element) return;
+
+      drag.moved = true;
+      drag.wasExpanded =
+        !!drag.node.expanded;
+
+      if (drag.wasExpanded) {
+        setNodeExpanded(
+          element,
+          false
+        );
+      }
+
+      element.classList.add(
+        'vc-dragging'
+      );
     }
 
     function finishNodeDrag() {
-      const drag = state.nodeDrag;
+      const drag =
+        state.nodeDrag;
+
       if (!drag) return;
 
-      const el = getNodeElement(drag.node.id);
+      const element =
+        getNodeElement(
+          drag.node.id
+        );
 
-      if (el) {
-        el.classList.remove('vc-dragging');
+      if (element) {
+        element.classList.remove(
+          'vc-dragging'
+        );
 
         if (drag.wasExpanded) {
-          setNodeExpanded(el, true);
+          setNodeExpanded(
+            element,
+            true
+          );
         }
       }
 
       state.nodeDrag = null;
+
       renderConnections();
-      emit('change', getWorkflow());
+      emit(
+        'change',
+        getWorkflow()
+      );
     }
 
     function renderDragConnection() {
       dragConnectionLayer.textContent = '';
 
-      const drag = state.connectionDrag;
+      const drag =
+        state.connectionDrag;
+
       if (!drag) return;
 
-      const a = portPoint(
-        drag.from.node,
-        drag.from.port,
-        'output'
-      );
+      const a =
+        portPoint(
+          drag.from.node,
+          drag.from.port,
+          'output'
+        );
 
       if (!a) return;
 
-      const b = screenToWorld(
-        drag.x,
-        drag.y
+      const b =
+        screenToWorld(
+          drag.x,
+          drag.y
+        );
+
+      const sourceType =
+        getNodeType(
+          getNode(
+            drag.from.node
+          )
+        );
+
+      const path =
+        svgEl(
+          'path',
+          {
+            d:
+              curve(
+                a,
+                b
+              ),
+
+            'marker-end':
+              `url(#${markerId})`
+          }
+        );
+
+      path.classList.add(
+        'vc-drag-connection'
       );
 
-      const sourceType = getNodeType(
-        getNode(drag.from.node)
+      if (sourceType?.color) {
+        path.style.stroke =
+          sourceType.color;
+      }
+
+      dragConnectionLayer.appendChild(
+        path
       );
 
-      const path = svgEl('path', {
-        d: curve(a, b),
-        'marker-end': `url(#${markerId})`
-      });
-
-      path.classList.add('vc-drag-connection');
-
-      if (sourceType?.color) {
-        path.style.stroke = sourceType.color;
-      }
-
-      dragConnectionLayer.appendChild(path);
-
-      const dot = svgEl('circle', {
-        cx: a.x,
-        cy: a.y,
-        r: 4,
-        class: 'vc-drag-source-dot'
-      });
+      const dot =
+        svgEl(
+          'circle',
+          {
+            cx: a.x,
+            cy: a.y,
+            r: 4,
+            class:
+              'vc-drag-source-dot'
+          }
+        );
 
       if (sourceType?.color) {
-        dot.style.fill = sourceType.color;
+        dot.style.fill =
+          sourceType.color;
       }
 
-      dragConnectionLayer.appendChild(dot);
+      dragConnectionLayer.appendChild(
+        dot
+      );
     }
 
     function finishConnection(event) {
-      const drag = state.connectionDrag;
-      if (!drag) return;
+      const drag =
+        state.connectionDrag;
 
-      dragConnectionLayer.textContent = '';
+      if (!drag) return;
 
       const target =
         document
@@ -1827,10 +2854,14 @@
             event.clientX,
             event.clientY
           )
-          ?.closest('.vc-port-hit.vc-input');
+          ?.closest(
+            '.vc-port-hit.vc-input'
+          );
 
       const targetNode =
-        target?.closest('.vc-node');
+        target?.closest(
+          '.vc-node'
+        );
 
       if (
         targetNode?.dataset.nodeId &&
@@ -1839,13 +2870,17 @@
         connect(
           drag.from,
           {
-            node: targetNode.dataset.nodeId,
-            port: target.dataset.portId
+            node:
+              targetNode.dataset.nodeId,
+
+            port:
+              target.dataset.portId
           }
         );
       }
 
       state.connectionDrag = null;
+      dragConnectionLayer.textContent = '';
       renderConnections();
     }
 
@@ -1862,7 +2897,10 @@
         );
       } catch {}
 
-      emit('theme', theme);
+      emit(
+        'theme',
+        theme
+      );
     }
 
     function applySavedTheme() {
@@ -1872,74 +2910,100 @@
         theme =
           localStorage.getItem(
             'visual-ai-theme'
-          ) || 'light';
+          ) ||
+          'light';
       } catch {}
 
       setTheme(theme);
     }
 
     function updateComposerState() {
-  const hasText =
-    chatInput.value.trim().length > 0;
+      const hasText =
+        chatInput.value.trim().length > 0;
 
-  const active =
-    hasText ||
-    state.selectedNode !== null ||
-    state.aiBusy;
+      const active =
+        hasText ||
+        state.selectedNode !== null ||
+        state.aiBusy;
 
-  chatForm.classList.toggle(
-    'vc-has-text',
-    hasText
-  );
+      chatForm.classList.toggle(
+        'vc-has-text',
+        hasText
+      );
 
-  chatForm.classList.toggle(
-    'vc-active',
-    active
-  );
+      chatForm.classList.toggle(
+        'vc-active',
+        active
+      );
 
-  chatForm.classList.toggle(
-    'vc-ai-busy',
-    state.aiBusy
-  );
+      chatForm.classList.toggle(
+        'vc-ai-busy',
+        state.aiBusy
+      );
 
-  chatForm.setAttribute(
-    'aria-busy',
-    String(state.aiBusy)
-  );
+      chatForm.setAttribute(
+        'aria-busy',
+        String(state.aiBusy)
+      );
 
-  chatInput.disabled = state.aiBusy;
-  attachButton.disabled = state.aiBusy;
-  $('.vc-send-button').disabled = state.aiBusy;
+      chatInput.disabled =
+        state.aiBusy;
 
-  chatInput.placeholder =
-    state.aiBusy
-      ? '작업을 생성하는 중…'
-      : '무엇을 만들까요?';
+      attachButton.disabled =
+        state.aiBusy;
 
-  chatInput.style.height = 'auto';
-  chatInput.style.height =
-    `${Math.min(chatInput.scrollHeight, 115)}px`;
+      $('.vc-send-button').disabled =
+        state.aiBusy;
 
-  /* textarea line class */
-  const lineCount =
-    Math.max(1, chatInput.value.split('\n').length);
+      chatInput.placeholder =
+        state.aiBusy
+          ? '작업을 생성하는 중…'
+          : '무엇을 만들까요?';
 
-  chatInput.classList.remove(
-    ...Array.from(
-      chatInput.classList
-    ).filter(className => /^L\d+$/.test(className))
-  );
+      chatInput.style.height =
+        'auto';
 
-  chatInput.classList.add(`L${lineCount}`);
-}
+      chatInput.style.height =
+        `${Math.min(
+          chatInput.scrollHeight,
+          115
+        )}px`;
+
+      const lineCount =
+        Math.max(
+          1,
+          chatInput.value.split('\n').length
+        );
+
+      for (
+        const className
+          of [...chatInput.classList]
+      ) {
+        if (/^L\d+$/.test(className)) {
+          chatInput.classList.remove(
+            className
+          );
+        }
+      }
+
+      chatInput.classList.add(
+        `L${lineCount}`
+      );
+    }
+
     function setAIWaiting(busy) {
-      state.aiBusy = !!busy;
+      state.aiBusy =
+        !!busy;
 
-      const send = $('.vc-send-button');
+      const send =
+        $('.vc-send-button');
 
       if (state.aiBusy) {
         send.innerHTML = `
-          <span class="vc-ai-spinner" aria-hidden="true"></span>
+          <span
+            class="vc-ai-spinner"
+            aria-hidden="true"
+          ></span>
         `;
 
         send.setAttribute(
@@ -1957,468 +3021,969 @@
           'true'
         );
       } else {
-        send.innerHTML = icons.send;
+        send.innerHTML =
+          icons.send;
+
         send.setAttribute(
           'aria-label',
           '보내기'
         );
 
-        send.removeAttribute('title');
-        attachButton.removeAttribute('aria-disabled');
+        send.removeAttribute(
+          'title'
+        );
+
+        attachButton.removeAttribute(
+          'aria-disabled'
+        );
       }
 
       updateComposerState();
+    }
+
+    function appendChat(
+      role,
+      message = '',
+      question = '',
+      chatRunId = null
+    ) {
+      const text =
+        String(message || '').trim();
+
+      const q =
+        String(question || '').trim();
+
+      if (!text && !q) return;
+
+      const wrapper =
+        document.createElement('div');
+
+      wrapper.className =
+        `vc-chat-message ${role}`;
+
+      if (chatRunId) {
+        wrapper.dataset.chatId =
+          chatRunId;
+      }
+
+      const bubble =
+        document.createElement('div');
+
+      bubble.className =
+        'vc-chat-bubble';
+
+      bubble.textContent =
+        text;
+
+      wrapper.appendChild(
+        bubble
+      );
+
+      if (q) {
+        const questionEl =
+          document.createElement('div');
+
+        questionEl.className =
+          'vc-chat-question';
+
+        questionEl.textContent =
+          q;
+
+        wrapper.appendChild(
+          questionEl
+        );
+      }
+
+      chatHistory.appendChild(
+        wrapper
+      );
+
+      while (
+        chatHistory.children.length >
+        MAX_CHAT_HISTORY
+      ) {
+        chatHistory.firstElementChild.remove();
+      }
+
+      requestAnimationFrame(() => {
+        chatHistory.scrollTop =
+          chatHistory.scrollHeight;
+      });
+    }
+
+    function createChatRun(text) {
+      const run = {
+        id:
+          `chat-${Date.now().toString(36)}-` +
+          Math.random().toString(36).slice(2, 7),
+
+        text:
+          String(text || ''),
+
+        selectedNode:
+          state.selectedNode,
+
+        workflow:
+          null,
+
+        response: {
+          message: '',
+          question: null
+        },
+
+        status:
+          'pending',
+
+        createdAt:
+          Date.now()
+      };
+
+      state.chatRuns.push(run);
+
+      if (
+        state.chatRuns.length >
+        MAX_CHAT_HISTORY
+      ) {
+        state.chatRuns.splice(
+          0,
+          state.chatRuns.length -
+            MAX_CHAT_HISTORY
+        );
+      }
+
+      state.pendingChatRun =
+        run.id;
+
+      return run;
+    }
+
+    function completeChatRun(result) {
+      const id =
+        state.pendingChatRun;
+
+      if (!id) return null;
+
+      const run =
+        state.chatRuns.find(
+          item =>
+            item.id === id
+        );
+
+      if (!run) {
+        state.pendingChatRun = null;
+        return null;
+      }
+
+      /*
+        API 처리
+        Canvas 반영
+        validation
+        chat 표시
+        전부 끝난 뒤의
+        실제 현재 Workflow를 저장한다.
+      */
+      run.workflow =
+        snapshotWorkflow(
+          getWorkflow()
+        );
+
+      run.response = {
+        message:
+          typeof result?.message === 'string'
+            ? result.message
+            : '',
+
+        question:
+          result?.question === null ||
+          typeof result?.question === 'string'
+            ? result.question
+            : null
+      };
+
+      run.status =
+        'complete';
+
+      run.completedAt =
+        Date.now();
+
+      state.pendingChatRun =
+        null;
+
+      return run;
+    }
+
+    function failChatRun() {
+      const id =
+        state.pendingChatRun;
+
+      if (!id) return;
+
+      const run =
+        state.chatRuns.find(
+          item =>
+            item.id === id
+        );
+
+      if (run) {
+        run.status =
+          'error';
+      }
+
+      state.pendingChatRun =
+        null;
     }
 
     function updateFileInput(files) {
-      const rect = canvas.getBoundingClientRect();
+      const rect =
+        canvas.getBoundingClientRect();
 
-      const base = screenToWorld(
-        rect.left + rect.width / 2,
-        rect.top +
-          Math.min(
-            rect.height / 2,
-            rect.height - 180
-          )
+      const base =
+        screenToWorld(
+          rect.left +
+            rect.width / 2,
+
+          rect.top +
+            Math.min(
+              rect.height / 2,
+              rect.height - 180
+            )
+        );
+
+      files.forEach(
+        (file, index) => {
+          const previewUrl =
+            file.type.startsWith('image/')
+              ? URL.createObjectURL(file)
+              : null;
+
+          addNode(
+            'file',
+            {
+              x:
+                base.x +
+                (
+                  index -
+                  (files.length - 1) / 2
+                ) * 220,
+
+              y:
+                base.y,
+
+              data: {
+                file,
+
+                name:
+                  file.name,
+
+                mime:
+                  file.type ||
+                  'application/octet-stream',
+
+                size:
+                  file.size,
+
+                lastModified:
+                  file.lastModified,
+
+                previewUrl
+              }
+            }
+          );
+        }
       );
 
-      files.forEach((file, index) => {
-        const previewUrl =
-          file.type.startsWith('image/')
-            ? URL.createObjectURL(file)
-            : null;
-
-        addNode('file', {
-          x:
-            base.x +
-            (index - (files.length - 1) / 2) *
-              220,
-
-          y: base.y,
-
-          data: {
-            file,
-            name: file.name,
-            mime:
-              file.type ||
-              'application/octet-stream',
-            size: file.size,
-            lastModified: file.lastModified,
-            previewUrl
-          }
-        });
-      });
-
-      emit('attach', { files });
+      emit(
+        'attach',
+        { files }
+      );
     }
 
-    listen(addButton, 'click', e => {
-      e.preventDefault();
-      e.stopPropagation();
-      toggleAddMenu();
-    });
-
-    listen(addMenu, 'pointerdown', e =>
-      e.stopPropagation()
-    );
-
-    listen(addMenu, 'click', e => {
-      const item =
-        e.target.closest('.vc-menu-item');
-
-      if (!item) return;
-
-      addNode(item.dataset.nodeType);
-    });
-
-    listen(root, 'pointerdown', e => {
-      if (
-        !addMenu.contains(e.target) &&
-        !addButton.contains(e.target)
-      ) {
-        closeAddMenu();
-      }
-    });
-
-    listen(themeButton, 'click', e => {
-      e.stopPropagation();
-
-      setTheme(
-        document.documentElement.classList.contains('dark')
-          ? 'light'
-          : 'dark'
-      );
-    });
-
-    listen(attachButton, 'click', e => {
-      e.stopPropagation();
-      fileInput.click();
-    });
-
-    listen(fileInput, 'change', e => {
-      const files = [...e.target.files];
-
-      if (!files.length) return;
-
-      updateFileInput(files);
-      fileInput.value = '';
-    });
-
-    listen(chatInput, 'input', updateComposerState);
-    listen(chatInput, 'focus', updateComposerState);
-
-    listen(chatInput, 'keydown', e => {
-      if (state.aiBusy) return;
-
-      if (e.key === 'Enter' && !e.shiftKey) {
-        e.preventDefault();
-        chatForm.requestSubmit();
-      }
-    });
-
-    listen(chatForm, 'submit', e => {
-      e.preventDefault();
-
-      if (state.aiBusy) return;
-
-      const text = chatInput.value.trim();
-      if (!text) return;
-
-      state.aiBusy = true;
-      updateComposerState();
-
-      emit('submit', {
-        text,
-        selectedNode: state.selectedNode
-      });
-    });
-
-    listen(nodesLayer, 'pointerdown', e => {
-      const action =
-        e.target.closest('[data-action]');
-
-      if (action) e.stopPropagation();
-    });
-
-    listen(nodesLayer, 'click', e => {
-      const action =
-        e.target.closest('[data-action]');
-
-      if (!action) return;
-
-      e.preventDefault();
-      e.stopPropagation();
-
-      const nodeElement =
-        action.closest('.vc-node');
-
-      if (!nodeElement) return;
-
-      const id = nodeElement.dataset.nodeId;
-
-      if (action.dataset.action === 'toggle') {
-        toggleNodeExpanded(id);
-        return;
-      }
-
-      if (
-        action.dataset.action === 'delete' ||
-        action.dataset.action === 'delete-expanded'
-      ) {
-        removeNode(id);
-      }
-    });
-
-    listen(canvas, 'pointerdown', event => {
-      state.pointers.set(event.pointerId, {
+    function handlePointerEvent(event) {
+      return {
         x: event.clientX,
         y: event.clientY
-      });
-
-      if (state.pointers.size >= 2) {
-        if (state.nodeDrag) finishNodeDrag();
-
-        state.canvasPan = null;
-        state.connectionDrag = null;
-
-        const points = [...state.pointers.values()];
-        const center = mid(points[0], points[1]);
-        const anchor = screenToWorld(
-          center.x,
-          center.y
-        );
-
-        state.pinch = {
-          d: Math.max(
-            1,
-            dist(points[0], points[1])
-          ),
-          s: state.scale,
-          x: anchor.x,
-          y: anchor.y
-        };
-
-        dragConnectionLayer.textContent = '';
-        return;
-      }
-
-      const port =
-        event.target.closest('.vc-port-hit');
-
-      if (port) {
-        event.preventDefault();
-        event.stopPropagation();
-
-        const node = getNode(
-          port.dataset.nodeId
-        );
-
-        if (!node) return;
-
-        if (port.dataset.portDir === 'output') {
-          state.connectionDrag = {
-            pointerId: event.pointerId,
-            from: {
-              node: node.id,
-              port: port.dataset.portId
-            },
-            x: event.clientX,
-            y: event.clientY
-          };
-
-          try {
-            canvas.setPointerCapture(
-              event.pointerId
-            );
-          } catch {}
-
-          renderDragConnection();
-        }
-
-        return;
-      }
-
-      const nodeElement =
-        event.target.closest('.vc-node');
-
-      if (nodeElement) {
-        event.preventDefault();
-        event.stopPropagation();
-
-        const node = getNode(
-          nodeElement.dataset.nodeId
-        );
-
-        if (!node) return;
-
-        selectNode(node.id);
-
-        state.nodeDrag = {
-          pointerId: event.pointerId,
-          node,
-          startX: event.clientX,
-          startY: event.clientY,
-          nodeX: node.x,
-          nodeY: node.y,
-          moved: false,
-          wasExpanded: !!node.expanded
-        };
-
-        try {
-          canvas.setPointerCapture(
-            event.pointerId
-          );
-        } catch {}
-
-        return;
-      }
-
-      selectNode(null);
-
-      state.canvasPan = {
-        pointerId: event.pointerId,
-        startX: event.clientX,
-        startY: event.clientY,
-        startOffsetX: state.offset.x,
-        startOffsetY: state.offset.y,
-        moved: false
       };
+    }
 
-      canvas.classList.add('vc-dragging');
-
+    function setPointerCaptureSafe(
+      element,
+      pointerId
+    ) {
       try {
-        canvas.setPointerCapture(
-          event.pointerId
+        element.setPointerCapture(
+          pointerId
         );
       } catch {}
-    });
+    }
 
-    listen(canvas, 'pointermove', event => {
-      if (!state.pointers.has(event.pointerId)) {
-        return;
+    listen(
+      addButton,
+      'click',
+      event => {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleAddMenu();
       }
+    );
 
-      state.pointers.set(event.pointerId, {
-        x: event.clientX,
-        y: event.clientY
-      });
+    listen(
+      addMenu,
+      'pointerdown',
+      event => event.stopPropagation()
+    );
 
-      if (state.pointers.size >= 2) {
-        if (state.nodeDrag) {
-          finishNodeDrag();
-          state.nodeDrag = null;
-        }
-
-        state.canvasPan = null;
-
-        const points = [...state.pointers.values()];
-
-        if (!state.pinch) {
-          const center = mid(points[0], points[1]);
-          const anchor = screenToWorld(
-            center.x,
-            center.y
+    listen(
+      addMenu,
+      'click',
+      event => {
+        const item =
+          event.target.closest(
+            '.vc-menu-item'
           );
 
+        if (!item) return;
+
+        addNode(
+          item.dataset.nodeType
+        );
+      }
+    );
+
+    listen(
+      root,
+      'pointerdown',
+      event => {
+        if (
+          !addMenu.contains(event.target) &&
+          !addButton.contains(event.target)
+        ) {
+          closeAddMenu();
+        }
+      }
+    );
+
+    listen(
+      themeButton,
+      'click',
+      event => {
+        event.stopPropagation();
+
+        setTheme(
+          document.documentElement.classList.contains(
+            'dark'
+          )
+            ? 'light'
+            : 'dark'
+        );
+      }
+    );
+
+    listen(
+      attachButton,
+      'click',
+      event => {
+        event.stopPropagation();
+        fileInput.click();
+      }
+    );
+
+    listen(
+      fileInput,
+      'change',
+      event => {
+        const files =
+          [...event.target.files];
+
+        if (!files.length) return;
+
+        updateFileInput(files);
+        fileInput.value = '';
+      }
+    );
+
+    listen(
+      chatInput,
+      'input',
+      updateComposerState
+    );
+
+    listen(
+      chatInput,
+      'focus',
+      updateComposerState
+    );
+
+    listen(
+      chatInput,
+      'keydown',
+      event => {
+        if (state.aiBusy) return;
+
+        if (
+          event.key === 'Enter' &&
+          !event.shiftKey
+        ) {
+          event.preventDefault();
+          chatForm.requestSubmit();
+        }
+      }
+    );
+
+    listen(
+      chatForm,
+      'submit',
+      event => {
+        event.preventDefault();
+
+        if (state.aiBusy) return;
+
+        const text =
+          chatInput.value.trim();
+
+        if (!text) return;
+
+        state.aiBusy = true;
+
+        updateComposerState();
+
+        const chatRun =
+          createChatRun(
+            text
+          );
+
+        appendChat(
+          'user',
+          text,
+          '',
+          chatRun.id
+        );
+
+        emit(
+          'submit',
+          {
+            text,
+
+            selectedNode:
+              chatRun.selectedNode,
+
+            chatRunId:
+              chatRun.id
+          }
+        );
+      }
+    );
+
+    listen(
+      nodesLayer,
+      'pointerdown',
+      event => {
+        const action =
+          event.target.closest(
+            '[data-action]'
+          );
+
+        if (action) {
+          event.stopPropagation();
+        }
+
+        if (
+          event.target.closest(
+            '.vc-slot-param'
+          )
+        ) {
+          event.stopPropagation();
+        }
+      }
+    );
+
+    listen(
+      nodesLayer,
+      'click',
+      event => {
+        const action =
+          event.target.closest(
+            '[data-action]'
+          );
+
+        if (!action) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const element =
+          action.closest(
+            '.vc-node'
+          );
+
+        if (!element) return;
+
+        const id =
+          element.dataset.nodeId;
+
+        if (
+          action.dataset.action ===
+          'toggle'
+        ) {
+          toggleNodeExpanded(id);
+          return;
+        }
+
+        if (
+          action.dataset.action ===
+            'delete' ||
+          action.dataset.action ===
+            'delete-expanded'
+        ) {
+          removeNode(id);
+        }
+      }
+    );
+
+    listen(
+      nodesLayer,
+      'input',
+      event => {
+        const input =
+          event.target.closest(
+            '.vc-slot-param'
+          );
+
+        if (!input) return;
+
+        const element =
+          input.closest('.vc-node');
+
+        if (!element) return;
+
+        const node =
+          getNode(
+            element.dataset.nodeId
+          );
+
+        if (!node) return;
+
+        node.data ||= {};
+        node.data.params ||= {};
+
+        node.data.params[
+          input.dataset.paramId
+        ] = input.value;
+
+        emit(
+          'change',
+          getWorkflow()
+        );
+      }
+    );
+
+    listen(
+      canvas,
+      'pointerdown',
+      event => {
+        state.pointers.set(
+          event.pointerId,
+          handlePointerEvent(event)
+        );
+
+        if (state.pointers.size >= 2) {
+          if (state.nodeDrag) {
+            finishNodeDrag();
+          }
+
+          state.canvasPan = null;
+          state.connectionDrag = null;
+
+          const points =
+            [...state.pointers.values()];
+
+          const center =
+            mid(points[0], points[1]);
+
+          const anchor =
+            screenToWorld(
+              center.x,
+              center.y
+            );
+
           state.pinch = {
-            d: Math.max(
-              1,
-              dist(points[0], points[1])
-            ),
-            s: state.scale,
-            x: anchor.x,
-            y: anchor.y
+            d:
+              Math.max(
+                1,
+                dist(
+                  points[0],
+                  points[1]
+                )
+              ),
+
+            s:
+              state.scale,
+
+            x:
+              anchor.x,
+
+            y:
+              anchor.y
           };
+
+          dragConnectionLayer.textContent =
+            '';
+
+          return;
         }
 
-        const d = dist(points[0], points[1]);
-        const center = mid(points[0], points[1]);
+        const port =
+          event.target.closest(
+            '.vc-port-hit'
+          );
 
-        state.scale = clamp(
-          state.pinch.s *
-            (d / state.pinch.d),
-          .12,
-          3
+        if (port) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const node =
+            getNode(
+              port.dataset.nodeId
+            );
+
+          if (!node) return;
+
+          if (
+            port.dataset.portDir ===
+            'output'
+          ) {
+            state.connectionDrag = {
+              pointerId:
+                event.pointerId,
+
+              from: {
+                node:
+                  node.id,
+
+                port:
+                  port.dataset.portId
+              },
+
+              x:
+                event.clientX,
+
+              y:
+                event.clientY
+            };
+
+            setPointerCaptureSafe(
+              canvas,
+              event.pointerId
+            );
+
+            renderDragConnection();
+          }
+
+          return;
+        }
+
+        const nodeElement =
+          event.target.closest(
+            '.vc-node'
+          );
+
+        if (nodeElement) {
+          event.preventDefault();
+          event.stopPropagation();
+
+          const node =
+            getNode(
+              nodeElement.dataset.nodeId
+            );
+
+          if (!node) return;
+
+          selectNode(node.id);
+
+          state.nodeDrag = {
+            pointerId:
+              event.pointerId,
+
+            node,
+
+            startX:
+              event.clientX,
+
+            startY:
+              event.clientY,
+
+            nodeX:
+              node.x,
+
+            nodeY:
+              node.y,
+
+            moved:
+              false,
+
+            wasExpanded:
+              !!node.expanded
+          };
+
+          setPointerCaptureSafe(
+            canvas,
+            event.pointerId
+          );
+
+          return;
+        }
+
+        selectNode(null);
+
+        state.canvasPan = {
+          pointerId:
+            event.pointerId,
+
+          startX:
+            event.clientX,
+
+          startY:
+            event.clientY,
+
+          startOffsetX:
+            state.offset.x,
+
+          startOffsetY:
+            state.offset.y,
+
+          moved:
+            false
+        };
+
+        canvas.classList.add(
+          'vc-dragging'
         );
 
-        state.offset.x =
-          center.x -
-          state.pinch.x *
-            state.scale;
-
-        state.offset.y =
-          center.y -
-          state.pinch.y *
-            state.scale;
-
-        renderTransform();
-        renderConnections();
-        return;
+        setPointerCaptureSafe(
+          canvas,
+          event.pointerId
+        );
       }
+    );
 
-      if (
-        state.connectionDrag?.pointerId ===
-        event.pointerId
-      ) {
-        event.preventDefault();
-
-        state.connectionDrag.x = event.clientX;
-        state.connectionDrag.y = event.clientY;
-
-        renderDragConnection();
-        return;
-      }
-
-      if (
-        state.nodeDrag?.pointerId ===
-        event.pointerId
-      ) {
-        const drag = state.nodeDrag;
-
-        const dx =
-          event.clientX - drag.startX;
-
-        const dy =
-          event.clientY - drag.startY;
-
+    listen(
+      canvas,
+      'pointermove',
+      event => {
         if (
-          !drag.moved &&
-          Math.hypot(dx, dy) > 7
+          !state.pointers.has(
+            event.pointerId
+          )
         ) {
-          startNodeDrag();
+          return;
         }
 
-        if (!drag.moved) return;
-
-        event.preventDefault();
-
-        setNodePosition(
-          drag.node,
-          drag.nodeX +
-            dx / state.scale,
-          drag.nodeY +
-            dy / state.scale
+        state.pointers.set(
+          event.pointerId,
+          handlePointerEvent(event)
         );
 
-        return;
-      }
+        if (state.pointers.size >= 2) {
+          if (state.nodeDrag) {
+            finishNodeDrag();
+            state.nodeDrag = null;
+          }
 
-      if (
-        state.canvasPan?.pointerId ===
-        event.pointerId
-      ) {
-        const pan = state.canvasPan;
+          state.canvasPan = null;
 
-        const dx =
-          event.clientX - pan.startX;
+          const points =
+            [...state.pointers.values()];
 
-        const dy =
-          event.clientY - pan.startY;
+          if (!state.pinch) {
+            const center =
+              mid(points[0], points[1]);
 
-        if (
-          !pan.moved &&
-          Math.hypot(dx, dy) > 7
-        ) {
-          pan.moved = true;
+            const anchor =
+              screenToWorld(
+                center.x,
+                center.y
+              );
+
+            state.pinch = {
+              d:
+                Math.max(
+                  1,
+                  dist(
+                    points[0],
+                    points[1]
+                  )
+                ),
+
+              s:
+                state.scale,
+
+              x:
+                anchor.x,
+
+              y:
+                anchor.y
+            };
+          }
+
+          const d =
+            dist(
+              points[0],
+              points[1]
+            );
+
+          const center =
+            mid(
+              points[0],
+              points[1]
+            );
+
+          state.scale =
+            clamp(
+              state.pinch.s *
+                (d / state.pinch.d),
+              .12,
+              3
+            );
+
+          state.offset.x =
+            center.x -
+            state.pinch.x *
+              state.scale;
+
+          state.offset.y =
+            center.y -
+            state.pinch.y *
+              state.scale;
+
+          renderTransform();
+          renderConnections();
+          return;
         }
 
-        if (!pan.moved) return;
+        if (
+          state.connectionDrag
+            ?.pointerId ===
+          event.pointerId
+        ) {
+          event.preventDefault();
 
-        event.preventDefault();
+          state.connectionDrag.x =
+            event.clientX;
 
-        state.offset.x =
-          pan.startOffsetX + dx;
+          state.connectionDrag.y =
+            event.clientY;
 
-        state.offset.y =
-          pan.startOffsetY + dy;
+          renderDragConnection();
+          return;
+        }
 
-        renderTransform();
-        renderConnections();
+        if (
+          state.nodeDrag
+            ?.pointerId ===
+          event.pointerId
+        ) {
+          const drag =
+            state.nodeDrag;
+
+          const dx =
+            event.clientX -
+            drag.startX;
+
+          const dy =
+            event.clientY -
+            drag.startY;
+
+          if (
+            !drag.moved &&
+            Math.hypot(dx, dy) > 7
+          ) {
+            startNodeDrag();
+          }
+
+          if (!drag.moved) return;
+
+          event.preventDefault();
+
+          setNodePosition(
+            drag.node,
+            drag.nodeX +
+              dx / state.scale,
+            drag.nodeY +
+              dy / state.scale
+          );
+
+          return;
+        }
+
+        if (
+          state.canvasPan
+            ?.pointerId ===
+          event.pointerId
+        ) {
+          const pan =
+            state.canvasPan;
+
+          const dx =
+            event.clientX -
+            pan.startX;
+
+          const dy =
+            event.clientY -
+            pan.startY;
+
+          if (
+            !pan.moved &&
+            Math.hypot(dx, dy) > 7
+          ) {
+            pan.moved = true;
+          }
+
+          if (!pan.moved) return;
+
+          event.preventDefault();
+
+          state.offset.x =
+            pan.startOffsetX +
+            dx;
+
+          state.offset.y =
+            pan.startOffsetY +
+            dy;
+
+          renderTransform();
+          renderConnections();
+        }
+      },
+      {
+        passive: false
       }
-    }, { passive: false });
+    );
 
     function endPointer(event) {
       if (
-        state.connectionDrag?.pointerId ===
+        state.connectionDrag
+          ?.pointerId ===
         event.pointerId
       ) {
         finishConnection(event);
       }
 
       if (
-        state.nodeDrag?.pointerId ===
+        state.nodeDrag
+          ?.pointerId ===
         event.pointerId
       ) {
         finishNodeDrag();
       }
 
-      state.pointers.delete(event.pointerId);
+      state.pointers.delete(
+        event.pointerId
+      );
 
       if (state.pointers.size < 2) {
         state.pinch = null;
       }
 
-      if (state.pointers.size === 0) {
+      if (!state.pointers.size) {
         state.canvasPan = null;
         state.connectionDrag = null;
 
@@ -2426,58 +3991,83 @@
           'vc-dragging'
         );
 
-        dragConnectionLayer.textContent = '';
+        dragConnectionLayer.textContent =
+          '';
       }
     }
 
-    listen(canvas, 'pointerup', endPointer);
-    listen(canvas, 'pointercancel', endPointer);
+    listen(
+      canvas,
+      'pointerup',
+      endPointer
+    );
 
-    listen(canvas, 'wheel', event => {
-      event.preventDefault();
+    listen(
+      canvas,
+      'pointercancel',
+      endPointer
+    );
 
-      const before = screenToWorld(
-        event.clientX,
-        event.clientY
-      );
+    listen(
+      canvas,
+      'wheel',
+      event => {
+        event.preventDefault();
 
-      const factor = Math.exp(
-        -event.deltaY * .0015
-      );
+        const before =
+          screenToWorld(
+            event.clientX,
+            event.clientY
+          );
 
-      state.scale = clamp(
-        state.scale * factor,
-        .12,
-        3
-      );
+        const factor =
+          Math.exp(
+            -event.deltaY * .0015
+          );
 
-      state.offset.x =
-        event.clientX -
-        before.x *
-          state.scale;
+        state.scale =
+          clamp(
+            state.scale * factor,
+            .12,
+            3
+          );
 
-      state.offset.y =
-        event.clientY -
-        before.y *
-          state.scale;
+        state.offset.x =
+          event.clientX -
+          before.x *
+            state.scale;
 
-      renderTransform();
-      renderConnections();
-    }, { passive: false });
+        state.offset.y =
+          event.clientY -
+          before.y *
+            state.scale;
 
-    const resizeObserver = new ResizeObserver(() => {
-      renderConnections();
-      emit(
-        'resize',
-        canvas.getBoundingClientRect()
-      );
-    });
+        renderTransform();
+        renderConnections();
+      },
+      {
+        passive: false
+      }
+    );
+
+    const resizeObserver =
+      new ResizeObserver(() => {
+        renderConnections();
+
+        emit(
+          'resize',
+          canvas.getBoundingClientRect()
+        );
+      });
 
     resizeObserver.observe(canvas);
 
     observers.push(
-      () => resizeObserver.disconnect(),
-      () => nodeResizeObserver.disconnect()
+      () =>
+        resizeObserver.disconnect(),
+
+      () =>
+        nodeResizeObserver.disconnect()
     );
 
     function centerInitial() {
@@ -2486,7 +4076,8 @@
       const rect =
         canvas.getBoundingClientRect();
 
-      const first = state.nodes[0];
+      const first =
+        state.nodes[0];
 
       const width =
         window.innerWidth <= 600
@@ -2495,17 +4086,29 @@
 
       state.offset.x =
         rect.width / 2 -
-        (first.x + width / 2) *
-          state.scale;
+        (
+          first.x +
+          width / 2
+        ) *
+        state.scale;
 
       state.offset.y =
-        Math.max(90, rect.height * .12) -
+        Math.max(
+          90,
+          rect.height * .12
+        ) -
         first.y *
-          state.scale;
+        state.scale;
     }
 
-    function registerNodeType(type, definition) {
-      if (!type || typeof type !== 'string') {
+    function registerNodeType(
+      type,
+      definition
+    ) {
+      if (
+        !type ||
+        typeof type !== 'string'
+      ) {
         throw new TypeError(
           'type must be a string'
         );
@@ -2513,7 +4116,10 @@
 
       registry.set(
         type,
-        normalizeNodeType(type, definition)
+        normalizeNodeType(
+          type,
+          definition
+        )
       );
 
       renderMenu();
@@ -2535,52 +4141,54 @@
       return api;
     }
 
-    function chatApplyResult() {
+    function chatApplyResult(
+      result,
+      chatRunId = null
+    ) {
       chatInput.value = '';
+
       api.render();
 
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          root
-            .querySelectorAll('.vc-node')
-            .forEach((element, index) => {
-              element.animate(
-                [
-                  {
-                    opacity: 0,
-                    filter: 'blur(5px)'
-                  },
-                  {
-                    opacity: 1,
-                    filter: 'blur(0)'
-                  }
-                ],
-                {
-                  duration: 400,
-                  delay: index * 45,
-                  easing:
-                    'cubic-bezier(.22,1,.36,1)',
-                  fill: 'both'
-                }
-              );
-            });
-        });
-      });
+      const message =
+        typeof result?.message === 'string'
+          ? result.message.trim()
+          : '워크플로우를 반영했습니다.';
+
+      const question =
+        typeof result?.question === 'string'
+          ? result.question.trim()
+          : '';
+
+      appendChat(
+        'assistant',
+        message,
+        question,
+        chatRunId
+      );
     }
 
     function chatApplyError(error) {
+      const message =
+        error?.message ||
+        '워크플로우 생성에 실패했습니다.';
+
+      appendChat(
+        'assistant',
+        message
+      );
+
       chatInput.focus();
 
       validationLayer.textContent = '';
 
-      const item = document.createElement('div');
+      const item =
+        document.createElement('div');
 
       item.className =
         'vc-validation-item vc-error vc-show';
 
       item.textContent =
-        error?.message ||
-        '워크플로우 생성에 실패했습니다.';
+        message;
 
       validationLayer.appendChild(item);
 
@@ -2595,13 +4203,16 @@
     }
 
     const initial = {
-      nodes: [{
-        id: 'start',
-        type: 'start',
-        x: 780,
-        y: 80,
-        expanded: true
-      }],
+      nodes: [
+        {
+          id: 'start',
+          type: 'start',
+          x: 780,
+          y: 80,
+          expanded: true
+        }
+      ],
+
       connections: []
     };
 
@@ -2621,9 +4232,17 @@
 
       getWorkflow,
       getState,
+
+      getChatRuns:
+        () =>
+          clone(
+            state.chatRuns
+          ),
+
       setState,
 
-      getNode: id => getNode(id),
+      getNode: id =>
+        getNode(id),
 
       on,
       off,
@@ -2632,10 +4251,13 @@
 
       render,
 
-      __setAIWaiting: setAIWaiting,
+      __setAIWaiting:
+        setAIWaiting,
 
       destroy() {
-        if (state.destroyed) return;
+        if (state.destroyed) {
+          return;
+        }
 
         state.destroyed = true;
 
@@ -2655,7 +4277,9 @@
             } catch {}
           });
 
-        if (state.expansionAnimation) {
+        if (
+          state.expansionAnimation
+        ) {
           cancelAnimationFrame(
             state.expansionAnimation
           );
@@ -2674,7 +4298,10 @@
 
         root.remove();
 
-        if (target._visualCanvas === api) {
+        if (
+          target._visualCanvas ===
+          api
+        ) {
           target._visualCanvas = null;
         }
       }
@@ -2690,59 +4317,77 @@
     centerInitial();
     render();
 
-    if (options.onChange) {
-      on('change', options.onChange);
+    for (
+      const [name, handler]
+        of [
+          ['change', options.onChange],
+          ['connect', options.onConnect],
+          ['validate', options.onValidate],
+          ['submit', options.onSubmit],
+          ['attach', options.onAttach],
+          ['resize', options.onResize]
+        ]
+    ) {
+      if (handler) {
+        on(name, handler);
+      }
     }
 
-    if (options.onConnect) {
-      on('connect', options.onConnect);
-    }
+    if (
+      options.handleSubmit !== false
+    ) {
+      on(
+        'submit',
+        async ({
+          text,
+          chatRunId
+        }) => {
+          try {
+            const result =
+              await workflowToCanvas(
+                text,
+                api
+              );
 
-    if (options.onValidate) {
-      on('validate', options.onValidate);
-    }
+            const validation =
+              validate();
 
-    if (options.onSubmit) {
-      on('submit', options.onSubmit);
-    }
+            if (!validation.valid) {
+              throw new Error(
+                validation
+                  .errors?.[0]
+                  ?.message ||
+                '생성된 워크플로우를 적용할 수 없습니다.'
+              );
+            }
 
-    if (options.onAttach) {
-      on('attach', options.onAttach);
-    }
-
-    if (options.onResize) {
-      on('resize', options.onResize);
-    }
-
-    if (options.handleSubmit !== false) {
-      on('submit', async ({ text }) => {
-        try {
-          await workflowToCanvas(
-            text,
-            api
-          );
-
-          const result = validate();
-
-          if (!result.valid) {
-            throw new Error(
-              result.errors?.[0]?.message ||
-              '생성된 워크플로우를 적용할 수 없습니다.'
+            /*
+              여기서 채팅 + 현재 Workflow가
+              하나의 기록으로 완성된다.
+            */
+            chatApplyResult(
+              result,
+              chatRunId
             );
+
+            completeChatRun(
+              result
+            );
+
+          } catch (error) {
+            console.error(
+              'Workflow ERROR:',
+              error
+            );
+
+            chatApplyError(error);
+            failChatRun();
+
+          } finally {
+            setAIWaiting(false);
           }
-
-          chatApplyResult();
-        } catch (error) {
-          console.error(
-            'Workflow ERROR:',
-            error
-          );
-
-          chatApplyError(error);
-        } finally {
-          setAIWaiting(false);
         }
-      });
+      );
     }
 
     target._visualCanvas = api;
@@ -2750,13 +4395,18 @@
     return api;
   };
 
-  window.getMountedVisualCanvas = function (target) {
-    if (typeof target === 'string') {
-      target = document.querySelector(target);
-    }
+  window.getMountedVisualCanvas =
+    function (target) {
+      if (typeof target === 'string') {
+        target =
+          document.querySelector(target);
+      }
 
-    return target?._visualCanvas || null;
-  };
+      return (
+        target?._visualCanvas ||
+        null
+      );
+    };
 })();
 
 
@@ -2832,7 +4482,9 @@
             <div class="vt-bubble vt-user">
               AI 시장 조사하고 보고서 만들어줘
             </div>
+
             <div class="vt-down">↓</div>
+
             <div class="vt-bubble vt-ai">
               조사 → 정리 → 작성
             </div>
@@ -2841,7 +4493,8 @@
       }
     ];
 
-    const style = document.createElement('style');
+    const style =
+      document.createElement('style');
 
     style.textContent = `
       .vc-tutorial{
@@ -3101,9 +4754,11 @@
       }
     `;
 
-    const layer = document.createElement('div');
+    const layer =
+      document.createElement('div');
 
-    layer.className = 'vc-tutorial';
+    layer.className =
+      'vc-tutorial';
 
     layer.innerHTML = `
       <div class="vc-tutorial-shade"></div>
@@ -3118,13 +4773,17 @@
           <span class="vc-tutorial-page"></span>
 
           <div class="vc-tutorial-buttons">
-            <button type="button"
-              class="vc-tutorial-skip">
+            <button
+              type="button"
+              class="vc-tutorial-skip"
+            >
               건너뛰기
             </button>
 
-            <button type="button"
-              class="vc-tutorial-next">
+            <button
+              type="button"
+              class="vc-tutorial-next"
+            >
               다음
             </button>
           </div>
@@ -3135,37 +4794,45 @@
     document.head.appendChild(style);
     document.body.appendChild(layer);
 
-    const focus = layer.querySelector(
-      '.vc-tutorial-focus'
-    );
+    const focus =
+      layer.querySelector(
+        '.vc-tutorial-focus'
+      );
 
-    const card = layer.querySelector(
-      '.vc-tutorial-card'
-    );
+    const card =
+      layer.querySelector(
+        '.vc-tutorial-card'
+      );
 
-    const title = layer.querySelector(
-      '.vc-tutorial-title'
-    );
+    const title =
+      layer.querySelector(
+        '.vc-tutorial-title'
+      );
 
-    const desc = layer.querySelector(
-      '.vc-tutorial-desc'
-    );
+    const desc =
+      layer.querySelector(
+        '.vc-tutorial-desc'
+      );
 
-    const visual = layer.querySelector(
-      '.vc-tutorial-visual'
-    );
+    const visual =
+      layer.querySelector(
+        '.vc-tutorial-visual'
+      );
 
-    const page = layer.querySelector(
-      '.vc-tutorial-page'
-    );
+    const page =
+      layer.querySelector(
+        '.vc-tutorial-page'
+      );
 
-    const next = layer.querySelector(
-      '.vc-tutorial-next'
-    );
+    const next =
+      layer.querySelector(
+        '.vc-tutorial-next'
+      );
 
-    const skip = layer.querySelector(
-      '.vc-tutorial-skip'
-    );
+    const skip =
+      layer.querySelector(
+        '.vc-tutorial-skip'
+      );
 
     let index = 0;
     let running = true;
@@ -3173,7 +4840,11 @@
 
     function stopLoop() {
       if (!rafId) return;
-      cancelAnimationFrame(rafId);
+
+      cancelAnimationFrame(
+        rafId
+      );
+
       rafId = 0;
     }
 
@@ -3195,7 +4866,9 @@
         );
       } catch {}
 
-      layer.classList.remove('open');
+      layer.classList.remove(
+        'open'
+      );
 
       setTimeout(() => {
         layer.remove();
@@ -3212,31 +4885,54 @@
     function updatePosition() {
       if (!running) return false;
 
-      const target = targetElement();
-      if (!target) return false;
+      const target =
+        targetElement();
 
-      const rect = target.getBoundingClientRect();
+      if (!target) {
+        return false;
+      }
+
+      const rect =
+        target.getBoundingClientRect();
+
       const pad = 7;
       const gap = 18;
 
-      focus.style.left = `${rect.left - pad}px`;
-      focus.style.top = `${rect.top - pad}px`;
-      focus.style.width = `${rect.width + pad * 2}px`;
-      focus.style.height = `${rect.height + pad * 2}px`;
+      focus.style.left =
+        `${rect.left - pad}px`;
 
-      const cardWidth = card.offsetWidth;
-      const cardHeight = card.offsetHeight;
+      focus.style.top =
+        `${rect.top - pad}px`;
 
-      if (!cardWidth || !cardHeight) {
+      focus.style.width =
+        `${rect.width + pad * 2}px`;
+
+      focus.style.height =
+        `${rect.height + pad * 2}px`;
+
+      const cardWidth =
+        card.offsetWidth;
+
+      const cardHeight =
+        card.offsetHeight;
+
+      if (
+        !cardWidth ||
+        !cardHeight
+      ) {
         return true;
       }
 
       let x =
         rect.left +
-        (rect.width - cardWidth) / 2;
+        (
+          rect.width -
+          cardWidth
+        ) / 2;
 
       let y =
-        rect.bottom + gap;
+        rect.bottom +
+        gap;
 
       if (
         y + cardHeight >
@@ -3248,32 +4944,31 @@
           gap;
       }
 
-      const maxX = Math.max(
-        14,
-        window.innerWidth -
-        cardWidth -
-        14
-      );
-
-      const maxY = Math.max(
-        14,
-        window.innerHeight -
-        cardHeight -
-        14
-      );
-
       x = Math.min(
         Math.max(x, 14),
-        maxX
+        Math.max(
+          14,
+          window.innerWidth -
+          cardWidth -
+          14
+        )
       );
 
       y = Math.min(
         Math.max(y, 14),
-        maxY
+        Math.max(
+          14,
+          window.innerHeight -
+          cardHeight -
+          14
+        )
       );
 
-      card.style.left = `${x}px`;
-      card.style.top = `${y}px`;
+      card.style.left =
+        `${x}px`;
+
+      card.style.top =
+        `${y}px`;
 
       return true;
     }
@@ -3286,9 +4981,10 @@
         return;
       }
 
-      rafId = requestAnimationFrame(
-        positionLoop
-      );
+      rafId =
+        requestAnimationFrame(
+          positionLoop
+        );
     }
 
     function restartLoop() {
@@ -3296,6 +4992,7 @@
 
       requestAnimationFrame(() => {
         if (!running) return;
+
         updatePosition();
         positionLoop();
       });
@@ -3311,10 +5008,14 @@
         return;
       }
 
-      const target = targetElement();
+      const target =
+        targetElement();
 
       if (!target) {
-        if (index < steps.length - 1) {
+        if (
+          index <
+          steps.length - 1
+        ) {
           index++;
           renderStep();
         } else {
@@ -3324,14 +5025,21 @@
         return;
       }
 
-      title.textContent = step.title;
-      desc.textContent = step.desc;
-      visual.innerHTML = step.visual;
+      title.textContent =
+        step.title;
+
+      desc.textContent =
+        step.desc;
+
+      visual.innerHTML =
+        step.visual;
+
       page.textContent =
         `${index + 1} / ${steps.length}`;
 
       next.textContent =
-        index === steps.length - 1
+        index ===
+        steps.length - 1
           ? '시작하기'
           : '다음';
 
@@ -3346,30 +5054,40 @@
       );
     }
 
-    next.addEventListener('click', e => {
-      e.preventDefault();
-      e.stopPropagation();
+    next.addEventListener(
+      'click',
+      event => {
+        event.preventDefault();
+        event.stopPropagation();
 
-      if (!running) return;
+        if (!running) return;
 
-      if (index === steps.length - 1) {
-        finish();
-        return;
+        if (
+          index ===
+          steps.length - 1
+        ) {
+          finish();
+          return;
+        }
+
+        index++;
+        renderStep();
       }
+    );
 
-      index++;
-      renderStep();
-    });
-
-    skip.addEventListener('click', e => {
-      e.preventDefault();
-      e.stopPropagation();
-      finish();
-    });
+    skip.addEventListener(
+      'click',
+      event => {
+        event.preventDefault();
+        event.stopPropagation();
+        finish();
+      }
+    );
 
     layer.addEventListener(
       'click',
-      e => e.stopPropagation()
+      event =>
+        event.stopPropagation()
     );
 
     window.addEventListener(

@@ -633,44 +633,55 @@ async function workflowToCanvas(
           :[];
 
 
-      currentWorkflow={
+      const validConnections =
+  connections.filter(
+    connection=>
+      connection?.from&&
+      connection?.to&&
+      typeof connection.from.node==="string"&&
+      typeof connection.from.port==="string"&&
+      typeof connection.to.node==="string"&&
+      typeof connection.to.port==="string"
+  );
 
-        nodes:
-          workflow.nodes.map(
-            node=>({
+currentWorkflow={
 
-              id:node.id,
+  nodes:
+    workflow.nodes.map(
+      node=>({
+        id:node.id,
+        type:node.type,
+        params:node.data?.params||{}
+      })
+    ),
 
-              type:node.type,
+  links:
+    validConnections
+      .filter(
+        connection=>
+          connection.data?.kind!=="data"
+      )
+      .map(
+        connection=>[
+          `${connection.from.node}.${connection.from.port}`,
+          `${connection.to.node}.${connection.to.port}`
+        ]
+      ),
 
-              params:
-                node.data?.params||
-                {}
+  data:
+    validConnections
+      .filter(
+        connection=>
+          connection.data?.kind==="data"
+      )
+      .map(
+        connection=>[
+          `${connection.from.node}.${connection.from.port}`,
+          `${connection.to.node}.${connection.to.port}`
+        ]
+      )
 
-            })
-          ),
-
-        links:
-          connections
-            .filter(
-              connection=>
-                connection?.from&&
-                connection?.to&&
-                typeof connection.from.node==="string"&&
-                typeof connection.from.port==="string"&&
-                typeof connection.to.node==="string"&&
-                typeof connection.to.port==="string"
-            )
-            .map(
-              connection=>[
-                `${connection.from.node}.${connection.from.port}`,
-                `${connection.to.node}.${connection.to.port}`
-              ]
-            ),
-
-        data:[]
-
-      };
+};
 
     }
 
@@ -746,11 +757,30 @@ async function workflowToCanvas(
   }
 
 
-  return workflowIRToCanvas(
-    result.workflow,
-    canvasApi,
-    definitions
-  );
+  const workflow=
+    workflowIRToCanvas(
+      result.workflow,
+      canvasApi,
+      definitions
+    );
+
+
+  return {
+
+    workflow,
+
+    message:
+      typeof result.message==="string"
+        ?result.message
+        :"",
+
+    question:
+      result.question===null||
+      typeof result.question==="string"
+        ?result.question
+        :null
+
+  };
 
 }
 
@@ -807,6 +837,102 @@ function workflowIRToCanvas(
 
 
   /*
+    start 하나만 있는 Workflow라면
+    현재 사용자가 보고 있는 viewport 중앙에 배치한다.
+  */
+  const onlyStart=
+    spec.nodes.length===1&&
+    spec.nodes[0]?.type==="start";
+
+
+  let centerX=100;
+  let centerY=100;
+
+
+  if(onlyStart){
+
+    const canvas=
+      canvasApi.root?.querySelector(
+        '.vc-canvas'
+      );
+
+
+    const rect=
+      canvas?.getBoundingClientRect();
+
+
+    const state=
+      typeof canvasApi.getState==="function"
+        ?canvasApi.getState()
+        :null;
+
+
+    const scale=
+      Number(
+        state?.viewport?.scale
+      )||1;
+
+
+    const offsetX=
+      Number(
+        state?.viewport?.offset?.x
+      )||0;
+
+
+    const offsetY=
+      Number(
+        state?.viewport?.offset?.y
+      )||0;
+
+
+    if(rect){
+
+      /*
+        화면 중앙을
+        현재 World 좌표로 변환한다.
+      */
+      const worldCenterX=
+        (
+          rect.width/2-
+          offsetX
+        )/scale;
+
+
+      const worldCenterY=
+        (
+          rect.height/2-
+          offsetY
+        )/scale;
+
+
+      /*
+        node 좌상단 좌표이므로
+        node 크기의 절반만큼 보정한다.
+      */
+      const nodeWidth=
+        window.innerWidth<=600
+          ?178
+          :190;
+
+
+      const nodeHeight=54;
+
+
+      centerX=
+        worldCenterX-
+        nodeWidth/2;
+
+
+      centerY=
+        worldCenterY-
+        nodeHeight/2;
+
+    }
+
+  }
+
+
+  /*
     먼저 모든 노드를 생성한다.
   */
   spec.nodes.forEach(
@@ -833,14 +959,20 @@ function workflowIRToCanvas(
         type:item.type,
 
         x:
-          (index%maxColumns)*
-          spacingX+
-          100,
+          onlyStart
+            ?centerX
+            :(index%maxColumns)*
+              spacingX+
+              100,
 
         y:
-          Math.floor(index/maxColumns)*
-          spacingY+
-          100,
+          onlyStart
+            ?centerY
+            :Math.floor(
+              index/maxColumns
+            )*
+            spacingY+
+            100,
 
         expanded:true,
 
@@ -854,10 +986,6 @@ function workflowIRToCanvas(
       /*
         파일 노드는
         기존 캔버스의 표시용 name을 유지한다.
-
-        실제 업로드 파일명은
-        이후 file node 로직에서 따로
-        갱신할 수 있다.
       */
       if(
         item.type==="file"
@@ -915,6 +1043,7 @@ function workflowIRToCanvas(
         edge[0]
       );
 
+
     const to=
       parseWorkflowEndpoint(
         edge[1]
@@ -925,6 +1054,7 @@ function workflowIRToCanvas(
       nodeMap.get(
         from.node
       );
+
 
     const toNode=
       nodeMap.get(
@@ -951,16 +1081,14 @@ function workflowIRToCanvas(
 
 
     /*
-      여기서 다시 한 번
-      실제 Definition 포트를 확인한다.
-      서버 검증과 frontend 변환이
-      같은 구조를 사용한다.
+      실제 Definition 포트를 다시 확인한다.
     */
     const fromDefinition=
       getNodeDefinitionSync(
         definitions,
         fromNode.type
       );
+
 
     const toDefinition=
       getNodeDefinitionSync(
@@ -1095,7 +1223,6 @@ function workflowIRToCanvas(
 
   return result;
 }
-
 
 /* =========================
    Definition Cache Reset
