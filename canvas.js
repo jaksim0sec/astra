@@ -74,7 +74,7 @@
 
     .vc-chat-history{
       width:min(calc(100% - 28px),560px);
-      max-height:min(38vh,320px);
+      max-height:min(22vh,180px);
       margin:0 auto 10px;
       overflow-y:auto;
       overflow-x:hidden;
@@ -83,6 +83,7 @@
       gap:7px;
       scrollbar-width:none;
       pointer-events:auto;
+      overscroll-behavior:contain;
     }
 
     .vc-chat-history::-webkit-scrollbar{
@@ -129,6 +130,15 @@
       border-color:transparent;
     }
 
+    .vc-chat-message[data-chat-id] .vc-chat-bubble{
+      cursor:pointer;
+      transition:border-color .15s ease, transform .15s ease;
+    }
+
+    .vc-chat-message[data-chat-id] .vc-chat-bubble:hover{
+      border-color:var(--accent);
+    }
+
     .vc-chat-question{
       margin-top:5px;
       padding-left:2px;
@@ -137,6 +147,13 @@
       line-height:1.45;
       white-space:pre-wrap;
       word-break:keep-all;
+    }
+
+    @media(max-width:600px){
+      .vc-chat-history{
+        width:calc(100% - 20px);
+        max-height:min(20vh,150px);
+      }
     }
 
     @keyframes vc-chat-in{
@@ -3233,6 +3250,38 @@
         null;
     }
 
+    function restoreChatRun(chatRunId) {
+      if (state.aiBusy) return;
+
+      const run =
+        state.chatRuns.find(
+          item =>
+            item.id === chatRunId
+        );
+
+      if (
+        !run ||
+        run.status !== 'complete' ||
+        !run.workflow
+      ) {
+        return;
+      }
+
+      setState({
+        workflow:
+          run.workflow
+      });
+
+      if (
+        run.selectedNode &&
+        getNode(run.selectedNode)
+      ) {
+        selectNode(
+          run.selectedNode
+        );
+      }
+    }
+
     function updateFileInput(files) {
       const rect =
         canvas.getBoundingClientRect();
@@ -3426,6 +3475,23 @@
           event.preventDefault();
           chatForm.requestSubmit();
         }
+      }
+    );
+
+    listen(
+      chatHistory,
+      'click',
+      event => {
+        const message =
+          event.target.closest(
+            '.vc-chat-message[data-chat-id]'
+          );
+
+        if (!message) return;
+
+        restoreChatRun(
+          message.dataset.chatId
+        );
       }
     );
 
