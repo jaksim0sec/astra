@@ -793,309 +793,1175 @@ function workflowIRToCanvas(
   canvasApi,
   definitions
 ){
-
-  if(
-    !spec||
-    !canvasApi
-  ){
-
+  if(!spec||!canvasApi){
     throw new TypeError(
       "workflow spec과 canvas가 필요합니다."
     );
-
   }
 
-
-  if(
-    !definitions||
-    typeof definitions!=="object"
-  ){
-
+  if(!definitions||typeof definitions!=="object"){
     throw new Error(
       "노드 정의가 없습니다."
     );
-
   }
-
 
   validateWorkflowForCanvas(
     spec,
     definitions
   );
 
-
   const nodes=[];
   const nodeMap=new Map();
+  const nodeIndex=new Map();
+  const sizeMap=new Map();
 
+  const GAP_Y=36;
+  const GAP_X_MIN=54;
+  const GAP_X_MAX=110;
+  const RELAX_PASSES=6;
 
-  /*
-    기존 캔버스 배치 방식 유지
-  */
-  const spacingX=260;
-  const spacingY=140;
-  const maxColumns=5;
+  function pickNumber(...values){
+    for(const value of values){
+      const number=Number(value);
 
+      if(
+        Number.isFinite(number)&&
+        number>0
+      ){
+        return number;
+      }
+    }
 
-  /*
-    start 하나만 있는 Workflow라면
-    현재 사용자가 보고 있는 viewport 중앙에 배치한다.
-  */
-  const onlyStart=
-    spec.nodes.length===1&&
-    spec.nodes[0]?.type==="start";
+    return null;
+  }
 
+  function getNodeSize(item,definition){
+    if(
+      typeof canvasApi.getNodeSize==="function"
+    ){
+      try{
+        const measured=
+          canvasApi.getNodeSize(item.id);
 
-  let centerX=100;
-  let centerY=100;
+        if(measured){
+          const width=
+            pickNumber(
+              measured.width,
+              measured.w
+            );
 
+          const height=
+            pickNumber(
+              measured.height,
+              measured.h
+            );
 
-  if(onlyStart){
+          if(width&&height){
+            return{
+              width,
+              height
+            };
+          }
+        }
+      }catch{}
+    }
 
+    const width=
+      pickNumber(
+        item.width,
+        item.size?.width,
+        item.layout?.width,
+        definition.width,
+        definition.size?.width,
+        definition.layout?.width,
+        definition.ui?.width,
+        definition.canvas?.width
+      )||190;
+
+    const height=
+      pickNumber(
+        item.height,
+        item.size?.height,
+        item.layout?.height,
+        definition.height,
+        definition.size?.height,
+        definition.layout?.height,
+        definition.ui?.height,
+        definition.canvas?.height
+      )||74;
+
+    return{
+      width,
+      height
+    };
+  }
+
+  function getViewportCenter(){
     const canvas=
       canvasApi.root?.querySelector(
-        '.vc-canvas'
+        ".vc-canvas"
       );
-
 
     const rect=
       canvas?.getBoundingClientRect();
-
 
     const state=
       typeof canvasApi.getState==="function"
         ?canvasApi.getState()
         :null;
 
-
     const scale=
       Number(
         state?.viewport?.scale
       )||1;
-
 
     const offsetX=
       Number(
         state?.viewport?.offset?.x
       )||0;
 
-
     const offsetY=
       Number(
         state?.viewport?.offset?.y
       )||0;
 
-
-    if(rect){
-
-      /*
-        화면 중앙을
-        현재 World 좌표로 변환한다.
-      */
-      const worldCenterX=
-        (
-          rect.width/2-
-          offsetX
-        )/scale;
-
-
-      const worldCenterY=
-        (
-          rect.height/2-
-          offsetY
-        )/scale;
-
-
-      /*
-        node 좌상단 좌표이므로
-        node 크기의 절반만큼 보정한다.
-      */
-      const nodeWidth=
-        window.innerWidth<=600
-          ?178
-          :190;
-
-
-      const nodeHeight=54;
-
-
-      centerX=
-        worldCenterX-
-        nodeWidth/2;
-
-
-      centerY=
-        worldCenterY-
-        nodeHeight/2;
-
+    if(!rect){
+      return{
+        x:0,
+        y:0
+      };
     }
 
+    return{
+      x:(
+        rect.width/2-
+        offsetX
+      )/scale,
+
+      y:(
+        rect.height/2-
+        offsetY
+      )/scale
+    };
   }
 
-
-  /*
-    먼저 모든 노드를 생성한다.
-  */
-  spec.nodes.forEach(
-    (item,index)=>{
-
-      const definition=
-        getNodeDefinitionSync(
-          definitions,
-          item.type
-        );
-
-
-      const params=
-        normalizeParamsFromDefinition(
-          definition,
-          item.params
-        );
-
-
-      const node={
-
-        id:item.id,
-
-        type:item.type,
-
-        x:
-          onlyStart
-            ?centerX
-            :(index%maxColumns)*
-              spacingX+
-              100,
-
-        y:
-          onlyStart
-            ?centerY
-            :Math.floor(
-              index/maxColumns
-            )*
-            spacingY+
-            100,
-
-        expanded:true,
-
-        data:{
-          params
-        }
-
-      };
-
-
-      /*
-        파일 노드는
-        기존 캔버스의 표시용 name을 유지한다.
-      */
-      if(
-        item.type==="file"
-      ){
-
-        node.data.name=
-          params.filename||
-          params.name||
-          "파일";
-
-      }
-
-
-      nodes.push(
-        node
-      );
-
-      nodeMap.set(
-        item.id,
-        node
-      );
-
-    }
-  );
-
-
-  /*
-    Canonical Definition 기반으로
-    연결을 생성한다.
-  */
-  const connections=[];
-
-  let connectionSeq=0;
-
-
-  function createConnection(
-    edge,
-    kind
+  for(
+    const [index,item]
+    of spec.nodes.entries()
   ){
-
-    if(
-      !Array.isArray(edge)||
-      edge.length!==2
-    ){
-
-      throw new Error(
-        "잘못된 연결입니다."
+    const definition=
+      getNodeDefinitionSync(
+        definitions,
+        item.type
       );
 
+    const params=
+      normalizeParamsFromDefinition(
+        definition,
+        item.params
+      );
+
+    const size=
+      getNodeSize(
+        item,
+        definition
+      );
+
+    const node={
+      id:item.id,
+      type:item.type,
+      x:0,
+      y:0,
+      expanded:true,
+      data:{
+        params
+      }
+    };
+
+    if(item.type==="file"){
+      node.data.name=
+        params.filename||
+        params.name||
+        "파일";
     }
 
+    nodes.push(node);
 
+    nodeMap.set(
+      item.id,
+      node
+    );
+
+    nodeIndex.set(
+      item.id,
+      index
+    );
+
+    sizeMap.set(
+      item.id,
+      {
+        width:size.width,
+        height:size.height
+      }
+    );
+  }
+
+  const flowEdges=[];
+  const dataEdges=[];
+
+  for(const edge of spec.links){
     const from=
       parseWorkflowEndpoint(
         edge[0]
       );
-
 
     const to=
       parseWorkflowEndpoint(
         edge[1]
       );
 
+    flowEdges.push({
+      from:from.node,
+      to:to.node
+    });
+  }
+
+  for(const edge of spec.data){
+    const from=
+      parseWorkflowEndpoint(
+        edge[0]
+      );
+
+    const to=
+      parseWorkflowEndpoint(
+        edge[1]
+      );
+
+    dataEdges.push({
+      from:from.node,
+      to:to.node
+    });
+  }
+
+  const incoming=new Map();
+  const outgoing=new Map();
+
+  for(const node of nodes){
+    incoming.set(
+      node.id,
+      []
+    );
+
+    outgoing.set(
+      node.id,
+      []
+    );
+  }
+
+  for(const edge of flowEdges){
+    if(
+      !incoming.has(edge.to)||
+      !outgoing.has(edge.from)
+    ){
+      continue;
+    }
+
+    incoming
+      .get(edge.to)
+      .push(edge.from);
+
+    outgoing
+      .get(edge.from)
+      .push(edge.to);
+  }
+
+  /*
+    flow rank
+  */
+  const indegree=new Map();
+  const rank=new Map();
+
+  for(const node of nodes){
+    indegree.set(
+      node.id,
+      incoming.get(node.id).length
+    );
+
+    rank.set(
+      node.id,
+      0
+    );
+  }
+
+  const queue=[];
+
+  for(const node of nodes){
+    if(
+      indegree.get(node.id)===0
+    ){
+      queue.push(node.id);
+    }
+  }
+
+  let queueIndex=0;
+
+  while(
+    queueIndex<
+    queue.length
+  ){
+    const id=
+      queue[queueIndex++];
+
+    const currentRank=
+      rank.get(id)||0;
+
+    for(
+      const nextId
+      of outgoing.get(id)||[]
+    ){
+      const nextRank=
+        currentRank+1;
+
+      if(
+        nextRank>
+        (rank.get(nextId)||0)
+      ){
+        rank.set(
+          nextId,
+          nextRank
+        );
+      }
+
+      const nextDegree=
+        indegree.get(nextId)-1;
+
+      indegree.set(
+        nextId,
+        nextDegree
+      );
+
+      if(nextDegree===0){
+        queue.push(nextId);
+      }
+    }
+  }
+
+  let maxRank=0;
+
+  for(const value of rank.values()){
+    maxRank=
+      Math.max(
+        maxRank,
+        value
+      );
+  }
+
+  /*
+    cycle nodes
+  */
+  for(const node of nodes){
+    if(
+      indegree.get(node.id)>0
+    ){
+      if(
+        rank.get(node.id)===0
+      ){
+        rank.set(
+          node.id,
+          ++maxRank
+        );
+      }
+    }
+  }
+
+  const layers=new Map();
+
+  for(const node of nodes){
+    const layer=
+      rank.get(node.id)||0;
+
+    if(!layers.has(layer)){
+      layers.set(
+        layer,
+        []
+      );
+    }
+
+    layers
+      .get(layer)
+      .push(node);
+  }
+
+  const sortedLayers=
+    [...layers.keys()]
+      .sort(
+        (a,b)=>a-b
+      );
+
+  function nodeHeight(node){
+    return(
+      sizeMap.get(node.id)?.height||
+      74
+    );
+  }
+
+  function nodeWidth(node){
+    return(
+      sizeMap.get(node.id)?.width||
+      190
+    );
+  }
+
+  const centerMap=new Map();
+
+  /*
+    현재 레이어의 flow 이웃만 가져옴
+    data 연결은 배치 방향을 결정하지 않음
+  */
+  function getFlowNeighbors(
+    node,
+    targetLayer
+  ){
+    const result=[];
+
+    for(const edge of flowEdges){
+      if(
+        edge.from===node.id&&
+        rank.get(edge.to)===targetLayer
+      ){
+        result.push(edge.to);
+      }
+
+      if(
+        edge.to===node.id&&
+        rank.get(edge.from)===targetLayer
+      ){
+        result.push(edge.from);
+      }
+    }
+
+    return result;
+  }
+
+  function median(values){
+    if(!values.length){
+      return null;
+    }
+
+    const sorted=
+      [...values].sort(
+        (a,b)=>a-b
+      );
+
+    const middle=
+      Math.floor(
+        sorted.length/2
+      );
+
+    if(
+      sorted.length%2
+    ){
+      return sorted[middle];
+    }
+
+    return(
+      (
+        sorted[middle-1]+
+        sorted[middle]
+      )/2
+    );
+  }
+
+  /*
+    레이어 하나를 실제 높이 기준으로
+    절대 겹치지 않게 배치
+  */
+  function packLayer(
+    layer,
+    targetCenters
+  ){
+    if(!layer.length){
+      return;
+    }
+
+    const placed=[];
+
+    let previousBottom=
+      -Infinity;
+
+    for(
+      let i=0;
+      i<layer.length;
+      i++
+    ){
+      const node=
+        layer[i];
+
+      const height=
+        nodeHeight(node);
+
+      let center=
+        Number(
+          targetCenters[i]
+        );
+
+      if(!Number.isFinite(center)){
+        center=
+          centerMap.get(node.id)||0;
+      }
+
+      if(
+        previousBottom!==
+        -Infinity
+      ){
+        const minCenter=
+          previousBottom+
+          GAP_Y+
+          height/2;
+
+        center=
+          Math.max(
+            center,
+            minCenter
+          );
+      }
+
+      placed.push({
+        node,
+        center,
+        height
+      });
+
+      previousBottom=
+        center+
+        height/2;
+    }
+
+    /*
+      전체 레이어의 중심만 이동
+      이동은 간격을 깨지 않음
+    */
+    let desiredMean=0;
+    let actualMean=0;
+
+    for(
+      let i=0;
+      i<placed.length;
+      i++
+    ){
+      desiredMean+=
+        Number(
+          targetCenters[i]
+        )||0;
+
+      actualMean+=
+        placed[i].center;
+    }
+
+    desiredMean/=
+      placed.length;
+
+    actualMean/=
+      placed.length;
+
+    const shift=
+      desiredMean-
+      actualMean;
+
+    for(const item of placed){
+      centerMap.set(
+        item.node.id,
+        item.center+
+        shift
+      );
+    }
+  }
+
+  /*
+    초기 배치
+  */
+  function initializeCenters(){
+    for(
+      const layerNumber
+      of sortedLayers
+    ){
+      const layer=
+        layers.get(layerNumber);
+
+      let totalHeight=0;
+
+      for(
+        let i=0;
+        i<layer.length;
+        i++
+      ){
+        totalHeight+=
+          nodeHeight(
+            layer[i]
+          );
+
+        if(i>0){
+          totalHeight+=GAP_Y;
+        }
+      }
+
+      let cursor=
+        -totalHeight/2;
+
+      for(const node of layer){
+        const height=
+          nodeHeight(node);
+
+        centerMap.set(
+          node.id,
+          cursor+
+          height/2
+        );
+
+        cursor+=
+          height+
+          GAP_Y;
+      }
+    }
+  }
+
+  /*
+    레이어 간 순서를 잡고
+    실제 높이까지 반영해 세로 배치
+  */
+  function layoutVertical(){
+    initializeCenters();
+
+    for(
+      let pass=0;
+      pass<RELAX_PASSES;
+      pass++
+    ){
+      const forward=
+        pass%2===0;
+
+      const order=
+        forward
+          ?sortedLayers
+          :[...sortedLayers].reverse();
+
+      /*
+        먼저 순서 결정
+      */
+      for(
+        const layerNumber
+        of order
+      ){
+        const layer=
+          layers.get(layerNumber);
+
+        const targetLayer=
+          forward
+            ?layerNumber-1
+            :layerNumber+1;
+
+        if(
+          !layers.has(targetLayer)
+        ){
+          continue;
+        }
+
+        const scored=
+          layer.map(
+            (node,index)=>{
+              const neighbors=
+                getFlowNeighbors(
+                  node,
+                  targetLayer
+                );
+
+              if(!neighbors.length){
+                return{
+                  node,
+                  score:
+                    centerMap.get(
+                      node.id
+                    )||
+                    0,
+                  index
+                };
+              }
+
+              const centers=[];
+
+              for(
+                const id
+                of neighbors
+              ){
+                const center=
+                  centerMap.get(id);
+
+                if(
+                  Number.isFinite(center)
+                ){
+                  centers.push(center);
+                }
+              }
+
+              return{
+                node,
+                score:
+                  median(centers)??(
+                    centerMap.get(
+                      node.id
+                    )||
+                    0
+                  ),
+                index
+              };
+            }
+          );
+
+        scored.sort(
+          (a,b)=>{
+            if(
+              a.score===
+              b.score
+            ){
+              return(
+                a.index-
+                b.index
+              );
+            }
+
+            return(
+              a.score-
+              b.score
+            );
+          }
+        );
+
+        layers.set(
+          layerNumber,
+          scored.map(
+            item=>item.node
+          )
+        );
+      }
+
+      /*
+        순서가 결정된 상태에서
+        높이 기준으로 다시 packing
+      */
+      for(
+        const layerNumber
+        of order
+      ){
+        const layer=
+          layers.get(layerNumber);
+
+        const targetLayer=
+          forward
+            ?layerNumber-1
+            :layerNumber+1;
+
+        const targets=[];
+
+        for(const node of layer){
+          const current=
+            centerMap.get(
+              node.id
+            )||
+            0;
+
+          if(
+            !layers.has(targetLayer)
+          ){
+            targets.push(
+              current
+            );
+
+            continue;
+          }
+
+          const neighbors=
+            getFlowNeighbors(
+              node,
+              targetLayer
+            );
+
+          const centers=[];
+
+          for(
+            const id
+            of neighbors
+          ){
+            const value=
+              centerMap.get(id);
+
+            if(
+              Number.isFinite(value)
+            ){
+              centers.push(value);
+            }
+          }
+
+          const neighborCenter=
+            median(centers);
+
+          if(
+            neighborCenter===null
+          ){
+            targets.push(
+              current
+            );
+
+            continue;
+          }
+
+          /*
+            한 번에 확 끌어당기지 않고
+            현재 위치도 조금 유지
+          */
+          targets.push(
+            current*0.30+
+            neighborCenter*0.70
+          );
+        }
+
+        packLayer(
+          layer,
+          targets
+        );
+      }
+    }
+
+    /*
+      마지막으로 양쪽 이웃을 기준으로
+      한 번만 정리
+    */
+    for(
+      const layerNumber
+      of sortedLayers
+    ){
+      const layer=
+        layers.get(layerNumber);
+
+      const targets=[];
+
+      for(const node of layer){
+        const current=
+          centerMap.get(
+            node.id
+          )||
+          0;
+
+        const neighbors=[];
+
+        const prev=
+          getFlowNeighbors(
+            node,
+            layerNumber-1
+          );
+
+        const next=
+          getFlowNeighbors(
+            node,
+            layerNumber+1
+          );
+
+        for(const id of prev){
+          const value=
+            centerMap.get(id);
+
+          if(
+            Number.isFinite(value)
+          ){
+            neighbors.push(value);
+          }
+        }
+
+        for(const id of next){
+          const value=
+            centerMap.get(id);
+
+          if(
+            Number.isFinite(value)
+          ){
+            neighbors.push(value);
+          }
+        }
+
+        const target=
+          median(neighbors);
+
+        targets.push(
+          target===null
+            ?current
+            :current*0.45+
+              target*0.55
+        );
+      }
+
+      packLayer(
+        layer,
+        targets
+      );
+    }
+  }
+
+  /*
+    열 폭
+  */
+  const columnWidths=new Map();
+
+  function rebuildColumns(){
+    for(
+      const layerNumber
+      of sortedLayers
+    ){
+      const layer=
+        layers.get(layerNumber);
+
+      let width=190;
+
+      for(const node of layer){
+        width=
+          Math.max(
+            width,
+            nodeWidth(node)
+          );
+      }
+
+      columnWidths.set(
+        layerNumber,
+        width
+      );
+    }
+  }
+
+  const columnX=new Map();
+
+  function rebuildColumnX(){
+    let x=0;
+
+    for(
+      const layerNumber
+      of sortedLayers
+    ){
+      const width=
+        columnWidths.get(
+          layerNumber
+        )||190;
+
+      columnX.set(
+        layerNumber,
+        x
+      );
+
+      const gap=
+        Math.max(
+          GAP_X_MIN,
+          Math.min(
+            GAP_X_MAX,
+            width*0.28
+          )
+        );
+
+      x+=
+        width+
+        gap;
+    }
+  }
+
+  function buildRects(){
+    const rects=[];
+
+    for(
+      const layerNumber
+      of sortedLayers
+    ){
+      const layer=
+        layers.get(layerNumber);
+
+      const x=
+        columnX.get(
+          layerNumber
+        )||0;
+
+      for(const node of layer){
+        const width=
+          nodeWidth(node);
+
+        const height=
+          nodeHeight(node);
+
+        const center=
+          centerMap.get(
+            node.id
+          )||
+          0;
+
+        rects.push({
+          node,
+          x,
+          y:center-height/2,
+          width,
+          height
+        });
+      }
+    }
+
+    return rects;
+  }
+
+  /*
+    세로는 이미 layer packing에서
+    보장되므로 여기서는 viewport 중앙 정렬만 함
+  */
+  function applyViewportCenter(
+    rects
+  ){
+    if(!rects.length){
+      return;
+    }
+
+    let minX=Infinity;
+    let minY=Infinity;
+    let maxX=-Infinity;
+    let maxY=-Infinity;
+
+    for(const rect of rects){
+      minX=
+        Math.min(
+          minX,
+          rect.x
+        );
+
+      minY=
+        Math.min(
+          minY,
+          rect.y
+        );
+
+      maxX=
+        Math.max(
+          maxX,
+          rect.x+
+          rect.width
+        );
+
+      maxY=
+        Math.max(
+          maxY,
+          rect.y+
+          rect.height
+        );
+    }
+
+    const viewport=
+      getViewportCenter();
+
+    const workflowCenterX=
+      (minX+maxX)/2;
+
+    const workflowCenterY=
+      (minY+maxY)/2;
+
+    const offsetX=
+      viewport.x-
+      workflowCenterX;
+
+    const offsetY=
+  viewport.y-
+  workflowCenterY-
+  60;
+
+    for(const rect of rects){
+      rect.node.x=
+        Math.round(
+          rect.x+
+          offsetX
+        );
+
+      rect.node.y=
+        Math.round(
+          rect.y+
+          offsetY
+        );
+    }
+  }
+
+  function layoutWorkflow(){
+    layoutVertical();
+    rebuildColumns();
+    rebuildColumnX();
+
+    const rects=
+      buildRects();
+
+    applyViewportCenter(
+      rects
+    );
+  }
+
+  /*
+    실제 연결
+  */
+  const connections=[];
+  let connectionSeq=0;
+
+  function createConnection(
+    edge,
+    kind
+  ){
+    if(
+      !Array.isArray(edge)||
+      edge.length!==2
+    ){
+      throw new Error(
+        "잘못된 연결입니다."
+      );
+    }
+
+    const from=
+      parseWorkflowEndpoint(
+        edge[0]
+      );
+
+    const to=
+      parseWorkflowEndpoint(
+        edge[1]
+      );
 
     const fromNode=
       nodeMap.get(
         from.node
       );
 
-
     const toNode=
       nodeMap.get(
         to.node
       );
 
-
     if(!fromNode){
-
       throw new Error(
         `출발 노드가 없습니다: ${from.node}`
       );
-
     }
 
-
     if(!toNode){
-
       throw new Error(
         `도착 노드가 없습니다: ${to.node}`
       );
-
     }
 
-
-    /*
-      실제 Definition 포트를 다시 확인한다.
-    */
     const fromDefinition=
       getNodeDefinitionSync(
         definitions,
         fromNode.type
       );
 
-
     const toDefinition=
       getNodeDefinitionSync(
         definitions,
         toNode.type
       );
-
 
     if(
       !getPortDefinition(
@@ -1104,13 +1970,10 @@ function workflowIRToCanvas(
         from.port
       )
     ){
-
       throw new Error(
         `${fromNode.type}.${from.port}는 존재하지 않는 출력 포트입니다.`
       );
-
     }
-
 
     if(
       !getPortDefinition(
@@ -1119,16 +1982,12 @@ function workflowIRToCanvas(
         to.port
       )
     ){
-
       throw new Error(
         `${toNode.type}.${to.port}는 존재하지 않는 입력 포트입니다.`
       );
-
     }
 
-
     connections.push({
-
       id:
         `c-ir-${++connectionSeq}`,
 
@@ -1145,85 +2004,151 @@ function workflowIRToCanvas(
       data:{
         kind
       }
-
     });
-
   }
 
-
-  for(
-    const edge of spec.links
-  ){
-
+  for(const edge of spec.links){
     createConnection(
       edge,
       "flow"
     );
-
   }
 
-
-  for(
-    const edge of spec.data
-  ){
-
+  for(const edge of spec.data){
     createConnection(
       edge,
       "data"
     );
-
   }
 
+  /*
+    최초 추정 크기로 렌더
+  */
+  layoutWorkflow();
 
   const workflow={
-
     nodes,
-
     connections
-
   };
 
-
-  /*
-    기존 Canvas API 그대로 사용
-  */
   canvasApi.setState({
     workflow
   });
 
+  /*
+    실제 DOM 크기 측정 후
+    변경된 경우 동일한 배치 알고리즘으로 재계산
+  */
+  function scheduleMeasuredReflow(){
+    const run=()=>{
+      let changed=false;
+
+      for(const node of nodes){
+        const definition=
+          getNodeDefinitionSync(
+            definitions,
+            node.type
+          );
+
+        const measured=
+          getNodeSize(
+            node,
+            definition
+          );
+
+        const previous=
+          sizeMap.get(
+            node.id
+          );
+
+        if(!previous){
+          sizeMap.set(
+            node.id,
+            measured
+          );
+
+          changed=true;
+          continue;
+        }
+
+        if(
+          Math.abs(
+            previous.width-
+            measured.width
+          )>2||
+          Math.abs(
+            previous.height-
+            measured.height
+          )>2
+        ){
+          sizeMap.set(
+            node.id,
+            measured
+          );
+
+          changed=true;
+        }
+      }
+
+      if(!changed){
+        return;
+      }
+
+      layoutWorkflow();
+
+      canvasApi.setState({
+        workflow:{
+          nodes,
+          connections
+        }
+      });
+    };
+
+    if(
+      typeof requestAnimationFrame===
+      "function"
+    ){
+      requestAnimationFrame(()=>{
+        requestAnimationFrame(
+          run
+        );
+      });
+    }else{
+      setTimeout(
+        run,
+        0
+      );
+    }
+  }
+
+  scheduleMeasuredReflow();
 
   const result=
     canvasApi.getWorkflow();
-
 
   console.log(
     "Canvas Workflow:",
     result
   );
 
-
   console.table(
     result.nodes.map(
       node=>({
-
         id:node.id,
-
         type:node.type,
-
+        x:node.x,
+        y:node.y,
         params:
           JSON.stringify(
             node.data?.params||
             {}
           )
-
       })
     )
   );
 
-
   return result;
 }
-
 /* =========================
    Definition Cache Reset
 ========================= */

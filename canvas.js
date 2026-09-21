@@ -74,7 +74,7 @@
 
     .vc-chat-history{
       width:min(calc(100% - 28px),560px);
-      max-height:min(38vh,320px);
+      height:100%;
       margin:0 auto 10px;
       overflow-y:auto;
       overflow-x:hidden;
@@ -124,9 +124,10 @@
     }
 
     .vc-chat-message.user .vc-chat-bubble{
-      color:var(--text);
-      background:var(--accent-soft);
+      color:white;
+      background:var(--accent);
       border-color:transparent;
+      opacity:0.75
     }
 
     .vc-chat-question{
@@ -152,6 +153,7 @@
   `;
 
   function createStyle() {
+    //return; //비활성함
     if (document.getElementById('vc-ai-wait-style')) return;
 
     const style = document.createElement('style');
