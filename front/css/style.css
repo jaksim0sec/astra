@@ -1,55 +1,67 @@
 /* =========================================================
    Astra
-   Global / Reset / Theme
+   Global / Theme / Reset
    ========================================================= */
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 
-  --accent: #6b4cff;
-  --accent-soft: rgba(107, 76, 255, 0.16);
-  --accent-strong: rgba(107, 76, 255, 0.28);
+  --bg: #f3f3f2;
+  --panel: #ffffff;
+  --panel-soft: rgba(255, 255, 255, 0.72);
+  --panel-strong: rgba(255, 255, 255, 0.92);
 
-  --bg: #09090c;
-  --surface: #101015;
-  --surface-2: #15151b;
-  --surface-3: #1b1b22;
+  --text: #171717;
+  --sub: #656565;
+  --muted: #989898;
 
-  --text: #f4f4f7;
-  --text-soft: #b7b7c2;
-  --text-muted: #7e7e8b;
+  --line: rgba(0, 0, 0, 0.075);
+  --line-strong: rgba(0, 0, 0, 0.12);
 
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
+  --shadow:
+    0 8px 26px rgba(0, 0, 0, 0.045);
 
-  --shadow-soft: 0 8px 30px rgba(0, 0, 0, 0.18);
+  --shadow-soft:
+    0 3px 12px rgba(0, 0, 0, 0.035);
 
-  --radius-sm: 10px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --radius-xl: 26px;
+  --topbar-height: 68px;
+  --composer-height: 88px;
 
-  --topbar-height: 58px;
-  --composer-height: 82px;
-
-  /*
-   * JS에서 실제 viewport 높이를 동기화한다.
-   * 아직 JS가 없어도 fallback으로 정상 동작해야 한다.
-   */
-  --real-vh: 100vh;
-  --viewport-height: 100vh;
+  --real-vh: 100dvh;
+  --viewport-height: 100dvh;
   --real-vh-unit: 1vh;
 
-  --page-transition: 420ms cubic-bezier(0.22, 0.8, 0.2, 1);
+  --ease: cubic-bezier(.2, .82, .2, 1);
 
-  font-family:
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    Roboto,
-    "Noto Sans KR",
-    "Apple SD Gothic Neo",
-    sans-serif;
+  --radius-sm: 11px;
+  --radius-md: 16px;
+  --radius-lg: 21px;
+  --radius-xl: 27px;
+  --radius-round: 999px;
+
+  --page-progress: 0;
+}
+
+:root.dark {
+  color-scheme: dark;
+
+  --bg: #101010;
+  --panel: #181818;
+  --panel-soft: rgba(25, 25, 25, 0.76);
+  --panel-strong: rgba(25, 25, 25, 0.94);
+
+  --text: #f5f5f5;
+  --sub: #aaaaaa;
+  --muted: #6d6d6d;
+
+  --line: rgba(255, 255, 255, 0.075);
+  --line-strong: rgba(255, 255, 255, 0.13);
+
+  --shadow:
+    0 10px 30px rgba(0, 0, 0, 0.18);
+
+  --shadow-soft:
+    0 4px 14px rgba(0, 0, 0, 0.14);
 }
 
 
@@ -61,44 +73,38 @@
 *::before,
 *::after {
   box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
-html {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-
-  background: var(--bg);
-  color: var(--text);
-
-  overflow: hidden;
-  overscroll-behavior: none;
-
-  -webkit-text-size-adjust: 100%;
-  text-size-adjust: 100%;
-}
-
+html,
 body {
   width: 100%;
   height: 100%;
-  min-height: 100%;
 
   margin: 0;
   padding: 0;
 
+  overflow: hidden;
+
   background: var(--bg);
   color: var(--text);
 
-  overflow: hidden;
-  overscroll-behavior: none;
-
-  font-family: inherit;
-  font-size: 15px;
-  line-height: 1.5;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Pretendard",
+    "Noto Sans KR",
+    "Segoe UI",
+    sans-serif;
 
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+body {
+  transition:
+    background-color .2s ease,
+    color .2s ease;
 }
 
 button,
@@ -109,24 +115,10 @@ select {
   color: inherit;
 }
 
-button,
-input,
-textarea,
-select {
-  margin: 0;
-}
-
 button {
   border: 0;
   padding: 0;
-
-  background: transparent;
-
-  -webkit-tap-highlight-color: transparent;
-}
-
-button:not(:disabled) {
-  cursor: pointer;
+  background: none;
 }
 
 textarea,
@@ -144,27 +136,32 @@ svg {
   max-width: 100%;
 }
 
-a {
-  color: inherit;
-  text-decoration: none;
+::selection {
+  background: rgba(0, 0, 0, .1);
+}
+
+:root.dark ::selection {
+  background: rgba(255, 255, 255, .16);
 }
 
 
 /* =========================================================
-   App Root
+   App
    ========================================================= */
 
 #app {
-  position: relative;
+  position: fixed;
+  inset: 0;
 
   width: 100%;
   height: var(--real-vh);
-  min-height: 0;
 
   overflow: hidden;
 
   background: var(--bg);
-  isolation: isolate;
+
+  transition:
+    background-color .2s ease;
 }
 
 
@@ -176,45 +173,27 @@ a {
   display: none !important;
 }
 
-.is-disabled {
-  pointer-events: none !important;
-  user-select: none !important;
-}
-
-.no-select {
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.no-scroll {
-  overflow: hidden !important;
-}
-
 
 /* =========================================================
-   Focus
-   ========================================================= */
-
-:focus-visible {
-  outline: 2px solid var(--accent);
-  outline-offset: 2px;
-}
-
-
-/* =========================================================
-   Scrollbars
+   Scrollbar
    ========================================================= */
 
 * {
   scrollbar-width: thin;
   scrollbar-color:
-    rgba(255, 255, 255, 0.14)
+    rgba(0, 0, 0, .10)
+    transparent;
+}
+
+:root.dark * {
+  scrollbar-color:
+    rgba(255, 255, 255, .10)
     transparent;
 }
 
 *::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 6px;
+  height: 6px;
 }
 
 *::-webkit-scrollbar-track {
@@ -223,140 +202,35 @@ a {
 
 *::-webkit-scrollbar-thumb {
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, .09);
 }
 
-*::-webkit-scrollbar-thumb:hover {
-  background: rgba(255, 255, 255, 0.18);
-}
-
-
-/* =========================================================
-   Common Surface
-   ========================================================= */
-
-.surface {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-}
-
-.surface-soft {
-  background: rgba(255, 255, 255, 0.035);
-  border: 1px solid var(--border);
+:root.dark *::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, .09);
 }
 
 
 /* =========================================================
-   Common Button
+   Focus
    ========================================================= */
 
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-
-  min-height: 36px;
-  padding: 0 14px;
-
-  border-radius: 12px;
-  border: 1px solid var(--border);
-
-  background: var(--surface-2);
-  color: var(--text);
-
-  transition:
-    background-color 160ms ease,
-    border-color 160ms ease,
-    opacity 160ms ease,
-    transform 160ms ease;
-}
-
-.btn:hover {
-  background: var(--surface-3);
-  border-color: var(--border-strong);
-}
-
-.btn:active {
-  transform: translateY(1px);
-}
-
-.btn:disabled {
-  opacity: 0.45;
-  cursor: default;
-  transform: none;
-}
-
-.btn-primary {
-  background: var(--accent);
-  border-color: transparent;
-  color: #fff;
-}
-
-.btn-primary:hover {
-  background: #785cff;
+button:focus-visible,
+textarea:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--line-strong);
+  outline-offset: 3px;
 }
 
 
 /* =========================================================
-   Common Input
+   Safe Area
    ========================================================= */
 
-.input {
-  width: 100%;
-
-  min-height: 40px;
-  padding: 10px 12px;
-
-  border: 1px solid var(--border);
-  border-radius: 12px;
-
-  background: var(--surface-2);
-  color: var(--text);
-
-  transition:
-    border-color 160ms ease,
-    background-color 160ms ease;
-}
-
-.input::placeholder {
-  color: var(--text-muted);
-}
-
-.input:focus {
-  border-color: rgba(107, 76, 255, 0.65);
-}
-
-
-/* =========================================================
-   Selection
-   ========================================================= */
-
-::selection {
-  background: rgba(107, 76, 255, 0.35);
-  color: #fff;
-}
-
-
-/* =========================================================
-   Reduced Motion
-   ========================================================= */
-
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    scroll-behavior: auto !important;
-  }
-
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.001ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.001ms !important;
-  }
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
 }
 
 
@@ -366,34 +240,29 @@ a {
 
 @media (max-width: 700px) {
   :root {
-    --topbar-height: 54px;
-    --composer-height: 74px;
+    --topbar-height: 64px;
+    --composer-height: 84px;
   }
+}
 
-  body {
-    font-size: 14px;
+@media (max-height: 520px) {
+  :root {
+    --topbar-height: 54px;
+    --composer-height: 68px;
   }
 }
 
 
 /* =========================================================
-   Safe Area
+   Reduced motion
    ========================================================= */
 
-@supports (padding: env(safe-area-inset-top)) {
-  :root {
-    --safe-top: env(safe-area-inset-top);
-    --safe-right: env(safe-area-inset-right);
-    --safe-bottom: env(safe-area-inset-bottom);
-    --safe-left: env(safe-area-inset-left);
-  }
-}
-
-@supports not (padding: env(safe-area-inset-top)) {
-  :root {
-    --safe-top: 0px;
-    --safe-right: 0px;
-    --safe-bottom: 0px;
-    --safe-left: 0px;
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
   }
 }
