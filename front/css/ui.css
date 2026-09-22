@@ -1,42 +1,77 @@
 /* =========================================================
    Astra
-   UI / Layout
-   Soft Glass / Rounded
+   UI
+   Based on Gesture Prototype
    ========================================================= */
 
-/* ---------------------------------------------------------
-   UI tokens
-   --------------------------------------------------------- */
-
 :root {
-  --ui-bg: #0a0a0d;
-  --ui-surface: rgba(25, 25, 29, 0.72);
-  --ui-surface-soft: rgba(255, 255, 255, 0.045);
-  --ui-surface-hover: rgba(255, 255, 255, 0.075);
+  --ui-bg: #f3f3f2;
 
-  --ui-line: rgba(255, 255, 255, 0.085);
-  --ui-line-soft: rgba(255, 255, 255, 0.055);
+  --ui-panel: #ffffff;
+  --ui-panel-soft: rgba(255, 255, 255, 0.72);
+  --ui-panel-strong: rgba(255, 255, 255, 0.92);
 
-  --ui-text: rgba(255, 255, 255, 0.94);
-  --ui-text-soft: rgba(255, 255, 255, 0.66);
-  --ui-text-muted: rgba(255, 255, 255, 0.38);
+  --ui-text: #171717;
+  --ui-sub: #656565;
+  --ui-muted: #989898;
+
+  --ui-line: rgba(0, 0, 0, 0.075);
+  --ui-line-strong: rgba(0, 0, 0, 0.12);
 
   --ui-shadow:
-    0 16px 50px rgba(0, 0, 0, 0.28);
+    0 10px 35px rgba(0, 0, 0, 0.055);
 
-  --ui-glass-blur: 24px;
+  --ui-shadow-soft:
+    0 4px 16px rgba(0, 0, 0, 0.04);
+
+  --ui-blur: 22px;
+
   --ui-radius-sm: 12px;
   --ui-radius-md: 18px;
   --ui-radius-lg: 24px;
   --ui-radius-xl: 30px;
-
-  --page-progress: 0;
 
   --topbar-total-height:
     calc(var(--topbar-height) + var(--safe-top));
 
   --composer-total-height:
     calc(var(--composer-height) + var(--safe-bottom));
+
+  /*
+   * ui.js가 이 값을 0 ~ 1 사이로 제어한다.
+   * 0 = Chat
+   * 1 = Canvas
+   */
+  --page-progress: 0;
+
+  --ui-ease:
+    cubic-bezier(.2, .82, .2, 1);
+}
+
+
+/* =========================================================
+   Dark
+   ========================================================= */
+
+:root.dark {
+  --ui-bg: #101010;
+
+  --ui-panel: #181818;
+  --ui-panel-soft: rgba(25, 25, 25, 0.76);
+  --ui-panel-strong: rgba(25, 25, 25, 0.94);
+
+  --ui-text: #f5f5f5;
+  --ui-sub: #aaaaaa;
+  --ui-muted: #6d6d6d;
+
+  --ui-line: rgba(255, 255, 255, 0.075);
+  --ui-line-strong: rgba(255, 255, 255, 0.13);
+
+  --ui-shadow:
+    0 14px 40px rgba(0, 0, 0, 0.28);
+
+  --ui-shadow-soft:
+    0 5px 18px rgba(0, 0, 0, 0.2);
 }
 
 
@@ -46,7 +81,7 @@
 
 #topbar {
   position: fixed;
-  z-index: 1000;
+  z-index: 100;
 
   top: 0;
   left: 0;
@@ -54,23 +89,33 @@
 
   height: var(--topbar-total-height);
 
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-
   padding:
     var(--safe-top)
-    max(12px, var(--safe-right))
-    10px
-    max(12px, var(--safe-left));
+    max(13px, var(--safe-right))
+    0
+    max(13px, var(--safe-left));
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
 
   pointer-events: none;
 }
 
 #topbar-left,
-#topbar-right,
-#mode-switch {
+#topbar-right {
+  width: 42px;
+
+  min-width: 42px;
+
+  display: flex;
+  align-items: center;
+
   pointer-events: auto;
+}
+
+#topbar-right {
+  justify-content: flex-end;
 }
 
 
@@ -81,98 +126,124 @@
 #mode-switch {
   position: relative;
 
-  display: inline-flex;
-  align-items: center;
+  width: 150px;
+  height: 40px;
 
   padding: 4px;
 
-  min-height: 42px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
 
   border: 1px solid var(--ui-line);
   border-radius: 999px;
 
-  background: rgba(20, 20, 24, 0.64);
+  background: var(--ui-panel-soft);
 
   backdrop-filter:
-    blur(var(--ui-glass-blur))
-    saturate(115%);
+    blur(var(--ui-blur))
+    saturate(1.08);
 
   -webkit-backdrop-filter:
-    blur(var(--ui-glass-blur))
-    saturate(115%);
+    blur(var(--ui-blur))
+    saturate(1.08);
 
   box-shadow:
-    0 10px 34px rgba(0, 0, 0, 0.18),
-    inset 0 1px 0 rgba(255, 255, 255, 0.045);
+    var(--ui-shadow-soft);
 
-  overflow: hidden;
+  pointer-events: auto;
+
+  touch-action: none;
 
   user-select: none;
   -webkit-user-select: none;
 
-  touch-action: pan-y;
+  overflow: hidden;
 }
+
+
+/*
+ * 선택 thumb
+ *
+ * JS가 --page-progress를 갱신하면
+ * Chat ↔ Canvas 사이를 자연스럽게 이동한다.
+ */
 
 #mode-switch::before {
   content: "";
 
   position: absolute;
-  z-index: 0;
+  z-index: 1;
 
   top: 4px;
-  bottom: 4px;
   left: 4px;
 
-  width: calc(50% - 4px);
+  width: 70px;
+  height: 30px;
 
   border-radius: 999px;
 
-  background:
-    linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.105),
-      rgba(255, 255, 255, 0.055)
-    );
+  background: var(--ui-panel-strong);
+
+  border: 1px solid var(--ui-line);
 
   box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.08),
-    0 3px 12px rgba(0, 0, 0, 0.14);
+    0 3px 12px rgba(0, 0, 0, 0.055);
 
   transform:
-    translateX(
-      calc(var(--page-progress) * 100%)
+    translate3d(
+      calc(
+        var(--page-progress) *
+        (
+          100% - 0px
+        )
+      ),
+      0,
+      0
     );
 
   transition:
-    transform 440ms cubic-bezier(0.22, 0.8, 0.2, 1);
+    transform .52s var(--ui-ease);
+
+  will-change: transform;
+
+  pointer-events: none;
 }
+
+
+/*
+ * 위 before의 실제 travel은
+ * JS에서 width를 기준으로 처리할 수도 있으므로
+ * 드래그 중에는 transition을 끈다.
+ */
 
 #mode-switch.is-dragging::before {
   transition: none;
 }
 
+
 #mode-switch button {
   position: relative;
-  z-index: 1;
+  z-index: 2;
 
-  height: 32px;
-  min-width: 68px;
+  height: 30px;
 
-  padding: 0 15px;
+  padding: 0;
 
   border-radius: 999px;
 
-  color: var(--ui-text-muted);
+  color: var(--ui-muted);
 
-  font-size: 13px;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: 12px;
+  font-weight: 700;
 
   transition:
-    color 180ms ease,
-    opacity 180ms ease;
+    color .18s ease,
+    opacity .18s ease;
 
-  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 #mode-switch button[aria-selected="true"] {
@@ -180,7 +251,7 @@
 }
 
 #mode-switch button:active {
-  opacity: 0.72;
+  opacity: .7;
 }
 
 
@@ -193,15 +264,13 @@
   z-index: 1;
 
   top: var(--topbar-total-height);
+  left: 0;
   right: 0;
   bottom: var(--composer-total-height);
-  left: 0;
-
-  width: 100%;
 
   overflow: hidden;
 
-  contain: layout paint;
+  background: var(--ui-bg);
 
   touch-action: pan-y;
 }
@@ -223,75 +292,124 @@
 
   overflow: hidden;
 
+  background: var(--ui-bg);
+
   will-change:
     transform,
     opacity,
     filter;
 
   transition:
-    transform 440ms cubic-bezier(0.22, 0.8, 0.2, 1),
-    opacity 440ms ease,
-    filter 440ms ease;
+    transform .52s var(--ui-ease),
+    opacity .24s ease,
+    filter .24s ease;
 }
+
+
+/*
+ * Chat
+ */
 
 #chat-page {
   left: 0;
 
   transform:
     translate3d(
-      calc(var(--page-progress) * -100%),
+      calc(
+        var(--page-progress) * -100%
+      ),
       0,
       0
     );
+
+  touch-action: pan-y;
 }
+
+
+/*
+ * Canvas
+ */
 
 #canvas-page {
   left: 100%;
 
   transform:
     translate3d(
-      calc(var(--page-progress) * -100%),
+      calc(
+        var(--page-progress) * -100%
+      ),
       0,
       0
     );
+
+  touch-action: none;
 }
 
+
+/*
+ * Gesture 중에는
+ * 손가락 움직임을 그대로 따라간다.
+ */
+
 #workspace.is-dragging > .page {
-  transition: none;
+  transition: none !important;
 }
 
 
 /* =========================================================
-   Page depth / soft fade
+   Inactive Page
    ========================================================= */
 
 #chat-page {
   opacity:
     calc(
-      0.72 +
-      (1 - var(--page-progress)) * 0.28
+      1 -
+      var(--page-progress) * .22
     );
 
   filter:
     blur(
-      calc(var(--page-progress) * 3px)
+      calc(
+        var(--page-progress) * 3px
+      )
     );
 }
 
 #canvas-page {
   opacity:
     calc(
-      0.72 +
-      var(--page-progress) * 0.28
+      .78 +
+      var(--page-progress) * .22
     );
 
   filter:
     blur(
-      calc((1 - var(--page-progress)) * 3px)
+      calc(
+        (1 - var(--page-progress)) * 3px
+      )
     );
 }
 
-#workspace[data-mode="chat"] #canvas-page,
+
+/*
+ * 최종 상태에서는 양쪽 모두 깨끗하게.
+ */
+
+#workspace[data-mode="chat"] #chat-page,
+#workspace[data-mode="canvas"] #canvas-page {
+  opacity: 1;
+  filter: none;
+}
+
+
+/*
+ * 현재 페이지 외에는 입력을 받지 않는다.
+ */
+
+#workspace[data-mode="chat"] #canvas-page {
+  pointer-events: none;
+}
+
 #workspace[data-mode="canvas"] #chat-page {
   pointer-events: none;
 }
@@ -308,13 +426,22 @@
   background:
     radial-gradient(
       circle at 50% 0%,
-      rgba(255, 255, 255, 0.028),
+      rgba(255, 255, 255, 0.32),
       transparent 42%
     ),
     var(--ui-bg);
-
-  touch-action: pan-y;
 }
+
+:root.dark #chat-page {
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(255, 255, 255, 0.025),
+      transparent 42%
+    ),
+    var(--ui-bg);
+}
+
 
 #chat-content {
   width: 100%;
@@ -325,10 +452,12 @@
   overflow-y: auto;
 
   padding:
-    22px
-    max(15px, var(--safe-right))
     28px
-    max(15px, var(--safe-left));
+    max(17px, var(--safe-right))
+    35px
+    max(17px, var(--safe-left));
+
+  scrollbar-width: none;
 
   overscroll-behavior-x: none;
   overscroll-behavior-y: contain;
@@ -336,8 +465,13 @@
   -webkit-overflow-scrolling: touch;
 }
 
+#chat-content::-webkit-scrollbar {
+  display: none;
+}
+
+
 #chat-messages {
-  width: min(100%, 760px);
+  width: min(760px, 100%);
   min-height: 100%;
 
   margin: 0 auto;
@@ -348,19 +482,17 @@
 
 
 /* =========================================================
-   Canvas page
+   Canvas
    ========================================================= */
 
 #canvas-page {
   background:
     radial-gradient(
-      circle at 50% 35%,
-      rgba(255, 255, 255, 0.018),
-      transparent 48%
+      circle at 50% 30%,
+      rgba(120, 120, 120, 0.035),
+      transparent 42%
     ),
     var(--ui-bg);
-
-  touch-action: none;
 }
 
 #canvas-viewport {
@@ -372,9 +504,9 @@
 
   overflow: hidden;
 
-  touch-action: none;
-
   overscroll-behavior: none;
+
+  touch-action: none;
 
   user-select: none;
   -webkit-user-select: none;
@@ -382,6 +514,7 @@
 
 #canvas-world {
   position: absolute;
+
   inset: 0;
 
   transform-origin: 0 0;
@@ -399,42 +532,49 @@
 
 #composer {
   position: fixed;
-  z-index: 1100;
+  z-index: 110;
 
+  left: 0;
   right: 0;
   bottom: 0;
-  left: 0;
 
   height: var(--composer-total-height);
 
-  display: flex;
-  align-items: flex-start;
-
   padding:
-    10px
-    max(12px, var(--safe-right))
+    0
+    max(10px, var(--safe-right))
     max(10px, var(--safe-bottom))
-    max(12px, var(--safe-left));
+    max(10px, var(--safe-left));
 
-  /*
-   * 딱 잘린 배경 대신 아래쪽으로 자연스럽게 사라지는 층.
-   */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  pointer-events: none;
+
   background:
     linear-gradient(
       to bottom,
-      rgba(10, 10, 13, 0),
-      rgba(10, 10, 13, 0.62) 28%,
-      rgba(10, 10, 13, 0.92) 72%,
-      rgba(10, 10, 13, 0.98)
+      rgba(243, 243, 242, 0),
+      rgba(243, 243, 242, .72) 30%,
+      rgba(243, 243, 242, .96) 78%
     );
-
-  pointer-events: none;
 }
 
+:root.dark #composer {
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(16, 16, 16, 0),
+      rgba(16, 16, 16, .72) 30%,
+      rgba(16, 16, 16, .96) 78%
+    );
+}
+
+
 #composer-form {
-  width: min(100%, 820px);
-  min-width: 0;
-  min-height: 50px;
+  width: min(720px, 100%);
+  min-height: 48px;
 
   margin: 0 auto;
 
@@ -442,125 +582,108 @@
   align-items: flex-end;
   gap: 7px;
 
-  padding: 7px;
+  padding: 6px 6px 6px 14px;
 
-  border: 1px solid var(--ui-line);
-  border-radius: 22px;
+  border: 1px solid var(--ui-line-strong);
+  border-radius: 25px;
 
-  background:
-    linear-gradient(
-      180deg,
-      rgba(31, 31, 35, 0.82),
-      rgba(20, 20, 24, 0.82)
-    );
+  background: var(--ui-panel-soft);
 
   backdrop-filter:
-    blur(26px)
-    saturate(115%);
+    blur(var(--ui-blur))
+    saturate(1.08);
 
   -webkit-backdrop-filter:
-    blur(26px)
-    saturate(115%);
+    blur(var(--ui-blur))
+    saturate(1.08);
 
   box-shadow:
-    var(--ui-shadow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.055);
+    var(--ui-shadow);
 
   pointer-events: auto;
 }
 
-#composer-input {
-  flex: 1 1 auto;
 
-  width: 0;
+/* =========================================================
+   Composer input
+   ========================================================= */
+
+#composer-input {
+  width: 100%;
   min-width: 0;
 
-  min-height: 36px;
-  max-height: 140px;
+  min-height: 34px;
+  max-height: 120px;
 
   padding:
-    7px
-    10px;
+    7px 0;
 
   border: 0;
-  border-radius: 15px;
+  outline: 0;
+
+  resize: none;
 
   background: transparent;
 
   color: var(--ui-text);
 
-  font-size: 15px;
+  font-size: 13px;
   line-height: 1.45;
 
   overflow-y: auto;
 }
 
 #composer-input::placeholder {
-  color: var(--ui-text-muted);
-}
-
-#composer-input:focus {
-  outline: none;
-}
-
-#composer-submit {
-  flex: 0 0 auto;
-
-  width: 36px;
-  height: 36px;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  border-radius: 15px;
-
-  background:
-    rgba(255, 255, 255, 0.095);
-
-  color: var(--ui-text);
-
-  font-size: 18px;
-  font-weight: 600;
-
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.055);
-
-  transition:
-    background 160ms ease,
-    opacity 160ms ease,
-    transform 160ms ease;
-}
-
-#composer-submit:hover {
-  background:
-    rgba(255, 255, 255, 0.13);
-}
-
-#composer-submit:active {
-  transform: scale(0.95);
-}
-
-#composer-submit:disabled {
-  opacity: 0.32;
-  cursor: default;
-  transform: none;
+  color: var(--ui-muted);
 }
 
 
 /* =========================================================
-   Transition state
+   Composer submit
    ========================================================= */
 
-#workspace.is-transitioning > .page {
-  will-change:
-    transform,
-    opacity,
-    filter;
+#composer-submit {
+  width: 35px;
+  height: 35px;
+
+  flex: 0 0 35px;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  background: var(--ui-text);
+  color: var(--ui-bg);
+
+  font-size: 18px;
+  font-weight: 700;
+
+  transition:
+    transform .15s ease,
+    opacity .15s ease;
 }
 
-#workspace.is-settled > .page {
-  will-change: auto;
+#composer-submit:active {
+  transform: scale(.92);
+}
+
+#composer-submit:disabled {
+  opacity: .35;
+  cursor: default;
+}
+
+
+/* =========================================================
+   Soft interaction
+   ========================================================= */
+
+button {
+  -webkit-tap-highlight-color: transparent;
+}
+
+button:active {
+  transform-origin: center;
 }
 
 
@@ -569,67 +692,68 @@
    ========================================================= */
 
 @media (max-width: 700px) {
+  :root {
+    --topbar-height: 64px;
+    --composer-height: 84px;
+  }
+
   #topbar {
     padding-left: 9px;
     padding-right: 9px;
-    padding-bottom: 8px;
   }
 
   #mode-switch {
-    min-height: 40px;
-    padding: 3px;
+    width: 144px;
+    height: 39px;
   }
 
   #mode-switch::before {
-    top: 3px;
-    bottom: 3px;
-    left: 3px;
+    width: 67px;
+    height: 29px;
   }
 
   #mode-switch button {
-    height: 31px;
-    min-width: 62px;
-    padding: 0 12px;
+    height: 29px;
   }
 
   #chat-content {
     padding:
-      15px
-      max(11px, var(--safe-right))
-      22px
-      max(11px, var(--safe-left));
+      24px
+      max(14px, var(--safe-right))
+      30px
+      max(14px, var(--safe-left));
   }
 
   #composer {
-    padding-top: 8px;
+    padding-left: 10px;
+    padding-right: 10px;
   }
 
   #composer-form {
-    min-height: 49px;
-    border-radius: 21px;
+    border-radius: 24px;
   }
 }
 
 
 /* =========================================================
-   Smaller phones
+   Small phones
    ========================================================= */
 
 @media (max-width: 420px) {
+  #mode-switch {
+    width: 140px;
+  }
+
+  #mode-switch::before {
+    width: 65px;
+  }
+
   #mode-switch button {
-    min-width: 57px;
-    padding: 0 10px;
-    font-size: 12px;
+    font-size: 11px;
   }
 
   #composer-input {
     font-size: 16px;
-  }
-
-  #composer-submit {
-    width: 35px;
-    height: 35px;
-    border-radius: 14px;
   }
 }
 
@@ -639,26 +763,24 @@
    ========================================================= */
 
 @media (max-height: 520px) {
-  #topbar {
-    padding-top: max(4px, var(--safe-top));
-    padding-bottom: 5px;
-  }
-
-  #mode-switch {
-    min-height: 35px;
-  }
-
-  #mode-switch button {
-    height: 27px;
-  }
-
-  #composer {
-    padding-top: 6px;
+  :root {
+    --topbar-height: 54px;
+    --composer-height: 68px;
   }
 
   #composer-form {
     min-height: 44px;
-    border-radius: 18px;
+    border-radius: 22px;
+  }
+
+  #composer-input {
+    min-height: 30px;
+  }
+
+  #composer-submit {
+    width: 33px;
+    height: 33px;
+    flex-basis: 33px;
   }
 }
 
