@@ -1,0 +1,1068 @@
+/* =========================================================
+   Astra
+   Canvas / Node
+   ========================================================= */
+
+
+/* =========================================================
+   NODE VARIABLES
+   ========================================================= */
+
+#canvas-nodes {
+  --node-width: 190px;
+  --node-radius: 18px;
+}
+
+
+/* =========================================================
+   NODE BASE
+   ========================================================= */
+
+.vc-node {
+  --node-color: var(--text);
+
+  --node-surface:
+    color-mix(
+      in srgb,
+      var(--panel) 94%,
+      var(--node-color)
+    );
+
+  --node-soft:
+    color-mix(
+      in srgb,
+      var(--panel) 96%,
+      var(--node-color)
+    );
+
+  --node-tint:
+    color-mix(
+      in srgb,
+      var(--node-color) 7%,
+      transparent
+    );
+
+  position: absolute;
+
+  width: var(--node-width);
+  min-height: 58px;
+
+  padding: 10px 12px;
+
+  border:
+    1px solid
+    color-mix(
+      in srgb,
+      var(--node-color) 16%,
+      var(--line)
+    );
+
+  border-radius: var(--node-radius);
+
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(
+        in srgb,
+        var(--node-surface) 97%,
+        white
+      ),
+      var(--node-surface)
+    );
+
+  color: var(--text);
+
+  cursor: grab;
+
+  overflow: visible;
+
+  user-select: none;
+  -webkit-user-select: none;
+
+  backdrop-filter:
+    blur(10px)
+    saturate(1.02);
+
+  -webkit-backdrop-filter:
+    blur(10px)
+    saturate(1.02);
+
+  transition:
+    border-color .18s ease,
+    background-color .18s ease,
+    transform .18s var(--ease);
+}
+
+:root.dark .vc-node {
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(
+        in srgb,
+        var(--node-surface) 97%,
+        white 2%
+      ),
+      var(--node-surface)
+    );
+}
+
+
+/* =========================================================
+   HOVER
+   ========================================================= */
+
+.vc-node:hover {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--node-color) 24%,
+      var(--line)
+    );
+}
+
+
+/* =========================================================
+   SELECTED
+   ========================================================= */
+
+.vc-node.vc-selected {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--node-color) 46%,
+      var(--line)
+    );
+
+  transform:
+    translateY(-1px);
+}
+
+
+/* =========================================================
+   EXPANDED
+   ========================================================= */
+
+.vc-node.vc-expanded {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--node-color) 34%,
+      var(--line)
+    );
+}
+
+
+/* =========================================================
+   SELECTED + EXPANDED
+   ========================================================= */
+
+.vc-node.vc-selected.vc-expanded {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--node-color) 50%,
+      var(--line)
+    );
+}
+
+
+/* =========================================================
+   DRAGGING
+   ========================================================= */
+
+.vc-node.vc-dragging {
+  cursor: grabbing;
+
+  transition: none !important;
+}
+
+.vc-node.vc-dragging .vc-node-body,
+.vc-node.vc-dragging .vc-node-toggle svg {
+  transition: none !important;
+}
+
+
+/* =========================================================
+   NODE HEADER
+   ========================================================= */
+
+.vc-node-head {
+  min-height: 30px;
+
+  display: flex;
+  align-items: center;
+
+  gap: 9px;
+}
+
+
+/* =========================================================
+   ICON
+   ========================================================= */
+
+.vc-node-icon {
+  position: relative;
+
+  width: 30px;
+  height: 30px;
+
+  flex: 0 0 30px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border:
+    1px solid
+    color-mix(
+      in srgb,
+      var(--node-color) 12%,
+      var(--line)
+    );
+
+  border-radius: 10px;
+
+  color:
+    color-mix(
+      in srgb,
+      var(--node-color) 72%,
+      var(--text)
+    );
+
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color) 7%,
+      var(--panel)
+    );
+
+  transition:
+    background-color .18s ease,
+    border-color .18s ease,
+    color .18s ease,
+    transform .18s var(--ease);
+}
+
+.vc-node-icon svg {
+  width: 16px;
+  height: 16px;
+
+  display: block;
+}
+
+.vc-node:hover .vc-node-icon {
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color) 10%,
+      var(--panel)
+    );
+}
+
+.vc-node.vc-selected .vc-node-icon,
+.vc-node.vc-expanded .vc-node-icon {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--node-color) 20%,
+      var(--line)
+    );
+
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color) 11%,
+      var(--panel)
+    );
+}
+
+
+/* =========================================================
+   TITLE
+   ========================================================= */
+
+.vc-node-title {
+  min-width: 0;
+  flex: 1;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  color: var(--text);
+
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+
+  letter-spacing: -.025em;
+}
+
+
+/* =========================================================
+   ACTIONS
+   ========================================================= */
+
+.vc-node-actions {
+  flex: 0 0 auto;
+
+  display: flex;
+  align-items: center;
+
+  gap: 2px;
+}
+
+.vc-node-action {
+  width: 28px;
+  height: 28px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 9px;
+
+  color: var(--sub);
+  background: transparent;
+
+  cursor: pointer;
+
+  transition:
+    background-color .16s ease,
+    color .16s ease,
+    transform .16s var(--ease);
+}
+
+.vc-node-action:hover {
+  color: var(--text);
+  background: var(--soft);
+}
+
+.vc-node-action:active {
+  transform: scale(.88);
+}
+
+.vc-node-action svg {
+  width: 14px;
+  height: 14px;
+}
+
+
+/* =========================================================
+   TOGGLE
+   ========================================================= */
+
+.vc-node-toggle {
+  color: var(--sub);
+}
+
+.vc-node.vc-expanded .vc-node-toggle {
+  color: var(--text);
+  background: var(--soft);
+}
+
+.vc-node-toggle svg {
+  transition:
+    transform .3s var(--ease);
+}
+
+.vc-node.vc-expanded .vc-node-toggle svg {
+  transform: rotate(180deg);
+}
+
+
+/* =========================================================
+   DELETE
+   ========================================================= */
+
+.vc-node-delete {
+  display: none;
+
+  width: 100%;
+  height: 34px;
+
+  align-items: center;
+  justify-content: center;
+
+  margin-top: 10px;
+
+  border-radius: 9px;
+
+  color: var(--danger);
+  background: var(--danger-soft);
+
+  font-size: 11px;
+  font-weight: 700;
+
+  cursor: pointer;
+
+  transition:
+    background-color .16s ease,
+    opacity .16s ease;
+}
+
+.vc-node:not(.vc-start-node).vc-expanded .vc-node-delete {
+  display: flex;
+}
+
+.vc-node-delete:hover {
+  opacity: .8;
+}
+
+
+/* =========================================================
+   BODY
+   ========================================================= */
+
+.vc-node-body {
+  height: 0;
+
+  overflow: hidden;
+
+  opacity: 0;
+
+  transition:
+    height .3s var(--ease),
+    opacity .18s ease;
+}
+
+.vc-node.vc-expanded .vc-node-body {
+  opacity: 1;
+
+  margin-top: 11px;
+}
+
+
+/* =========================================================
+   DESCRIPTION
+   ========================================================= */
+
+.vc-slot-description {
+  margin: 0 0 9px;
+
+  color: var(--muted);
+
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.45;
+
+  letter-spacing: -.01em;
+
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   PARAMETER GROUP
+   ========================================================= */
+
+.vc-param-group {
+  width: 100%;
+  min-height: 30px;
+
+  display: flex;
+  align-items: center;
+
+  margin-top: 7px;
+  padding: 2px 4px 2px 9px;
+
+  border:
+    1px solid
+    var(--line);
+
+  border-radius: 10px;
+
+  background:
+    color-mix(
+      in srgb,
+      var(--panel) 88%,
+      var(--node-color)
+    );
+
+  transition:
+    border-color .16s ease,
+    background-color .16s ease;
+}
+
+.vc-param-group:first-child {
+  margin-top: 0;
+}
+
+.vc-param-group + .vc-param-group {
+  margin-top: 6px;
+}
+
+.vc-param-group:hover {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--line-strong) 90%,
+      var(--node-color)
+    );
+}
+
+.vc-param-group:focus-within {
+  border-color:
+    color-mix(
+      in srgb,
+      var(--line-strong) 92%,
+      var(--node-color)
+    );
+
+  background:
+    color-mix(
+      in srgb,
+      var(--panel) 84%,
+      var(--node-color)
+    );
+}
+
+
+/* =========================================================
+   PARAMETER LABEL
+   ========================================================= */
+
+.vc-param-label {
+  flex: 0 0 auto;
+
+  margin-right: 7px;
+
+  color: var(--sub);
+
+  font-size: 8.5px;
+  font-weight: 700;
+  line-height: 1;
+
+  white-space: nowrap;
+}
+
+
+/* =========================================================
+   PARAMETER INPUT
+   ========================================================= */
+
+.vc-slot-param {
+  flex: 1;
+
+  min-width: 0;
+  width: auto;
+  min-height: 24px;
+
+  margin: 0;
+  padding: 4px 5px;
+
+  border: 0;
+  outline: none;
+
+  border-radius: 6px;
+
+  appearance: none;
+  -webkit-appearance: none;
+
+  background: transparent;
+
+  color: var(--text);
+
+  font-size: 9px;
+  font-weight: 550;
+
+  line-height: 1.35;
+}
+
+.vc-slot-param:hover,
+.vc-slot-param:focus {
+  border: 0;
+  outline: none;
+  background: transparent;
+}
+
+.vc-slot-param::placeholder {
+  color: var(--muted);
+}
+
+
+/* =========================================================
+   START NODE
+   ========================================================= */
+
+.vc-start-node {
+  --node-color:
+    color-mix(
+      in srgb,
+      var(--text) 82%,
+      #6b6b6b
+    );
+}
+
+.vc-start-badge {
+  flex: none;
+
+  padding:
+    4px 7px;
+
+  border-radius: 999px;
+
+  color:
+    color-mix(
+      in srgb,
+      var(--node-color) 72%,
+      var(--text)
+    );
+
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color) 7%,
+      transparent
+    );
+
+  font-size: 8px;
+  font-weight: 800;
+
+  line-height: 1;
+
+  letter-spacing: .03em;
+}
+
+
+/* =========================================================
+   FILE NODE
+   ========================================================= */
+
+.vc-file-node .vc-node-head {
+  min-height: 52px;
+}
+
+.vc-file-title-wrap {
+  min-width: 0;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 2px;
+}
+
+.vc-file-title {
+  max-width: var(--node-width);
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  font-size: 11px;
+  font-weight: 700;
+
+  line-height: 1.2;
+}
+
+.vc-file-type {
+  color: var(--muted);
+
+  font-size: 8px;
+  font-weight: 650;
+
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+
+.vc-file-meta {
+  display: flex;
+  align-items: center;
+
+  gap: 6px;
+
+  margin-top: 8px;
+
+  color: var(--sub);
+
+  font-size: 8.5px;
+}
+
+.vc-file-meta span:first-child {
+  max-width: 150px;
+
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vc-file-node .vc-slot-description {
+  display: none;
+}
+
+
+/* =========================================================
+   IMAGE FILE NODE
+   ========================================================= */
+
+.vc-image-file-node {
+  width: 150px;
+  height: 150px !important;
+
+  min-height: 0;
+
+  position: absolute;
+
+  aspect-ratio: 1 / 1;
+
+  overflow: hidden;
+
+  background: var(--panel);
+}
+
+.vc-image-file-node::before {
+  content: "";
+
+  position: absolute;
+  inset: -24px;
+
+  background-image: var(--vc-file-bg);
+  background-position: center;
+  background-size: cover;
+
+  filter: blur(4px);
+
+  transform: scale(1.08);
+
+  opacity: .42;
+
+  z-index: 0;
+}
+
+.vc-image-file-node::after {
+  content: "";
+
+  position: absolute;
+  inset: 0;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,.08),
+      rgba(255,255,255,.22)
+    );
+
+  z-index: 0;
+
+  pointer-events: none;
+}
+
+:root.dark .vc-image-file-node::after {
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0,0,0,.04),
+      rgba(0,0,0,.20)
+    );
+}
+
+.vc-image-file-node .vc-node-head,
+.vc-image-file-node .vc-node-body {
+  position: relative;
+  z-index: 2;
+}
+
+.vc-image-file-node .vc-port-hit {
+  z-index: 40;
+}
+
+
+/* =========================================================
+   PORT HIT AREA
+   ========================================================= */
+
+.vc-port-hit {
+  position: absolute;
+
+  top: 0;
+
+  width: 32px;
+  min-height: 32px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 40;
+
+  cursor: crosshair;
+
+  touch-action: none;
+
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.vc-port-hit.vc-input {
+  left: -16px;
+}
+
+.vc-port-hit.vc-output {
+  right: -16px;
+}
+
+.vc-port-anchor {
+  width: 16px;
+  height: 16px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+
+/* =========================================================
+   PORT PILL
+   ========================================================= */
+
+.vc-port-pill {
+  width: 9px;
+  height: 9px;
+
+  border:
+    1.5px solid
+    color-mix(
+      in srgb,
+      var(--node-color) 64%,
+      var(--text)
+    );
+
+  border-radius: 50%;
+
+  background: var(--bg);
+
+  opacity: .38;
+
+  transition:
+    opacity .15s ease,
+    transform .15s var(--ease),
+    background-color .15s ease,
+    border-color .15s ease;
+}
+
+.vc-node.vc-selected .vc-port-pill,
+.vc-node.vc-expanded .vc-port-pill {
+  opacity: .82;
+
+  transform: scale(1.04);
+}
+
+.vc-port-pill.vc-connected {
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color) 72%,
+      var(--panel)
+    );
+
+  border-color: var(--node-color);
+
+  opacity: .72;
+}
+
+.vc-node.vc-selected
+.vc-port-pill.vc-connected,
+.vc-node.vc-expanded
+.vc-port-pill.vc-connected {
+  opacity: 1;
+}
+
+.vc-port-hit:hover .vc-port-pill {
+  opacity: 1;
+
+  transform: scale(1.22);
+
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color) 72%,
+      var(--panel)
+    );
+
+  border-color: var(--node-color);
+}
+
+
+/* =========================================================
+   PORT LABEL
+   ========================================================= */
+
+.vc-port-label {
+  position: absolute;
+
+  top: 50%;
+
+  transform:
+    translateY(-50%);
+
+  color: var(--sub);
+
+  font-size: 8px;
+
+  line-height: 1;
+
+  white-space: nowrap;
+
+  pointer-events: none;
+
+  opacity: 0;
+
+  transition:
+    opacity .18s ease;
+}
+
+.vc-input .vc-port-label {
+  right: calc(100% - 5px);
+}
+
+.vc-output .vc-port-label {
+  left: calc(100% - 5px);
+}
+
+.vc-node.vc-selected .vc-port-label {
+  opacity: .72;
+}
+
+.vc-start-node .vc-port-hit.vc-input {
+  display: none;
+}
+
+
+/* =========================================================
+   CONNECTION
+   ========================================================= */
+
+.vc-connection {
+  fill: none;
+
+  stroke:
+    color-mix(
+      in srgb,
+      var(--text) 65%,
+      transparent
+    );
+
+  stroke-width: 1.7px;
+
+  stroke-linecap: round;
+  stroke-linejoin: round;
+
+  stroke-dasharray: 2px 5px;
+
+  opacity: .20;
+
+  pointer-events: none;
+
+  transition:
+    opacity .2s ease,
+    stroke-width .2s ease,
+    stroke .2s ease;
+}
+
+.vc-connection.vc-active {
+  stroke:
+    var(--text);
+
+  stroke-dasharray: 9999px 0;
+
+  opacity: .62;
+
+  stroke-width: 1.9px;
+}
+
+.vc-connection-dot {
+  fill: var(--bg);
+
+  stroke: var(--text);
+
+  stroke-width: 1px;
+
+  opacity: .32;
+}
+
+
+/* =========================================================
+   CONNECTION DRAG
+   ========================================================= */
+
+.vc-drag-connection {
+  fill: none;
+
+  stroke:
+    var(--text);
+
+  stroke-width: 2px;
+
+  stroke-linecap: round;
+
+  opacity: .68;
+
+  pointer-events: none;
+}
+
+.vc-drag-source-dot {
+  fill: var(--text);
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 700px) {
+  #canvas-nodes {
+    --node-width: 178px;
+  }
+
+  .vc-node {
+    padding: 9px 11px;
+
+    border-radius: 17px;
+  }
+
+  .vc-node-title {
+    font-size: 12px;
+  }
+
+  .vc-node-icon {
+    width: 29px;
+    height: 29px;
+    flex-basis: 29px;
+  }
+
+  .vc-node-icon svg {
+    width: 15px;
+    height: 15px;
+  }
+
+  .vc-slot-description {
+    font-size: 8.5px;
+  }
+}
+
+
+/* =========================================================
+   DARK MODE FINISHING
+   ========================================================= */
+
+:root.dark .vc-param-group {
+  background:
+    color-mix(
+      in srgb,
+      var(--panel) 92%,
+      var(--node-color)
+    );
+}
+
+:root.dark .vc-port-pill {
+  background: var(--bg);
+}
+
+:root.dark .vc-node-icon {
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color) 9%,
+      var(--panel)
+    );
+}
