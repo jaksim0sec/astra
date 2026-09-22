@@ -737,6 +737,19 @@
       }
 
       /*
+       * Chat → Canvas에서는
+       * 왼쪽 스와이프만 허용한다.
+       *
+       * 오른쪽으로 밀면
+       * 제스처 자체를 취소해서
+       * progress가 음수로 내려가지 않게 한다.
+       */
+      if (dx > 0) {
+        cancelGesture(true);
+        return;
+      }
+
+      /*
        * 여기서 처음으로 가로 제스처 확정.
        */
       state.horizontal = true;
