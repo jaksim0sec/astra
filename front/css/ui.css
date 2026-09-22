@@ -1,0 +1,627 @@
+ /* =========================================================
+    Astra
+    UI / Layout / Page Transition
+    ========================================================= */
+
+:root {
+  /*
+   * ui.js가 0 ~ 1 범위로 갱신한다.
+   * 0 = Chat
+   * 1 = Canvas
+   */
+  --page-progress: 0;
+
+  --topbar-total-height:
+    calc(var(--topbar-height) + var(--safe-top));
+
+  --composer-total-height:
+    calc(var(--composer-height) + var(--safe-bottom));
+}
+
+
+/* =========================================================
+   Topbar
+   ========================================================= */
+
+#topbar {
+  position: fixed;
+  z-index: 1000;
+
+  top: 0;
+  left: 0;
+  right: 0;
+
+  height: var(--topbar-total-height);
+
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+
+  padding:
+    var(--safe-top)
+    max(14px, var(--safe-right))
+    8px
+    max(14px, var(--safe-left));
+
+  pointer-events: none;
+}
+
+#topbar-left,
+#topbar-right,
+#mode-switch {
+  pointer-events: auto;
+}
+
+
+/* =========================================================
+   Mode Switch
+   ========================================================= */
+
+#mode-switch {
+  position: relative;
+
+  display: inline-flex;
+  align-items: center;
+
+  min-height: 38px;
+  padding: 3px;
+
+  border: 1px solid var(--border);
+  border-radius: 999px;
+
+  background: rgba(16, 16, 21, 0.82);
+
+  /*
+   * 실제 blur가 지원되는 환경에서만 적용.
+   * Canvas / Chat 내용 자체를 blur시키지 않고
+   * 이 UI만 반투명 유리처럼 만든다.
+   */
+  backdrop-filter: blur(18px) saturate(130%);
+  -webkit-backdrop-filter: blur(18px) saturate(130%);
+
+  box-shadow: var(--shadow-soft);
+
+  touch-action: pan-y;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#mode-switch::before {
+  content: "";
+
+  position: absolute;
+  z-index: 0;
+
+  top: 3px;
+  bottom: 3px;
+
+  left: 3px;
+
+  width: calc(50% - 3px);
+
+  border-radius: 999px;
+
+  background: var(--accent-soft);
+
+  transform:
+    translateX(
+      calc(var(--page-progress) * 100%)
+    );
+
+  transition:
+    transform var(--page-transition);
+
+  pointer-events: none;
+}
+
+#mode-switch.is-dragging::before {
+  transition: none;
+}
+
+#mode-switch button {
+  position: relative;
+  z-index: 1;
+
+  min-width: 70px;
+  height: 30px;
+
+  padding: 0 14px;
+
+  border-radius: 999px;
+
+  color: var(--text-muted);
+
+  font-size: 13px;
+  font-weight: 600;
+
+  transition:
+    color 140ms ease,
+    opacity 140ms ease;
+}
+
+#mode-switch button[aria-selected="true"] {
+  color: var(--text);
+}
+
+#mode-switch button:active {
+  opacity: 0.72;
+}
+
+
+/* =========================================================
+   Main Workspace
+   ========================================================= */
+
+#workspace {
+  position: fixed;
+  z-index: 1;
+
+  top: var(--topbar-total-height);
+  right: 0;
+  bottom: var(--composer-total-height);
+  left: 0;
+
+  width: 100%;
+
+  overflow: hidden;
+
+  touch-action: pan-y;
+  contain: layout paint;
+}
+
+
+/* =========================================================
+   Shared Page
+   ========================================================= */
+
+#workspace > .page {
+  position: absolute;
+
+  top: 0;
+  bottom: 0;
+
+  width: 100%;
+  min-width: 100%;
+  min-height: 0;
+
+  overflow: hidden;
+
+  /*
+   * page-progress:
+   * Chat   = 0
+   * Canvas = 1
+   */
+  transform: translate3d(
+    calc((var(--page-progress) * -100%)),
+    0,
+    0
+  );
+
+  will-change: transform, opacity, filter;
+
+  transition:
+    transform var(--page-transition),
+    opacity var(--page-transition),
+    filter var(--page-transition);
+}
+
+
+/*
+ * Canvas는 Chat과 반대 방향으로 움직여야 한다.
+ */
+#canvas-page {
+  transform: translate3d(
+    calc((1 - var(--page-progress)) * 100%),
+    0,
+    0
+  );
+}
+
+
+/*
+ * 드래그 중에는 손가락을 정확히 따라가야 한다.
+ */
+#workspace.is-dragging > .page {
+  transition: none;
+}
+
+
+/* =========================================================
+   Inactive Page Visual State
+   ========================================================= */
+
+#chat-page,
+#canvas-page {
+  opacity:
+    calc(
+      0.68 +
+      (
+        1 -
+        abs(
+          var(--page-progress) -
+          0
+        )
+      ) * 0.32
+    );
+
+  filter:
+    blur(
+      calc(
+        abs(
+          var(--page-progress) -
+          0
+        ) * 4px
+      )
+    );
+}
+
+
+/*
+ * Canvas는 반대 기준으로 계산한다.
+ */
+#canvas-page {
+  opacity:
+    calc(
+      0.68 +
+      (
+        1 -
+        abs(
+          var(--page-progress) -
+          1
+        )
+      ) * 0.32
+    );
+
+  filter:
+    blur(
+      calc(
+        abs(
+          var(--page-progress) -
+          1
+        ) * 4px
+      )
+    );
+}
+
+
+/*
+ * 완전히 비활성화된 페이지의 blur를 조금 더 줄인다.
+ * 실제 전환 중에는 위의 변수 기반 값이 적용된다.
+ */
+#workspace[data-mode="chat"] #canvas-page {
+  pointer-events: none;
+}
+
+#workspace[data-mode="canvas"] #chat-page {
+  pointer-events: none;
+}
+
+
+/* =========================================================
+   Chat Page
+   ========================================================= */
+
+#chat-page {
+  display: flex;
+  flex-direction: column;
+
+  background: var(--bg);
+
+  touch-action: pan-y;
+}
+
+#chat-content {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  overscroll-behavior-x: none;
+  overscroll-behavior-y: contain;
+
+  padding:
+    20px
+    max(16px, var(--safe-right))
+    24px
+    max(16px, var(--safe-left));
+
+  scrollbar-gutter: stable;
+
+  -webkit-overflow-scrolling: touch;
+}
+
+#chat-messages {
+  width: min(100%, 760px);
+
+  min-height: 100%;
+
+  margin: 0 auto;
+
+  display: flex;
+  flex-direction: column;
+}
+
+
+/* =========================================================
+   Canvas Page
+   ========================================================= */
+
+#canvas-page {
+  background: var(--bg);
+
+  touch-action: none;
+}
+
+#canvas-viewport {
+  position: relative;
+
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+
+  overflow: hidden;
+
+  touch-action: none;
+
+  overscroll-behavior: none;
+
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+#canvas-world {
+  position: absolute;
+
+  inset: 0;
+
+  transform-origin: 0 0;
+
+  user-select: none;
+  -webkit-user-select: none;
+
+  touch-action: none;
+}
+
+
+/* =========================================================
+   Composer
+   ========================================================= */
+
+#composer {
+  position: fixed;
+  z-index: 1100;
+
+  right: 0;
+  bottom: 0;
+  left: 0;
+
+  height: var(--composer-total-height);
+
+  display: flex;
+  align-items: flex-start;
+
+  padding:
+    10px
+    max(12px, var(--safe-right))
+    max(10px, var(--safe-bottom))
+    max(12px, var(--safe-left));
+
+  background:
+    linear-gradient(
+      to bottom,
+      rgba(9, 9, 12, 0),
+      rgba(9, 9, 12, 0.74) 26%,
+      rgba(9, 9, 12, 0.96)
+    );
+
+  pointer-events: none;
+}
+
+#composer-form {
+  width: min(100%, 820px);
+  min-width: 0;
+
+  min-height: 48px;
+
+  margin: 0 auto;
+
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+
+  padding: 6px;
+
+  border: 1px solid var(--border-strong);
+  border-radius: 18px;
+
+  background: rgba(16, 16, 21, 0.92);
+
+  backdrop-filter: blur(18px) saturate(125%);
+  -webkit-backdrop-filter: blur(18px) saturate(125%);
+
+  box-shadow: var(--shadow-soft);
+
+  pointer-events: auto;
+}
+
+#composer-input {
+  flex: 1 1 auto;
+
+  width: 0;
+  min-width: 0;
+
+  min-height: 34px;
+  max-height: 140px;
+
+  padding:
+    7px
+    9px;
+
+  border: 0;
+  border-radius: 12px;
+
+  background: transparent;
+
+  color: var(--text);
+
+  line-height: 1.45;
+
+  overflow-y: auto;
+}
+
+#composer-input::placeholder {
+  color: var(--text-muted);
+}
+
+#composer-input:focus {
+  outline: none;
+}
+
+
+#composer-submit {
+  flex: 0 0 auto;
+
+  width: 34px;
+  height: 34px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 11px;
+
+  background: var(--accent);
+  color: #fff;
+
+  font-size: 18px;
+  font-weight: 700;
+
+  transition:
+    background-color 140ms ease,
+    opacity 140ms ease,
+    transform 140ms ease;
+}
+
+#composer-submit:hover {
+  background: #785cff;
+}
+
+#composer-submit:active {
+  transform: translateY(1px);
+}
+
+#composer-submit:disabled {
+  opacity: 0.42;
+  cursor: default;
+  transform: none;
+}
+
+
+/* =========================================================
+   Page Transition State
+   ========================================================= */
+
+#workspace.is-transitioning > .page {
+  will-change: transform, opacity, filter;
+}
+
+#workspace.is-settled > .page {
+  will-change: auto;
+}
+
+
+/* =========================================================
+   Mobile
+   ========================================================= */
+
+@media (max-width: 700px) {
+  #topbar {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
+  #mode-switch button {
+    min-width: 62px;
+    padding-left: 11px;
+    padding-right: 11px;
+  }
+
+  #chat-content {
+    padding-top: 14px;
+    padding-left: 12px;
+    padding-right: 12px;
+    padding-bottom: 18px;
+  }
+
+  #composer {
+    padding-top: 8px;
+  }
+
+  #composer-form {
+    border-radius: 16px;
+  }
+}
+
+
+/* =========================================================
+   Small Mobile
+   ========================================================= */
+
+@media (max-width: 420px) {
+  #mode-switch button {
+    min-width: 58px;
+    padding-left: 9px;
+    padding-right: 9px;
+
+    font-size: 12px;
+  }
+
+  #composer-input {
+    font-size: 16px;
+  }
+}
+
+
+/* =========================================================
+   Keyboard / Reduced Visual Height
+   ========================================================= */
+
+@media (max-height: 520px) {
+  #topbar {
+    padding-top: max(4px, var(--safe-top));
+    padding-bottom: 5px;
+  }
+
+  #mode-switch {
+    min-height: 34px;
+  }
+
+  #mode-switch button {
+    height: 27px;
+  }
+
+  #composer {
+    padding-top: 6px;
+  }
+
+  #composer-form {
+    min-height: 44px;
+  }
+}
+
+
+/* =========================================================
+   Pointer Devices
+   ========================================================= */
+
+@media (hover: hover) and (pointer: fine) {
+  #mode-switch button:hover {
+    color: var(--text);
+  }
+
+  #chat-content {
+    scrollbar-width: thin;
+  }
+}
