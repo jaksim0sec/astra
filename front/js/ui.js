@@ -11,16 +11,11 @@
   const clamp =
     U.clamp ||
     ((value, min, max) =>
-      Math.min(
-        max,
-        Math.max(min, value)
-      ));
+      Math.min(max, Math.max(min, value)));
 
   const lerp =
     U.lerp ||
-    ((a, b, t) =>
-      a + (b - a) * t);
-
+    ((a, b, t) => a + (b - a) * t);
 
   const workspace =
     document.querySelector("#workspace");
@@ -40,12 +35,8 @@
   const modeCanvas =
     document.querySelector("#mode-canvas");
 
-  const chatContent =
-    document.querySelector("#chat-content");
-
   const composerInput =
     document.querySelector("#composer-input");
-
 
   if (
     !workspace ||
@@ -59,7 +50,6 @@
       "Astra UI DOM 구조가 올바르지 않습니다."
     );
   }
-
 
   /* =======================================================
      State
@@ -101,77 +91,42 @@
     keyboardOpen: false
   };
 
+  const events = new Map();
+  const listeners = [];
 
   /* =======================================================
      Events
      ======================================================= */
 
-  const events = new Map();
-  const listeners = [];
-
-
-  function on(
-    name,
-    handler
-  ) {
-    if (
-      typeof handler !== "function"
-    ) {
+  function on(name, handler) {
+    if (typeof handler !== "function") {
       return () => {};
     }
 
-    if (
-      !events.has(name)
-    ) {
-      events.set(
-        name,
-        new Set()
-      );
+    if (!events.has(name)) {
+      events.set(name, new Set());
     }
 
-    events
-      .get(name)
-      .add(handler);
+    events.get(name).add(handler);
 
-    return () =>
-      off(
-        name,
-        handler
-      );
+    return () => off(name, handler);
   }
 
-
-  function off(
-    name,
-    handler
-  ) {
-    events
-      .get(name)
-      ?.delete(handler);
+  function off(name, handler) {
+    events.get(name)?.delete(handler);
   }
 
-
-  function emit(
-    name,
-    payload
-  ) {
+  function emit(name, payload) {
     for (
-      const handler
-      of events.get(name) || []
+      const handler of events.get(name) || []
     ) {
       try {
-        handler(
-          payload,
-          api
-        );
+        handler(payload, api);
       } catch (error) {
-        console.error(
-          error
-        );
+        console.error(error);
       }
     }
   }
-
 
   function listen(
     element,
@@ -185,16 +140,14 @@
       options
     );
 
-    listeners.push(
-      () =>
-        element.removeEventListener(
-          type,
-          handler,
-          options
-        )
+    listeners.push(() =>
+      element.removeEventListener(
+        type,
+        handler,
+        options
+      )
     );
   }
-
 
   /* =======================================================
      Viewport
@@ -212,24 +165,19 @@
     );
   }
 
-
   function getViewportWidth() {
     return Math.max(
       1,
       Math.round(
         global.visualViewport?.width ||
         global.innerWidth ||
-        document.documentElement.clientWidth ||
         1
       )
     );
   }
 
-
   function syncViewport() {
-    if (
-      state.destroyed
-    ) {
+    if (state.destroyed) {
       return;
     }
 
@@ -239,10 +187,7 @@
     const height =
       getViewportHeight();
 
-
-    state.viewportWidth =
-      width;
-
+    state.viewportWidth = width;
 
     document.documentElement.style.setProperty(
       "--real-vh",
@@ -259,7 +204,6 @@
       `${height / 100}px`
     );
 
-
     state.keyboardOpen =
       !!(
         global.visualViewport &&
@@ -268,7 +212,6 @@
           120
       );
 
-
     workspace.style.setProperty(
       "--keyboard-open",
       state.keyboardOpen
@@ -276,70 +219,45 @@
         : "0"
     );
 
-
     render(
       state.progress,
       true
     );
   }
 
-
   function scheduleViewportSync() {
-    if (
-      state.viewportFrame !== null
-    ) {
+    if (state.viewportFrame !== null) {
       return;
     }
 
     state.viewportFrame =
-      requestAnimationFrame(
-        () => {
-          state.viewportFrame =
-            null;
-
-          syncViewport();
-        }
-      );
+      requestAnimationFrame(() => {
+        state.viewportFrame = null;
+        syncViewport();
+      });
   }
-
 
   /* =======================================================
      Progress
      ======================================================= */
 
-  function rubberBand(
-    value
-  ) {
-    if (
-      value < 0
-    ) {
+  function rubberBand(value) {
+    if (value < 0) {
       return (
         -1 +
-        1 /
-          (
-            1 -
-            value
-          )
+        1 / (1 - value)
       );
     }
 
-    if (
-      value > 1
-    ) {
+    if (value > 1) {
       return (
         1 -
-        1 /
-          (
-            1 +
-            value -
-            1
-          )
+        1 / (1 + value - 1)
       );
     }
 
     return value;
   }
-
 
   function setProgress(
     progress,
@@ -358,16 +276,12 @@
     );
   }
 
-
   function render(
     progress,
     immediate = false
   ) {
     const visualProgress =
-      rubberBand(
-        progress
-      );
-
+      rubberBand(progress);
 
     document.documentElement.style.setProperty(
       "--page-progress",
@@ -380,22 +294,18 @@
       )
     );
 
-
     workspace.dataset.mode =
       state.mode;
-
 
     workspace.classList.toggle(
       "is-dragging",
       state.dragging
     );
 
-
     modeSwitch.classList.toggle(
       "is-dragging",
       state.dragging
     );
-
 
     if (
       state.dragging ||
@@ -405,21 +315,15 @@
         -visualProgress *
         state.viewportWidth;
 
-
       chatPage.style.transform =
         `translate3d(${offset}px,0,0)`;
-
 
       canvasPage.style.transform =
         `translate3d(${offset}px,0,0)`;
     } else {
-      chatPage.style.transform =
-        "";
-
-      canvasPage.style.transform =
-        "";
+      chatPage.style.transform = "";
+      canvasPage.style.transform = "";
     }
-
 
     modeChat.setAttribute(
       "aria-selected",
@@ -427,7 +331,6 @@
         state.mode === "chat"
       )
     );
-
 
     modeCanvas.setAttribute(
       "aria-selected",
@@ -437,7 +340,6 @@
     );
   }
 
-
   /* =======================================================
      Canvas interaction
      ======================================================= */
@@ -445,7 +347,6 @@
   function syncCanvasInteraction() {
     const canvas =
       state.canvasApi;
-
 
     if (
       !canvas ||
@@ -455,16 +356,12 @@
       return;
     }
 
-
     canvas.setInteractionEnabled(
       state.mode === "canvas"
     );
   }
 
-
-  function bindCanvas(
-    canvasApi
-  ) {
+  function bindCanvas(canvasApi) {
     state.canvasApi =
       canvasApi || null;
 
@@ -472,7 +369,6 @@
 
     return api;
   }
-
 
   /* =======================================================
      Mode
@@ -487,27 +383,21 @@
         ? "canvas"
         : "chat";
 
-
     const previous =
       state.mode;
 
-
     state.mode =
       target;
-
 
     const targetProgress =
       target === "canvas"
         ? 1
         : 0;
 
-
     state.locked =
       target === "canvas";
 
-
     syncCanvasInteraction();
-
 
     snapTo(
       targetProgress,
@@ -517,7 +407,6 @@
           !!options.immediate
       }
     );
-
 
     if (
       previous !== target ||
@@ -532,10 +421,8 @@
       );
     }
 
-
     return api;
   }
-
 
   function setMode(
     mode,
@@ -547,7 +434,6 @@
     );
   }
 
-
   function toggleMode() {
     return setMode(
       state.mode === "chat"
@@ -555,7 +441,6 @@
         : "chat"
     );
   }
-
 
   /* =======================================================
      Snap
@@ -569,11 +454,9 @@
         state.snapFrame
       );
 
-      state.snapFrame =
-        null;
+      state.snapFrame = null;
     }
   }
-
 
   function snapTo(
     target,
@@ -581,16 +464,13 @@
   ) {
     stopSnap();
 
-
     const immediate =
       !!options.immediate;
-
 
     const velocity =
       Number(
         options.velocity
       ) || 0;
-
 
     const current =
       clamp(
@@ -598,7 +478,6 @@
         0,
         1
       );
-
 
     if (immediate) {
       state.progress =
@@ -612,13 +491,11 @@
       return api;
     }
 
-
     const distance =
       Math.abs(
         target -
         current
       );
-
 
     if (
       distance < 0.001
@@ -634,10 +511,8 @@
       return api;
     }
 
-
     const start =
       performance.now();
-
 
     const duration =
       clamp(
@@ -649,24 +524,18 @@
             ) * 70
           ) -
           distance * 60,
-
         220,
         420
       );
 
-
     function tick(now) {
-      if (
-        state.destroyed
-      ) {
+      if (state.destroyed) {
         return;
       }
-
 
       const elapsed =
         now -
         start;
-
 
       const t =
         clamp(
@@ -676,14 +545,12 @@
           1
         );
 
-
       const eased =
         1 -
         Math.pow(
           1 - t,
           4
         );
-
 
       state.progress =
         lerp(
@@ -692,16 +559,12 @@
           eased
         );
 
-
       render(
         state.progress,
         false
       );
 
-
-      if (
-        t < 1
-      ) {
+      if (t < 1) {
         state.snapFrame =
           requestAnimationFrame(
             tick
@@ -710,26 +573,21 @@
         return;
       }
 
-
-      state.snapFrame =
-        null;
-
+      state.snapFrame = null;
 
       state.progress =
         target;
-
 
       render(
         target,
         false
       );
 
-
       emit(
         "snap",
         {
           mode:
-            target >= .5
+            target >= 0.5
               ? "canvas"
               : "chat",
 
@@ -739,16 +597,13 @@
       );
     }
 
-
     state.snapFrame =
       requestAnimationFrame(
         tick
       );
 
-
     return api;
   }
-
 
   /* =======================================================
      Fixed UI hit test
@@ -758,23 +613,16 @@
     target
   ) {
     return !!(
-      target?.closest(
-        "#topbar"
-      ) ||
-      target?.closest(
-        "#composer"
-      )
+      target?.closest("#topbar") ||
+      target?.closest("#composer")
     );
   }
-
 
   /* =======================================================
      Workspace gesture
      ======================================================= */
 
-  function beginGesture(
-    event
-  ) {
+  function beginGesture(event) {
     if (
       state.destroyed ||
       state.locked ||
@@ -782,7 +630,6 @@
     ) {
       return;
     }
-
 
     if (
       pointInsideFixedUI(
@@ -792,19 +639,15 @@
       return;
     }
 
-
     stopSnap();
 
-
-    state.dragging =
-      true;
+    state.dragging = true;
 
     state.pointerId =
       event.pointerId;
 
     state.source =
       event.target;
-
 
     state.startX =
       event.clientX;
@@ -818,41 +661,32 @@
     state.lastTime =
       performance.now();
 
-    state.velocityX =
-      0;
+    state.velocityX = 0;
 
-    state.horizontal =
-      false;
-
+    state.horizontal = false;
 
     workspace.classList.add(
       "is-dragging"
     );
 
-
-    try {
-      workspace.setPointerCapture(
-        event.pointerId
-      );
-    } catch {}
-
+    /*
+     * 중요:
+     * 여기서는 pointer capture를 하지 않는다.
+     *
+     * 아직 가로인지 세로인지 모르기 때문에
+     * 브라우저의 기본 세로 스크롤을 막지 않는다.
+     */
 
     emit(
       "gesturestart",
       {
-        x:
-          event.clientX,
-
-        y:
-          event.clientY
+        x: event.clientX,
+        y: event.clientY
       }
     );
   }
 
-
-  function updateGesture(
-    event
-  ) {
+  function updateGesture(event) {
     if (
       !state.dragging ||
       state.pointerId !==
@@ -861,30 +695,36 @@
       return;
     }
 
-
     const dx =
       event.clientX -
       state.startX;
-
 
     const dy =
       event.clientY -
       state.startY;
 
+    const distance =
+      Math.max(
+        Math.abs(dx),
+        Math.abs(dy)
+      );
 
     /*
-     * 세로 움직임이면 이 제스처를
-     * 페이지 전환으로 사용하지 않는다.
+     * 방향이 아직 결정되지 않은 상태.
      */
     if (
       !state.horizontal &&
-      Math.abs(dx) < 8 &&
-      Math.abs(dy) < 8
+      distance < 8
     ) {
       return;
     }
 
-
+    /*
+     * 세로 이동이면
+     * 페이지 전환 제스처를 취소한다.
+     *
+     * 이후 브라우저가 Chat scroll을 처리한다.
+     */
     if (
       !state.horizontal
     ) {
@@ -893,15 +733,23 @@
         Math.abs(dx)
       ) {
         cancelGesture(true);
-
         return;
       }
 
+      /*
+       * 여기서 처음으로 가로 제스처 확정.
+       */
+      state.horizontal = true;
 
-      state.horizontal =
-        true;
+      /*
+       * 이제부터는 이 포인터를 UI가 소유한다.
+       */
+      try {
+        workspace.setPointerCapture(
+          event.pointerId
+        );
+      } catch {}
     }
-
 
     if (
       !state.horizontal
@@ -909,29 +757,22 @@
       return;
     }
 
-
     event.preventDefault();
-
 
     /*
      * Chat → Canvas:
-     *
-     * 손가락이 왼쪽으로 갈수록
-     * progress가 증가한다.
+     * 왼쪽으로 이동할수록 progress 증가.
      */
     const next =
       clamp(
         -dx /
           state.viewportWidth,
-
         -0.18,
         1.18
       );
 
-
     const now =
       performance.now();
-
 
     const dt =
       Math.max(
@@ -940,19 +781,15 @@
           state.lastTime
       );
 
-
     const instantVelocity =
       (
         event.clientX -
         state.lastX
-      ) /
-      dt;
-
+      ) / dt;
 
     state.velocityX =
-      state.velocityX * .72 +
-      instantVelocity * .28;
-
+      state.velocityX * 0.72 +
+      instantVelocity * 0.28;
 
     state.lastX =
       event.clientX;
@@ -960,17 +797,13 @@
     state.lastTime =
       now;
 
-
     setProgress(
       next,
       true
     );
   }
 
-
-  function finishGesture(
-    event
-  ) {
+  function finishGesture(event) {
     if (
       !state.dragging ||
       state.pointerId !==
@@ -979,32 +812,31 @@
       return;
     }
 
-
     const horizontal =
       state.horizontal;
-
 
     const velocity =
       state.velocityX;
 
+    state.dragging = false;
 
-    state.dragging =
-      false;
+    state.pointerId = null;
 
-    state.pointerId =
-      null;
+    state.source = null;
 
-    state.source =
-      null;
+    state.horizontal = false;
 
-    state.horizontal =
-      false;
-
+    state.velocityX = 0;
 
     workspace.classList.remove(
       "is-dragging"
     );
 
+    try {
+      workspace.releasePointerCapture(
+        event.pointerId
+      );
+    } catch {}
 
     if (!horizontal) {
       state.progress =
@@ -1020,7 +852,6 @@
       return;
     }
 
-
     const progress =
       clamp(
         state.progress,
@@ -1028,42 +859,48 @@
         1
       );
 
-
     let target;
 
-
+    /*
+     * 빠르게 왼쪽으로 밀면 Canvas.
+     */
     if (
       velocity < -0.45
     ) {
       target = 1;
-    } else if (
+    }
+
+    /*
+     * 빠르게 오른쪽으로 밀면 Chat.
+     */
+    else if (
       velocity > 0.45
     ) {
       target = 0;
-    } else {
+    }
+
+    /*
+     * 그렇지 않으면 절반 기준.
+     */
+    else {
       target =
-        progress >= .5
+        progress >= 0.5
           ? 1
           : 0;
     }
 
-
     const previous =
       state.mode;
-
 
     state.mode =
       target === 1
         ? "canvas"
         : "chat";
 
-
     state.locked =
       target === 1;
 
-
     syncCanvasInteraction();
-
 
     snapTo(
       target,
@@ -1071,7 +908,6 @@
         velocity
       }
     );
-
 
     if (
       previous !==
@@ -1089,9 +925,8 @@
     }
   }
 
-
   function cancelGesture(
-    reset
+    reset = true
   ) {
     if (
       !state.dragging
@@ -1099,27 +934,32 @@
       return;
     }
 
+    const pointerId =
+      state.pointerId;
 
-    state.dragging =
-      false;
+    state.dragging = false;
 
-    state.pointerId =
-      null;
+    state.pointerId = null;
 
-    state.source =
-      null;
+    state.source = null;
 
-    state.horizontal =
-      false;
+    state.horizontal = false;
 
-    state.velocityX =
-      0;
-
+    state.velocityX = 0;
 
     workspace.classList.remove(
       "is-dragging"
     );
 
+    if (
+      pointerId !== null
+    ) {
+      try {
+        workspace.releasePointerCapture(
+          pointerId
+        );
+      } catch {}
+    }
 
     if (reset) {
       state.progress =
@@ -1134,6 +974,17 @@
     }
   }
 
+  function handleLostPointerCapture() {
+    if (
+      state.dragging &&
+      state.horizontal
+    ) {
+      finishGesture({
+        pointerId:
+          state.pointerId
+      });
+    }
+  }
 
   /* =======================================================
      Pill gesture
@@ -1157,26 +1008,16 @@
     moved: false
   };
 
+  let suppressModeClick = false;
 
-  let suppressModeClick =
-    false;
-
-
-  function beginPillGesture(
-    event
-  ) {
-    if (
-      state.destroyed
-    ) {
+  function beginPillGesture(event) {
+    if (state.destroyed) {
       return;
     }
 
-
     stopSnap();
 
-
-    pillGesture.active =
-      true;
+    pillGesture.active = true;
 
     pillGesture.pointerId =
       event.pointerId;
@@ -1187,11 +1028,9 @@
     pillGesture.startProgress =
       state.progress;
 
-    pillGesture.velocityX =
-      0;
+    pillGesture.velocityX = 0;
 
-    pillGesture.moved =
-      false;
+    pillGesture.moved = false;
 
     pillGesture.lastX =
       event.clientX;
@@ -1199,11 +1038,9 @@
     pillGesture.lastTime =
       performance.now();
 
-
     modeSwitch.classList.add(
       "is-dragging"
     );
-
 
     try {
       modeSwitch.setPointerCapture(
@@ -1211,14 +1048,10 @@
       );
     } catch {}
 
-
     event.preventDefault();
   }
 
-
-  function updatePillGesture(
-    event
-  ) {
+  function updatePillGesture(event) {
     if (
       !pillGesture.active ||
       pillGesture.pointerId !==
@@ -1227,18 +1060,14 @@
       return;
     }
 
-
     event.preventDefault();
-
 
     const dx =
       event.clientX -
       pillGesture.startX;
 
-
     pillGesture.moved =
       Math.abs(dx) > 6;
-
 
     const width =
       Math.max(
@@ -1246,24 +1075,16 @@
         modeSwitch.clientWidth
       );
 
-
-    /*
-     * 왼쪽으로 밀면 progress 증가.
-     * 오른쪽으로 밀면 progress 감소.
-     */
     const next =
       clamp(
         pillGesture.startProgress -
           dx / width,
-
         -0.24,
         1.24
       );
 
-
     const now =
       performance.now();
-
 
     const dt =
       Math.max(
@@ -1272,19 +1093,15 @@
           pillGesture.lastTime
       );
 
-
     const instant =
       (
         event.clientX -
         pillGesture.lastX
-      ) /
-      dt;
-
+      ) / dt;
 
     pillGesture.velocityX =
-      pillGesture.velocityX * .72 +
-      instant * .28;
-
+      pillGesture.velocityX * 0.72 +
+      instant * 0.28;
 
     pillGesture.lastX =
       event.clientX;
@@ -1292,10 +1109,8 @@
     pillGesture.lastTime =
       now;
 
-
     state.progress =
       next;
-
 
     render(
       next,
@@ -1303,10 +1118,7 @@
     );
   }
 
-
-  function finishPillGesture(
-    event
-  ) {
+  function finishPillGesture(event) {
     if (
       !pillGesture.active ||
       pillGesture.pointerId !==
@@ -1315,9 +1127,7 @@
       return;
     }
 
-
     event.preventDefault();
-
 
     const progress =
       clamp(
@@ -1326,29 +1136,27 @@
         1
       );
 
-
     const velocity =
       pillGesture.velocityX;
-
 
     suppressModeClick =
       pillGesture.moved;
 
+    pillGesture.active = false;
 
-    pillGesture.active =
-      false;
-
-    pillGesture.pointerId =
-      null;
-
+    pillGesture.pointerId = null;
 
     modeSwitch.classList.remove(
       "is-dragging"
     );
 
+    try {
+      modeSwitch.releasePointerCapture(
+        event.pointerId
+      );
+    } catch {}
 
     let target;
-
 
     if (
       velocity < -0.45
@@ -1360,28 +1168,23 @@
       target = 0;
     } else {
       target =
-        progress >= .5
+        progress >= 0.5
           ? 1
           : 0;
     }
 
-
     const previous =
       state.mode;
-
 
     state.mode =
       target === 1
         ? "canvas"
         : "chat";
 
-
     state.locked =
       target === 1;
 
-
     syncCanvasInteraction();
-
 
     snapTo(
       target,
@@ -1389,7 +1192,6 @@
         velocity
       }
     );
-
 
     if (
       previous !==
@@ -1407,55 +1209,41 @@
     }
   }
 
-
   /* =======================================================
      Mode click
      ======================================================= */
 
-  function handleModeClick(
-    event
-  ) {
+  function handleModeClick(event) {
     if (
       state.dragging ||
       pillGesture.active ||
       suppressModeClick
     ) {
-      suppressModeClick =
-        false;
-
+      suppressModeClick = false;
       return;
     }
-
 
     const button =
       event.target.closest(
         "button"
       );
 
-
     if (!button) {
       return;
     }
 
-
     const mode =
       button.dataset.mode;
-
 
     if (
       mode === "chat" ||
       mode === "canvas"
     ) {
-      setMode(
-        mode
-      );
+      setMode(mode);
     }
   }
 
-
-  function handleModeKeydown(
-    event
-  ) {
+  function handleModeKeydown(event) {
     if (
       event.key !== "Enter" &&
       event.key !== " "
@@ -1463,35 +1251,27 @@
       return;
     }
 
-
     const button =
       event.target.closest(
         "button"
       );
 
-
     if (!button) {
       return;
     }
 
-
     event.preventDefault();
-
 
     const mode =
       button.dataset.mode;
-
 
     if (
       mode === "chat" ||
       mode === "canvas"
     ) {
-      setMode(
-        mode
-      );
+      setMode(mode);
     }
   }
-
 
   /* =======================================================
      Composer
@@ -1502,10 +1282,8 @@
       return;
     }
 
-
     composerInput.style.height =
       "auto";
-
 
     composerInput.style.height =
       `${Math.min(
@@ -1513,7 +1291,6 @@
         120
       )}px`;
   }
-
 
   if (composerInput) {
     listen(
@@ -1529,7 +1306,6 @@
     );
   }
 
-
   /* =======================================================
      Bind listeners
      ======================================================= */
@@ -1543,7 +1319,6 @@
     }
   );
 
-
   listen(
     workspace,
     "pointermove",
@@ -1553,21 +1328,23 @@
     }
   );
 
-
   listen(
     workspace,
     "pointerup",
     finishGesture
   );
 
-
   listen(
     workspace,
     "pointercancel",
-    () =>
-      cancelGesture(true)
+    () => cancelGesture(true)
   );
 
+  listen(
+    workspace,
+    "lostpointercapture",
+    handleLostPointerCapture
+  );
 
   listen(
     modeSwitch,
@@ -1578,7 +1355,6 @@
     }
   );
 
-
   listen(
     modeSwitch,
     "pointermove",
@@ -1588,13 +1364,11 @@
     }
   );
 
-
   listen(
     modeSwitch,
     "pointerup",
     finishPillGesture
   );
-
 
   listen(
     modeSwitch,
@@ -1606,24 +1380,18 @@
         return;
       }
 
+      pillGesture.active = false;
 
-      pillGesture.active =
-        false;
-
-      pillGesture.pointerId =
-        null;
-
+      pillGesture.pointerId = null;
 
       modeSwitch.classList.remove(
         "is-dragging"
       );
 
-
       state.progress =
         state.mode === "canvas"
           ? 1
           : 0;
-
 
       render(
         state.progress,
@@ -1632,13 +1400,11 @@
     }
   );
 
-
   listen(
     modeSwitch,
     "click",
     handleModeClick
   );
-
 
   listen(
     modeSwitch,
@@ -1646,13 +1412,11 @@
     handleModeKeydown
   );
 
-
   listen(
     global,
     "resize",
     scheduleViewportSync
   );
-
 
   listen(
     global,
@@ -1660,13 +1424,11 @@
     scheduleViewportSync
   );
 
-
   listen(
     global,
     "pageshow",
     scheduleViewportSync
   );
-
 
   if (
     global.visualViewport
@@ -1684,22 +1446,18 @@
     );
   }
 
-
   /* =======================================================
      Public API
      ======================================================= */
 
   const api = {
-
     getMode() {
       return state.mode;
     },
 
-
     getProgress() {
       return state.progress;
     },
-
 
     setMode,
 
@@ -1713,34 +1471,24 @@
 
     off,
 
-
     destroy() {
-      if (
-        state.destroyed
-      ) {
+      if (state.destroyed) {
         return;
       }
 
-
-      state.destroyed =
-        true;
-
+      state.destroyed = true;
 
       stopSnap();
 
-
       if (
-        state.viewportFrame !==
-        null
+        state.viewportFrame !== null
       ) {
         cancelAnimationFrame(
           state.viewportFrame
         );
 
-        state.viewportFrame =
-          null;
+        state.viewportFrame = null;
       }
-
 
       listeners
         .splice(0)
@@ -1752,41 +1500,32 @@
           }
         );
 
-
       events.clear();
 
-
-      state.canvasApi =
-        null;
+      state.canvasApi = null;
     }
   };
-
 
   global.AstraUI =
     api;
 
+  /* =======================================================
+     Initial state
+     ======================================================= */
 
-  /*
-   * 최초 상태
-   */
-  state.mode =
-    "chat";
+  state.mode = "chat";
 
-  state.progress =
-    0;
+  state.progress = 0;
 
-  state.locked =
-    false;
+  state.locked = false;
 
   state.viewportWidth =
     getViewportWidth();
-
 
   render(
     0,
     true
   );
-
 
   syncViewport();
 
