@@ -52,6 +52,23 @@
   }
 
   /* =======================================================
+     Touch behavior
+     ======================================================= */
+
+  /*
+   * Workspace
+   *
+   * 세로 스크롤은 브라우저에 맡기고
+   * 가로 제스처만 직접 처리한다.
+   */
+  workspace.style.touchAction = "pan-y";
+
+  /*
+   * 알약은 가로 드래그를 직접 처리한다.
+   */
+  modeSwitch.style.touchAction = "none";
+
+  /* =======================================================
      State
      ======================================================= */
 
@@ -69,6 +86,8 @@
     startX: 0,
     startY: 0,
 
+    startProgress: 0,
+
     lastX: 0,
     lastTime: 0,
 
@@ -76,7 +95,9 @@
 
     horizontal: false,
 
-    locked: false,
+    touchDragging: false,
+
+    touchId: null,
 
     viewportWidth: 1,
 
@@ -226,7 +247,9 @@
   }
 
   function scheduleViewportSync() {
-    if (state.viewportFrame !== null) {
+    if (
+      state.viewportFrame !== null
+    ) {
       return;
     }
 
@@ -307,10 +330,15 @@
       state.dragging
     );
 
-    if (
+    /*
+     * snap 중에는 transform을 계속 유지한다.
+     */
+    const shouldTransform =
       state.dragging ||
-      immediate
-    ) {
+      state.snapFrame !== null ||
+      immediate;
+
+    if (shouldTransform) {
       const offset =
         -visualProgress *
         state.viewportWidth;
@@ -389,18 +417,12 @@
     state.mode =
       target;
 
-    const targetProgress =
-      target === "canvas"
-        ? 1
-        : 0;
-
-    state.locked =
-      target === "canvas";
-
     syncCanvasInteraction();
 
     snapTo(
-      targetProgress,
+      target === "canvas"
+        ? 1
+        : 0,
       {
         velocity: 0,
         immediate:
@@ -485,7 +507,7 @@
 
       render(
         target,
-        false
+        true
       );
 
       return api;
@@ -505,7 +527,7 @@
 
       render(
         target,
-        false
+        true
       );
 
       return api;
@@ -530,6 +552,7 @@
 
     function tick(now) {
       if (state.destroyed) {
+        state.snapFrame = null;
         return;
       }
 
@@ -614,8 +637,36 @@
   ) {
     return !!(
       target?.closest("#topbar") ||
-      target?.closest("#composer")
+      target?.closest("#composer") ||
+      target?.closest("#mode-switch")
     );
+  }
+
+  /* =======================================================
+     Workspace direction
+     ======================================================= */
+
+  function canStartHorizontal(
+    dx,
+    dy
+  ) {
+    const absX =
+      Math.abs(dx);
+
+    const absY =
+      Math.abs(dy);
+
+    if (absY > absX) {
+      return false;
+    }
+
+    if (
+      state.mode === "chat"
+    ) {
+      return dx < 0;
+    }
+
+    return dx > 0;
   }
 
   /* =======================================================
@@ -625,8 +676,20 @@
   function beginGesture(event) {
     if (
       state.destroyed ||
-      state.locked ||
-      state.mode !== "chat"
+      state.touchDragging
+    ) {
+      return;
+    }
+
+    if (
+      event.pointerType === "touch"
+    ) {
+      return;
+    }
+
+    if (
+      event.button !== undefined &&
+      event.button !== 0
     ) {
       return;
     }
@@ -655,6 +718,14 @@
     state.startY =
       event.clientY;
 
+    state.startProgress =
+      state.mode === "canvas"
+        ? 1
+        : 0;
+
+    state.progress =
+      state.startProgress;
+
     state.lastX =
       event.clientX;
 
@@ -665,23 +736,30 @@
 
     state.horizontal = false;
 
+    /*
+     * 마우스는 처음부터 capture
+     * 해서 바깥으로 나가도 계속 드래그한다.
+     */
+    if (
+      event.pointerType === "mouse"
+    ) {
+      try {
+        workspace.setPointerCapture(
+          event.pointerId
+        );
+      } catch {}
+    }
+
     workspace.classList.add(
       "is-dragging"
     );
-
-    /*
-     * 중요:
-     * 여기서는 pointer capture를 하지 않는다.
-     *
-     * 아직 가로인지 세로인지 모르기 때문에
-     * 브라우저의 기본 세로 스크롤을 막지 않는다.
-     */
 
     emit(
       "gesturestart",
       {
         x: event.clientX,
-        y: event.clientY
+        y: event.clientY,
+        mode: state.mode
       }
     );
   }
@@ -695,6 +773,12 @@
       return;
     }
 
+    if (
+      event.pointerType === "touch"
+    ) {
+      return;
+    }
+
     const dx =
       event.clientX -
       state.startX;
@@ -703,15 +787,18 @@
       event.clientY -
       state.startY;
 
+    const absX =
+      Math.abs(dx);
+
+    const absY =
+      Math.abs(dy);
+
     const distance =
       Math.max(
-        Math.abs(dx),
-        Math.abs(dy)
+        absX,
+        absY
       );
 
-    /*
-     * 방향이 아직 결정되지 않은 상태.
-     */
     if (
       !state.horizontal &&
       distance < 8
@@ -719,67 +806,47 @@
       return;
     }
 
-    /*
-     * 세로 이동이면
-     * 페이지 전환 제스처를 취소한다.
-     *
-     * 이후 브라우저가 Chat scroll을 처리한다.
-     */
+    if (
+      !state.horizontal &&
+      !canStartHorizontal(
+        dx,
+        dy
+      )
+    ) {
+      cancelGesture(true);
+      return;
+    }
+
     if (
       !state.horizontal
     ) {
-      if (
-        Math.abs(dy) >
-        Math.abs(dx)
-      ) {
-        cancelGesture(true);
-        return;
-      }
-
-      /*
-       * Chat → Canvas에서는
-       * 왼쪽 스와이프만 허용한다.
-       *
-       * 오른쪽으로 밀면
-       * 제스처 자체를 취소해서
-       * progress가 음수로 내려가지 않게 한다.
-       */
-      if (dx > 0) {
-        cancelGesture(true);
-        return;
-      }
-
-      /*
-       * 여기서 처음으로 가로 제스처 확정.
-       */
       state.horizontal = true;
 
-      /*
-       * 이제부터는 이 포인터를 UI가 소유한다.
-       */
       try {
         workspace.setPointerCapture(
           event.pointerId
         );
       } catch {}
-    }
 
-    if (
-      !state.horizontal
-    ) {
-      return;
+      const canvas =
+        state.canvasApi;
+
+      if (
+        canvas &&
+        typeof canvas.setInteractionEnabled ===
+          "function"
+      ) {
+        canvas.setInteractionEnabled(false);
+      }
     }
 
     event.preventDefault();
 
-    /*
-     * Chat → Canvas:
-     * 왼쪽으로 이동할수록 progress 증가.
-     */
     const next =
       clamp(
-        -dx /
-          state.viewportWidth,
+        state.startProgress -
+          dx /
+            state.viewportWidth,
         -0.18,
         1.18
       );
@@ -825,6 +892,12 @@
       return;
     }
 
+    if (
+      event.pointerType === "touch"
+    ) {
+      return;
+    }
+
     const horizontal =
       state.horizontal;
 
@@ -851,6 +924,8 @@
       );
     } catch {}
 
+    syncCanvasInteraction();
+
     if (!horizontal) {
       state.progress =
         state.mode === "canvas"
@@ -859,12 +934,20 @@
 
       render(
         state.progress,
-        false
+        true
       );
 
       return;
     }
 
+    finishWorkspaceSnap(
+      velocity
+    );
+  }
+
+  function finishWorkspaceSnap(
+    velocity
+  ) {
     const progress =
       clamp(
         state.progress,
@@ -874,28 +957,15 @@
 
     let target;
 
-    /*
-     * 빠르게 왼쪽으로 밀면 Canvas.
-     */
     if (
       velocity < -0.45
     ) {
       target = 1;
-    }
-
-    /*
-     * 빠르게 오른쪽으로 밀면 Chat.
-     */
-    else if (
+    } else if (
       velocity > 0.45
     ) {
       target = 0;
-    }
-
-    /*
-     * 그렇지 않으면 절반 기준.
-     */
-    else {
+    } else {
       target =
         progress >= 0.5
           ? 1
@@ -909,9 +979,6 @@
       target === 1
         ? "canvas"
         : "chat";
-
-    state.locked =
-      target === 1;
 
     syncCanvasInteraction();
 
@@ -974,6 +1041,8 @@
       } catch {}
     }
 
+    syncCanvasInteraction();
+
     if (reset) {
       state.progress =
         state.mode === "canvas"
@@ -982,7 +1051,7 @@
 
       render(
         state.progress,
-        false
+        true
       );
     }
   }
@@ -990,13 +1059,329 @@
   function handleLostPointerCapture() {
     if (
       state.dragging &&
-      state.horizontal
+      state.pointerId !== null
     ) {
       finishGesture({
         pointerId:
-          state.pointerId
+          state.pointerId,
+
+        pointerType: "mouse"
       });
     }
+  }
+
+  /* =======================================================
+     Workspace touch gesture
+     ======================================================= */
+
+  function getTouchById(
+    touches,
+    id
+  ) {
+    for (
+      let i = 0;
+      i < touches.length;
+      i++
+    ) {
+      if (
+        touches[i].identifier === id
+      ) {
+        return touches[i];
+      }
+    }
+
+    return null;
+  }
+
+  function beginTouchGesture(event) {
+    if (
+      state.destroyed ||
+      state.touchDragging
+    ) {
+      return;
+    }
+
+    if (
+      !event.touches ||
+      event.touches.length !== 1
+    ) {
+      return;
+    }
+
+    if (
+      pointInsideFixedUI(
+        event.target
+      )
+    ) {
+      return;
+    }
+
+    stopSnap();
+
+    const touch =
+      event.touches[0];
+
+    state.touchDragging = true;
+
+    state.touchId =
+      touch.identifier;
+
+    state.dragging = true;
+
+    state.startX =
+      touch.clientX;
+
+    state.startY =
+      touch.clientY;
+
+    state.startProgress =
+      state.mode === "canvas"
+        ? 1
+        : 0;
+
+    state.progress =
+      state.startProgress;
+
+    state.lastX =
+      touch.clientX;
+
+    state.lastTime =
+      performance.now();
+
+    state.velocityX = 0;
+
+    state.horizontal = false;
+
+    workspace.classList.add(
+      "is-dragging"
+    );
+
+    emit(
+      "gesturestart",
+      {
+        x: touch.clientX,
+        y: touch.clientY,
+        mode: state.mode
+      }
+    );
+  }
+
+  function updateTouchGesture(event) {
+    if (
+      !state.touchDragging ||
+      state.touchId === null
+    ) {
+      return;
+    }
+
+    const touch =
+      getTouchById(
+        event.touches,
+        state.touchId
+      );
+
+    if (!touch) {
+      return;
+    }
+
+    const dx =
+      touch.clientX -
+      state.startX;
+
+    const dy =
+      touch.clientY -
+      state.startY;
+
+    const absX =
+      Math.abs(dx);
+
+    const absY =
+      Math.abs(dy);
+
+    const distance =
+      Math.max(
+        absX,
+        absY
+      );
+
+    if (
+      !state.horizontal &&
+      distance < 8
+    ) {
+      return;
+    }
+
+    /*
+     * 세로 스크롤
+     */
+    if (
+      !state.horizontal &&
+      absY > absX
+    ) {
+      cancelTouchGesture();
+      return;
+    }
+
+    /*
+     * Chat → Canvas
+     * 왼쪽만
+     *
+     * Canvas → Chat
+     * 오른쪽만
+     */
+    if (
+      !state.horizontal
+    ) {
+      if (
+        !canStartHorizontal(
+          dx,
+          dy
+        )
+      ) {
+        cancelTouchGesture();
+        return;
+      }
+
+      state.horizontal = true;
+
+      const canvas =
+        state.canvasApi;
+
+      if (
+        canvas &&
+        typeof canvas.setInteractionEnabled ===
+          "function"
+      ) {
+        canvas.setInteractionEnabled(false);
+      }
+    }
+
+    /*
+     * 여기부터 브라우저 세로 스크롤을 막는다.
+     */
+    event.preventDefault();
+
+    const next =
+      clamp(
+        state.startProgress -
+          dx /
+            state.viewportWidth,
+        -0.18,
+        1.18
+      );
+
+    const now =
+      performance.now();
+
+    const dt =
+      Math.max(
+        1,
+        now -
+          state.lastTime
+      );
+
+    const instantVelocity =
+      (
+        touch.clientX -
+        state.lastX
+      ) / dt;
+
+    state.velocityX =
+      state.velocityX * 0.72 +
+      instantVelocity * 0.28;
+
+    state.lastX =
+      touch.clientX;
+
+    state.lastTime =
+      now;
+
+    setProgress(
+      next,
+      true
+    );
+  }
+
+  function finishTouchGesture() {
+    if (
+      !state.touchDragging
+    ) {
+      return;
+    }
+
+    const horizontal =
+      state.horizontal;
+
+    const velocity =
+      state.velocityX;
+
+    state.touchDragging = false;
+
+    state.touchId = null;
+
+    state.dragging = false;
+
+    state.horizontal = false;
+
+    state.velocityX = 0;
+
+    workspace.classList.remove(
+      "is-dragging"
+    );
+
+    syncCanvasInteraction();
+
+    if (!horizontal) {
+      state.progress =
+        state.mode === "canvas"
+          ? 1
+          : 0;
+
+      render(
+        state.progress,
+        true
+      );
+
+      return;
+    }
+
+    finishWorkspaceSnap(
+      velocity
+    );
+  }
+
+  function cancelTouchGesture() {
+    if (
+      !state.touchDragging
+    ) {
+      return;
+    }
+
+    state.touchDragging = false;
+
+    state.touchId = null;
+
+    state.dragging = false;
+
+    state.horizontal = false;
+
+    state.velocityX = 0;
+
+    workspace.classList.remove(
+      "is-dragging"
+    );
+
+    syncCanvasInteraction();
+
+    state.progress =
+      state.mode === "canvas"
+        ? 1
+        : 0;
+
+    render(
+      state.progress,
+      true
+    );
   }
 
   /* =======================================================
@@ -1024,7 +1409,16 @@
   let suppressModeClick = false;
 
   function beginPillGesture(event) {
-    if (state.destroyed) {
+    if (
+      state.destroyed
+    ) {
+      return;
+    }
+
+    if (
+      event.button !== undefined &&
+      event.button !== 0
+    ) {
       return;
     }
 
@@ -1039,7 +1433,11 @@
       event.clientX;
 
     pillGesture.startProgress =
-      state.progress;
+      clamp(
+        state.progress,
+        0,
+        1
+      );
 
     pillGesture.velocityX = 0;
 
@@ -1061,7 +1459,11 @@
       );
     } catch {}
 
-    event.preventDefault();
+    /*
+     * 단순 클릭을 위해
+     * pointerdown에서는
+     * preventDefault하지 않는다.
+     */
   }
 
   function updatePillGesture(event) {
@@ -1073,14 +1475,19 @@
       return;
     }
 
-    event.preventDefault();
-
     const dx =
       event.clientX -
       pillGesture.startX;
 
-    pillGesture.moved =
+    const moved =
       Math.abs(dx) > 6;
+
+    pillGesture.moved =
+      moved;
+
+    if (moved) {
+      event.preventDefault();
+    }
 
     const width =
       Math.max(
@@ -1088,10 +1495,14 @@
         modeSwitch.clientWidth
       );
 
+    /*
+     * 알약 이동 방향 = 손가락 이동 방향
+     */
     const next =
       clamp(
-        pillGesture.startProgress -
-          dx / width,
+        pillGesture.startProgress +
+          dx /
+            width,
         -0.24,
         1.24
       );
@@ -1140,7 +1551,8 @@
       return;
     }
 
-    event.preventDefault();
+    const moved =
+      pillGesture.moved;
 
     const progress =
       clamp(
@@ -1153,11 +1565,15 @@
       pillGesture.velocityX;
 
     suppressModeClick =
-      pillGesture.moved;
+      moved;
 
     pillGesture.active = false;
 
     pillGesture.pointerId = null;
+
+    pillGesture.moved = false;
+
+    pillGesture.velocityX = 0;
 
     modeSwitch.classList.remove(
       "is-dragging"
@@ -1169,14 +1585,37 @@
       );
     } catch {}
 
+    /*
+     * 클릭이면 click 이벤트에게 맡긴다.
+     */
+    if (!moved) {
+      state.progress =
+        state.mode === "canvas"
+          ? 1
+          : 0;
+
+      render(
+        state.progress,
+        true
+      );
+
+      return;
+    }
+
+    event.preventDefault();
+
     let target;
 
+    /*
+     * 알약은 손 이동 방향과 동일하게 움직이지만
+     * 실제 페이지 방향은 기존 의미 그대로 유지.
+     */
     if (
-      velocity < -0.45
+      velocity > 0.45
     ) {
       target = 1;
     } else if (
-      velocity > 0.45
+      velocity < -0.45
     ) {
       target = 0;
     } else {
@@ -1193,9 +1632,6 @@
       target === 1
         ? "canvas"
         : "chat";
-
-    state.locked =
-      target === 1;
 
     syncCanvasInteraction();
 
@@ -1228,11 +1664,15 @@
 
   function handleModeClick(event) {
     if (
-      state.dragging ||
-      pillGesture.active ||
       suppressModeClick
     ) {
       suppressModeClick = false;
+      return;
+    }
+
+    if (
+      pillGesture.active
+    ) {
       return;
     }
 
@@ -1320,44 +1760,96 @@
   }
 
   /* =======================================================
-     Bind listeners
+     Workspace pointer listeners
      ======================================================= */
+
+  const gestureOptions = {
+    passive: false,
+    capture: true
+  };
 
   listen(
     workspace,
     "pointerdown",
     beginGesture,
-    {
-      passive: false
-    }
+    gestureOptions
   );
 
   listen(
     workspace,
     "pointermove",
     updateGesture,
-    {
-      passive: false
-    }
+    gestureOptions
   );
 
   listen(
     workspace,
     "pointerup",
-    finishGesture
+    finishGesture,
+    gestureOptions
   );
 
   listen(
     workspace,
     "pointercancel",
-    () => cancelGesture(true)
+    () => cancelGesture(true),
+    gestureOptions
   );
 
   listen(
     workspace,
     "lostpointercapture",
-    handleLostPointerCapture
+    handleLostPointerCapture,
+    gestureOptions
   );
+
+  /* =======================================================
+     Workspace touch listeners
+     ======================================================= */
+
+  listen(
+    workspace,
+    "touchstart",
+    beginTouchGesture,
+    {
+      passive: true,
+      capture: true
+    }
+  );
+
+  listen(
+    workspace,
+    "touchmove",
+    updateTouchGesture,
+    {
+      passive: false,
+      capture: true
+    }
+  );
+
+  listen(
+    workspace,
+    "touchend",
+    finishTouchGesture,
+    {
+      passive: true,
+      capture: true
+    }
+  );
+
+  listen(
+    workspace,
+    "touchcancel",
+    cancelTouchGesture,
+    {
+      passive: true,
+      capture: true
+    }
+  );
+
+  /* =======================================================
+     Pill listeners
+     ======================================================= */
 
   listen(
     modeSwitch,
@@ -1380,7 +1872,10 @@
   listen(
     modeSwitch,
     "pointerup",
-    finishPillGesture
+    finishPillGesture,
+    {
+      passive: false
+    }
   );
 
   listen(
@@ -1397,6 +1892,10 @@
 
       pillGesture.pointerId = null;
 
+      pillGesture.moved = false;
+
+      pillGesture.velocityX = 0;
+
       modeSwitch.classList.remove(
         "is-dragging"
       );
@@ -1408,10 +1907,14 @@
 
       render(
         state.progress,
-        false
+        true
       );
     }
   );
+
+  /* =======================================================
+     Mode controls
+     ======================================================= */
 
   listen(
     modeSwitch,
@@ -1424,6 +1927,10 @@
     "keydown",
     handleModeKeydown
   );
+
+  /* =======================================================
+     Viewport listeners
+     ======================================================= */
 
   listen(
     global,
@@ -1485,7 +1992,9 @@
     off,
 
     destroy() {
-      if (state.destroyed) {
+      if (
+        state.destroyed
+      ) {
         return;
       }
 
@@ -1529,8 +2038,6 @@
   state.mode = "chat";
 
   state.progress = 0;
-
-  state.locked = false;
 
   state.viewportWidth =
     getViewportWidth();
