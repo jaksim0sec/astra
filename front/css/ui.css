@@ -56,6 +56,7 @@
 
 #topbar-right {
   right: max(13px, var(--safe-right));
+
   justify-content: flex-end;
 }
 
@@ -75,10 +76,14 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
 
-  border: 1px solid var(--line);
+  border:
+    1px solid
+    var(--line);
+
   border-radius: 999px;
 
-  background: var(--panel-soft);
+  background:
+    var(--panel-soft);
 
   backdrop-filter:
     blur(22px)
@@ -88,7 +93,8 @@
     blur(22px)
     saturate(1.08);
 
-  box-shadow: var(--shadow-soft);
+  box-shadow:
+    var(--shadow-soft);
 
   overflow: hidden;
 
@@ -114,21 +120,31 @@
   top: 4px;
   left: 4px;
 
-  width: calc(50% - 4px);
+  width:
+    calc(
+      50% - 4px
+    );
+
   height: 30px;
 
-  border: 1px solid var(--line);
+  border:
+    1px solid
+    var(--line);
 
   border-radius: 999px;
 
-  background: var(--panel-strong);
+  background:
+    var(--panel-strong);
 
   box-shadow:
-    0 2px 8px rgba(0, 0, 0, .035);
+    0 2px 8px
+    rgba(0, 0, 0, .035);
 
   transform:
     translate3d(
-      calc(var(--page-progress) * 100%),
+      calc(
+        var(--page-progress) * 100%
+      ),
       0,
       0
     );
@@ -141,7 +157,8 @@
 
 :root.dark #mode-switch::before {
   box-shadow:
-    0 2px 9px rgba(0, 0, 0, .12);
+    0 2px 9px
+    rgba(0, 0, 0, .12);
 }
 
 #mode-switch.is-dragging::before {
@@ -155,12 +172,18 @@
 
   height: 30px;
 
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
   border-radius: 999px;
 
-  color: var(--muted);
+  color:
+    var(--muted);
 
   font-size: 12px;
   font-weight: 700;
+
   letter-spacing: -.01em;
 
   transition:
@@ -171,7 +194,13 @@
 }
 
 #mode-switch button[aria-selected="true"] {
-  color: var(--text);
+  color:
+    var(--text);
+}
+
+#mode-switch button[aria-selected="false"] {
+  color:
+    var(--muted);
 }
 
 #mode-switch button:active {
@@ -204,7 +233,8 @@
 
   overflow: hidden;
 
-  background: var(--bg);
+  background:
+    var(--bg);
 
   touch-action: pan-y;
 }
@@ -224,7 +254,8 @@
 
   overflow: hidden;
 
-  background: var(--bg);
+  background:
+    var(--bg);
 
   will-change:
     transform,
@@ -245,7 +276,9 @@
 
   transform:
     translate3d(
-      calc(var(--page-progress) * -100%),
+      calc(
+        var(--page-progress) * -100%
+      ),
       0,
       0
     );
@@ -261,7 +294,9 @@
 
   transform:
     translate3d(
-      calc(var(--page-progress) * -100%),
+      calc(
+        var(--page-progress) * -100%
+      ),
       0,
       0
     );
@@ -270,7 +305,7 @@
 }
 
 
-/* 드래그 중에는 JS가 직접 움직임 */
+/* 드래그 중 */
 
 #workspace.is-dragging > .page {
   transition: none !important;
@@ -280,11 +315,6 @@
 /* =========================================================
    PAGE DEPTH
    ========================================================= */
-
-/*
- * 페이지를 전환할 때만 아주 약하게 blur.
- * 평소에는 절대 흐리지 않는다.
- */
 
 #chat-page {
   opacity:
@@ -316,19 +346,11 @@
     );
 }
 
-
-/*
- * 정착 상태에서는 완전히 깨끗하게
- */
-
 #workspace[data-mode="chat"] #chat-page,
 #workspace[data-mode="canvas"] #canvas-page {
   opacity: 1;
   filter: none;
 }
-
-
-/* 비활성 페이지는 입력을 받지 않음 */
 
 #workspace[data-mode="chat"] #canvas-page {
   pointer-events: none;
@@ -366,7 +388,6 @@
     var(--bg);
 }
 
-
 #chat-content {
   width: 100%;
   height: 100%;
@@ -392,7 +413,6 @@
 #chat-content::-webkit-scrollbar {
   display: none;
 }
-
 
 #chat-messages {
   width: min(760px, 100%);
@@ -500,29 +520,41 @@
 }
 
 
-#composer-form {
-  width: min(720px, 100%);
+/* =========================================================
+   COMPOSER FORM
+   ========================================================= */
 
-  min-height: 48px;
+#composer-form {
+  width:
+    min(
+      720px,
+      100%
+    );
+
+  min-height: 54px;
 
   margin: 0 auto;
 
-  display: flex;
-  align-items: flex-end;
-
-  gap: 7px;
-
   padding:
-    6px
-    6px
-    6px
-    14px;
+    7px
+    7px
+    7px
+    17px;
 
-  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
 
-  border-radius: 25px;
+  gap: 9px;
 
-  background: var(--panel-soft);
+  border:
+    1px solid
+    var(--line);
+
+  border-radius:
+    999px;
+
+  background:
+    var(--panel-soft);
 
   backdrop-filter:
     blur(22px)
@@ -536,6 +568,27 @@
     var(--shadow-soft);
 
   pointer-events: auto;
+
+  transition:
+    border-color .18s ease,
+    background-color .18s ease,
+    box-shadow .18s ease;
+}
+
+
+/*
+ * 포커스
+ */
+
+#composer-form:focus-within {
+  border-color:
+    var(--line-strong);
+
+  background:
+    var(--panel-strong);
+
+  box-shadow:
+    var(--shadow-soft);
 }
 
 
@@ -547,61 +600,98 @@
   width: 100%;
   min-width: 0;
 
-  min-height: 34px;
+  height: 38px;
+  min-height: 38px;
   max-height: 120px;
 
+  margin: 0;
+
   padding:
-    7px 0;
+    8px
+    2px;
 
   border: 0;
   outline: 0;
 
   resize: none;
 
-  background: transparent;
+  background:
+    transparent;
 
-  color: var(--text);
+  color:
+    var(--text);
 
   font-size: 13px;
-  line-height: 1.45;
+  font-weight: 450;
+
+  line-height: 22px;
+  letter-spacing: -.015em;
 
   overflow-y: auto;
+
+  scrollbar-width: none;
+}
+
+#composer-input::-webkit-scrollbar {
+  display: none;
 }
 
 #composer-input::placeholder {
-  color: var(--muted);
+  color:
+    var(--muted);
 }
 
 
 /* =========================================================
-   COMPOSER BUTTON
+   COMPOSER SUBMIT
    ========================================================= */
 
 #composer-submit {
-  width: 35px;
-  height: 35px;
+  width: 38px;
+  height: 38px;
 
-  flex: 0 0 35px;
+  flex:
+    0 0 38px;
+
+  margin: 0;
 
   display: grid;
   place-items: center;
 
-  border-radius: 50%;
+  border-radius:
+    50%;
 
-  background: var(--text);
-  color: var(--bg);
+  background:
+    var(--text);
+
+  color:
+    var(--bg);
+
+  font-size: 16px;
+  font-weight: 700;
+
+  line-height: 1;
+
+  cursor: pointer;
 
   transition:
-    transform .15s ease,
-    opacity .15s ease;
+    transform .14s ease,
+    opacity .14s ease;
+}
+
+#composer-submit:hover {
+  opacity: .88;
 }
 
 #composer-submit:active {
-  transform: scale(.92);
+  transform:
+    scale(.91);
 }
 
 #composer-submit:disabled {
-  opacity: .32;
+  opacity: .30;
+
+  cursor: default;
 }
 
 
@@ -610,6 +700,7 @@
    ========================================================= */
 
 @media (max-width: 700px) {
+
   #topbar {
     padding-left: 10px;
     padding-right: 10px;
@@ -621,7 +712,6 @@
   }
 
   #mode-switch::before {
-    width: calc(50% - 4px);
     height: 29px;
   }
 
@@ -637,8 +727,38 @@
       max(14px, var(--safe-left));
   }
 
+  #composer {
+    padding-left: 10px;
+    padding-right: 10px;
+  }
+
   #composer-form {
-    border-radius: 24px;
+    min-height: 52px;
+
+    padding:
+      6px
+      6px
+      6px
+      16px;
+
+    gap: 8px;
+
+    border-radius:
+      999px;
+  }
+
+  #composer-input {
+    height: 37px;
+    min-height: 37px;
+
+    font-size: 14px;
+  }
+
+  #composer-submit {
+    width: 36px;
+    height: 36px;
+
+    flex-basis: 36px;
   }
 }
 
@@ -648,6 +768,7 @@
    ========================================================= */
 
 @media (max-width: 420px) {
+
   #mode-switch {
     width: 140px;
   }
@@ -656,8 +777,35 @@
     font-size: 11px;
   }
 
+  #composer {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  #composer-form {
+    min-height: 51px;
+
+    padding:
+      6px
+      6px
+      6px
+      15px;
+
+    gap: 7px;
+  }
+
   #composer-input {
+    height: 36px;
+    min-height: 36px;
+
     font-size: 16px;
+  }
+
+  #composer-submit {
+    width: 35px;
+    height: 35px;
+
+    flex-basis: 35px;
   }
 }
 
@@ -667,18 +815,29 @@
    ========================================================= */
 
 @media (max-height: 520px) {
+
   #composer-form {
     min-height: 44px;
-    border-radius: 22px;
+
+    padding:
+      5px
+      5px
+      5px
+      13px;
+
+    border-radius:
+      999px;
   }
 
   #composer-input {
-    min-height: 30px;
+    height: 31px;
+    min-height: 31px;
   }
 
   #composer-submit {
-    width: 33px;
-    height: 33px;
-    flex-basis: 33px;
+    width: 32px;
+    height: 32px;
+
+    flex-basis: 32px;
   }
 }

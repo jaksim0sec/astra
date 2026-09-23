@@ -417,6 +417,22 @@
     state.mode =
       target;
 
+    /*
+     * Canvas로 들어가는 순간
+     * page gesture는 잠긴 상태가 된다.
+     */
+    if (
+      target === "canvas"
+    ) {
+      if (state.dragging) {
+        cancelGesture(true);
+      }
+
+      if (state.touchDragging) {
+        cancelTouchGesture();
+      }
+    }
+
     syncCanvasInteraction();
 
     snapTo(
@@ -650,6 +666,15 @@
     dx,
     dy
   ) {
+    /*
+     * Canvas에서는 page swipe 자체를 금지한다.
+     */
+    if (
+      state.mode === "canvas"
+    ) {
+      return false;
+    }
+
     const absX =
       Math.abs(dx);
 
@@ -677,6 +702,20 @@
     if (
       state.destroyed ||
       state.touchDragging
+    ) {
+      return;
+    }
+
+    /*
+     * Canvas가 활성화된 동안에는
+     * workspace가 page gesture를
+     * 시작하지 않는다.
+     *
+     * 실제 Canvas 입력은
+     * canvasNode.js가 받는다.
+     */
+    if (
+      state.mode === "canvas"
     ) {
       return;
     }
@@ -770,6 +809,17 @@
       state.pointerId !==
         event.pointerId
     ) {
+      return;
+    }
+
+    /*
+     * Canvas로 전환된 경우
+     * 기존 page gesture도 즉시 종료한다.
+     */
+    if (
+      state.mode === "canvas"
+    ) {
+      cancelGesture(true);
       return;
     }
 
@@ -892,6 +942,17 @@
       return;
     }
 
+    /*
+     * Canvas 활성화 상태에서는
+     * page swipe를 절대 마무리하지 않는다.
+     */
+    if (
+      state.mode === "canvas"
+    ) {
+      cancelGesture(true);
+      return;
+    }
+
     if (
       event.pointerType === "touch"
     ) {
@@ -948,6 +1009,18 @@
   function finishWorkspaceSnap(
     velocity
   ) {
+    /*
+     * 방어적으로 Canvas 상태에서는
+     * page 전환을 만들지 않는다.
+     */
+    if (
+      state.mode === "canvas"
+    ) {
+      state.progress = 1;
+      render(1, true);
+      return;
+    }
+
     const progress =
       clamp(
         state.progress,
@@ -1101,6 +1174,18 @@
       return;
     }
 
+    /*
+     * Canvas에서는 page touch swipe 금지.
+     *
+     * Canvas 내부 touch는
+     * canvasNode.js에서 처리한다.
+     */
+    if (
+      state.mode === "canvas"
+    ) {
+      return;
+    }
+
     if (
       !event.touches ||
       event.touches.length !== 1
@@ -1171,6 +1256,17 @@
       !state.touchDragging ||
       state.touchId === null
     ) {
+      return;
+    }
+
+    /*
+     * Canvas 상태에서는
+     * page gesture를 종료한다.
+     */
+    if (
+      state.mode === "canvas"
+    ) {
+      cancelTouchGesture();
       return;
     }
 
@@ -1306,6 +1402,17 @@
     if (
       !state.touchDragging
     ) {
+      return;
+    }
+
+    /*
+     * Canvas가 활성화된 상태라면
+     * page 전환을 하지 않는다.
+     */
+    if (
+      state.mode === "canvas"
+    ) {
+      cancelTouchGesture();
       return;
     }
 

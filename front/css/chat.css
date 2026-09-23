@@ -1,0 +1,275 @@
+/* =========================================================
+   Astra
+   Chat Message UI
+   ========================================================= */
+
+
+/* =========================================================
+   MESSAGE LIST
+   ========================================================= */
+
+#chat-messages {
+  width: min(760px, 100%);
+
+  margin: 0 auto;
+
+  padding:
+    18px
+    0
+    24px;
+
+  display: flex;
+  flex-direction: column;
+
+  gap: 22px;
+}
+
+
+/* =========================================================
+   COMMON MESSAGE
+   ========================================================= */
+
+.astra-message {
+  width: 100%;
+
+  display: flex;
+
+  min-width: 0;
+}
+
+.astra-message-body {
+  min-width: 0;
+
+  color: var(--text);
+
+  font-size: 14px;
+  line-height: 1.7;
+
+  letter-spacing: -.018em;
+
+  overflow-wrap: anywhere;
+}
+
+
+/* =========================================================
+   SYSTEM
+   ========================================================= */
+
+.astra-message-system {
+  justify-content: center;
+
+  padding:
+    12px
+    0
+    8px;
+}
+
+.astra-message-system
+.astra-message-body {
+  max-width: 520px;
+
+  color: var(--muted);
+
+  font-size: 11px;
+  line-height: 1.55;
+
+  text-align: center;
+}
+
+
+/* =========================================================
+   USER
+   ========================================================= */
+
+.astra-message-user {
+  justify-content: flex-end;
+}
+
+.astra-message-user
+.astra-message-body {
+  max-width: min(620px, 84%);
+
+  padding:
+    11px
+    15px;
+
+  border:
+    1px solid
+    rgba(0, 0, 0, .035);
+
+  border-radius:
+    19px
+    19px
+    6px
+    19px;
+
+  background: var(--text);
+
+  color: var(--bg);
+
+  font-size: 13px;
+  line-height: 1.58;
+
+  white-space: pre-wrap;
+}
+
+:root.dark
+.astra-message-user
+.astra-message-body {
+  border-color:
+    rgba(255, 255, 255, .035);
+}
+
+
+/* =========================================================
+   ASSISTANT
+   ========================================================= */
+
+.astra-message-assistant {
+  justify-content: flex-start;
+
+  padding:
+    0
+    3px;
+}
+
+.astra-message-assistant
+.astra-message-body {
+  max-width: min(700px, 94%);
+
+  padding:
+    1px
+    0;
+
+  font-size: 14px;
+  line-height: 1.75;
+
+  white-space: pre-wrap;
+}
+
+
+/* =========================================================
+   FIRST ASSISTANT MESSAGE
+   ========================================================= */
+
+.astra-message-assistant:first-of-type
+.astra-message-body {
+  padding-top: 0;
+}
+
+
+/* =========================================================
+   MESSAGE SPACING
+   ========================================================= */
+
+.astra-message-system
++ .astra-message-user {
+  margin-top: 2px;
+}
+
+.astra-message-user
++ .astra-message-assistant {
+  margin-top: 2px;
+}
+
+
+/* =========================================================
+   SELECTION
+   ========================================================= */
+
+.astra-message-body::selection {
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 14%,
+      transparent
+    );
+}
+
+.astra-message-user
+.astra-message-body::selection {
+  background:
+    color-mix(
+      in srgb,
+      var(--bg) 18%,
+      transparent
+    );
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 700px) {
+
+  #chat-messages {
+    padding:
+      12px
+      0
+      20px;
+
+    gap: 20px;
+  }
+
+  .astra-message-system {
+    padding:
+      10px
+      0
+      6px;
+  }
+
+  .astra-message-system
+  .astra-message-body {
+    font-size: 10px;
+  }
+
+  .astra-message-user
+  .astra-message-body {
+    max-width: 90%;
+
+    padding:
+      10px
+      13px;
+
+    border-radius:
+      18px
+      18px
+      6px
+      18px;
+
+    font-size: 13px;
+  }
+
+  .astra-message-assistant {
+    padding:
+      0
+      1px;
+  }
+
+  .astra-message-assistant
+  .astra-message-body {
+    max-width: 96%;
+
+    font-size: 13.5px;
+    line-height: 1.7;
+  }
+}
+
+
+/* =========================================================
+   SMALL PHONE
+   ========================================================= */
+
+@media (max-width: 420px) {
+
+  .astra-message-user
+  .astra-message-body {
+    max-width: 94%;
+  }
+
+  .astra-message-assistant
+  .astra-message-body {
+    max-width: 98%;
+  }
+}

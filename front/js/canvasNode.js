@@ -2,41 +2,55 @@
   'use strict';
 
   const SVG_NS = 'http://www.w3.org/2000/svg';
+
   const MIN_SCALE = 0.12;
   const MAX_SCALE = 3;
+
   const GAP_Y = 36;
   const GAP_X_MIN = 54;
   const GAP_X_MAX = 110;
   const RELAX_PASSES = 6;
 
-  const U = global.AstraUtils || {};
+  const U =
+    global.AstraUtils || {};
 
   const clamp =
     U.clamp ||
-    ((v, a, b) =>
+    ((value, min, max) =>
       Math.min(
-        b,
-        Math.max(a, v)
+        max,
+        Math.max(min, value)
       ));
 
   const clone =
     U.clone ||
-    (v =>
-      JSON.parse(
-        JSON.stringify(v)
-      ));
+    (value => {
+      try {
+        return structuredClone(
+          value
+        );
+      } catch {
+        return JSON.parse(
+          JSON.stringify(value)
+        );
+      }
+    });
 
   const escapeHtml =
     U.escapeHtml ||
-    (v =>
-      String(v ?? '')
-        .replace(/[&<>'"]/g, c => ({
+    (value =>
+      String(
+        value ?? ''
+      ).replace(
+        /[&<>'"]/g,
+        char => ({
           '&': '&amp;',
           '<': '&lt;',
           '>': '&gt;',
           "'": '&#39;',
           '"': '&quot;'
-        }[c])));
+        }[char])
+      ));
 
   let instanceSeq = 0;
 
@@ -64,17 +78,21 @@
         aria-hidden="true"
       >
         <path
-          d="M5.5 6.5h9
-             M8 6.5V5h4v1.5
-             M7 8.5v6.5h6V8.5"
+          d="
+            M5.5 6.5h9
+            M8 6.5V5h4v1.5
+            M7 8.5v6.5h6V8.5
+          "
           stroke="currentColor"
           stroke-width="1.5"
           stroke-linecap="round"
           stroke-linejoin="round"
         />
         <path
-          d="M9 9.5v3.5
-             M11 9.5v3.5"
+          d="
+            M9 9.5v3.5
+            M11 9.5v3.5
+          "
           stroke="currentColor"
           stroke-width="1.35"
           stroke-linecap="round"
@@ -88,7 +106,7 @@
     name,
     attrs = {}
   ) {
-    const el =
+    const element =
       document.createElementNS(
         SVG_NS,
         name
@@ -98,13 +116,13 @@
       const [key, value]
       of Object.entries(attrs)
     ) {
-      el.setAttribute(
+      element.setAttribute(
         key,
         value
       );
     }
 
-    return el;
+    return element;
   }
 
 
@@ -118,8 +136,11 @@
 
   function mid(a, b) {
     return {
-      x: (a.x + b.x) / 2,
-      y: (a.y + b.y) / 2
+      x:
+        (a.x + b.x) / 2,
+
+      y:
+        (a.y + b.y) / 2
     };
   }
 
@@ -147,10 +168,15 @@
 
     return {
       node:
-        value.slice(0, dot),
+        value.slice(
+          0,
+          dot
+        ),
 
       port:
-        value.slice(dot + 1)
+        value.slice(
+          dot + 1
+        )
     };
   }
 
@@ -158,8 +184,12 @@
   function pathFor(a, b) {
     const bend =
       clamp(
-        Math.abs(b.x - a.x) * .22 +
-        Math.abs(b.y - a.y) * .05,
+        Math.abs(
+          b.x - a.x
+        ) * 0.22 +
+        Math.abs(
+          b.y - a.y
+        ) * 0.05,
         28,
         85
       );
@@ -169,7 +199,10 @@
       C ${a.x + bend} ${a.y},
         ${b.x - bend} ${b.y},
         ${b.x} ${b.y}
-    `.replace(/\s+/g, ' ');
+    `.replace(
+      /\s+/g,
+      ' '
+    );
   }
 
 
@@ -315,19 +348,32 @@
           y: 0
         },
 
-        pointers: new Map(),
+        pointers:
+          new Map(),
 
-        nodeDrag: null,
-        canvasPan: null,
-        pinch: null,
-        connectionDrag: null,
+        nodeDrag:
+          null,
+
+        canvasPan:
+          null,
+
+        pinch:
+          null,
+
+        connectionDrag:
+          null,
 
         interactionEnabled:
           options.interactionEnabled !== false,
 
-        destroyed: false,
+        destroyed:
+          false,
 
-        reflowFrame: null
+        reflowFrame:
+          null,
+
+        connectionFrame:
+          null
       };
 
 
@@ -351,6 +397,12 @@
         new Map();
 
       const listeners = [];
+
+      const observers = [];
+
+
+      const connectionElements =
+        new Map();
 
 
       function on(
@@ -439,6 +491,36 @@
       }
 
 
+      function scheduleConnectionRender() {
+        if (
+          state.destroyed
+        ) {
+          return;
+        }
+
+        if (
+          state.connectionFrame !==
+          null
+        ) {
+          return;
+        }
+
+        state.connectionFrame =
+          requestAnimationFrame(
+            () => {
+              state.connectionFrame =
+                null;
+
+              if (
+                !state.destroyed
+              ) {
+                renderConnections();
+              }
+            }
+          );
+      }
+
+
       function normalizePort(
         port,
         index,
@@ -473,8 +555,12 @@
               port?.accepts
             ) &&
             port.accepts.length
-              ? [...port.accepts]
-              : ['any']
+              ? [
+                  ...port.accepts
+                ]
+              : [
+                  'any'
+                ]
         };
       }
 
@@ -505,7 +591,10 @@
               definition?.inputs
             )
               ? definition.inputs.map(
-                  (port, index) =>
+                  (
+                    port,
+                    index
+                  ) =>
                     normalizePort(
                       port,
                       index,
@@ -519,7 +608,10 @@
               definition?.outputs
             )
               ? definition.outputs.map(
-                  (port, index) =>
+                  (
+                    port,
+                    index
+                  ) =>
                     normalizePort(
                       port,
                       index,
@@ -542,23 +634,30 @@
         type
       ) {
         return (
-          registry.get(type) ||
+          registry.get(
+            type
+          ) ||
           null
         );
       }
 
 
-      function getNode(id) {
+      function getNode(
+        id
+      ) {
         return (
           state.nodes.find(
             node =>
               node.id === id
-          ) || null
+          ) ||
+          null
         );
       }
 
 
-      function getNodeElement(id) {
+      function getNodeElement(
+        id
+      ) {
         return [
           ...nodesLayer.querySelectorAll(
             '.vc-node'
@@ -590,10 +689,14 @@
             ),
 
           x:
-            Number(input?.x) || 0,
+            Number(
+              input?.x
+            ) || 0,
 
           y:
-            Number(input?.y) || 0,
+            Number(
+              input?.y
+            ) || 0,
 
           expanded:
             !!input?.expanded,
@@ -652,10 +755,13 @@
                   param.id
                 )}"
                 value="${escapeHtml(
-                  values[param.id] ?? ''
+                  values[
+                    param.id
+                  ] ?? ''
                 )}"
                 placeholder="${escapeHtml(
-                  param.placeholder || ''
+                  param.placeholder ||
+                  ''
                 )}"
               >
 
@@ -673,7 +779,8 @@
 
           const size =
             Number(
-              node.data?.size || 0
+              node.data?.size ||
+              0
             );
 
           const text =
@@ -681,21 +788,27 @@
               ? `${size} B`
               : size < 1048576
                 ? `${(
-                    size / 1024
+                    size /
+                    1024
                   ).toFixed(1)} KB`
                 : `${(
-                    size / 1048576
+                    size /
+                    1048576
                   ).toFixed(1)} MB`;
 
           out.push(`
             <div class="vc-slot-custom">
               <div class="vc-file-meta">
                 <span>
-                  ${escapeHtml(mime)}
+                  ${escapeHtml(
+                    mime
+                  )}
                 </span>
 
                 <span>
-                  ${escapeHtml(text)}
+                  ${escapeHtml(
+                    text
+                  )}
                 </span>
               </div>
             </div>
@@ -751,8 +864,74 @@
       }
 
 
+      function observeNode(
+        element
+      ) {
+        if (
+          !element
+        ) {
+          return;
+        }
+
+        if (
+          nodeResizeObserver
+        ) {
+          try {
+            nodeResizeObserver.observe(
+              element
+            );
+          } catch {}
+        }
+      }
+
+
+      const nodeResizeObserver =
+        new ResizeObserver(
+          entries => {
+            if (
+              state.destroyed
+            ) {
+              return;
+            }
+
+            for (
+              const entry
+              of entries
+            ) {
+              const node =
+                getNode(
+                  entry
+                    .target
+                    ?.dataset
+                    ?.nodeId
+                );
+
+              if (!node) {
+                continue;
+              }
+
+              positionPorts(
+                entry.target,
+                getDefinition(
+                  node.type
+                )
+              );
+            }
+
+            scheduleConnectionRender();
+          }
+        );
+
+
+      observers.push(
+        () =>
+          nodeResizeObserver.disconnect()
+      );
+
+
       function renderNodes() {
-        nodesLayer.textContent = '';
+        nodesLayer.textContent =
+          '';
 
         for (
           const node
@@ -779,7 +958,6 @@
             ).startsWith(
               'image/'
             );
-
 
           const classes = [
             'vc-node'
@@ -816,12 +994,13 @@
             );
           }
 
-          if (node.expanded) {
+          if (
+            node.expanded
+          ) {
             classes.push(
               'vc-expanded'
             );
           }
-
 
           element.className =
             classes.join(' ');
@@ -996,11 +1175,18 @@
             element
           );
 
+
+          observeNode(
+            element
+          );
+
+
           setNodeExpanded(
             node,
             node.expanded,
             true
           );
+
 
           positionPorts(
             element,
@@ -1020,6 +1206,13 @@
         element,
         definition
       ) {
+        if (
+          !element ||
+          !definition
+        ) {
+          return;
+        }
+
         const height =
           Math.max(
             50,
@@ -1062,12 +1255,12 @@
 
         place(
           '.vc-port-hit.vc-input',
-          definition?.inputs || []
+          definition.inputs || []
         );
 
         place(
           '.vc-port-hit.vc-output',
-          definition?.outputs || []
+          definition.outputs || []
         );
       }
 
@@ -1098,48 +1291,81 @@
         portId,
         direction
       ) {
-        const element =
-          getPortElement(
-            nodeId,
-            portId,
-            direction
+        const node =
+          getNode(
+            nodeId
           );
 
-        if (!element) {
+        const element =
+          getNodeElement(
+            nodeId
+          );
+
+        const definition =
+          getDefinition(
+            node?.type
+          );
+
+        if (
+          !node ||
+          !element ||
+          !definition
+        ) {
           return null;
         }
 
-        const anchor =
-          element.querySelector(
-            '.vc-port-anchor'
-          ) ||
-          element;
+        const ports =
+          direction === 'input'
+            ? (
+                definition.inputs ||
+                []
+              )
+            : (
+                definition.outputs ||
+                []
+              );
 
-        const portRect =
-          anchor.getBoundingClientRect();
+        const index =
+          ports.findIndex(
+            port =>
+              String(port.id) ===
+              String(portId)
+          );
 
-        const viewportRect =
-          viewport.getBoundingClientRect();
+        if (
+          index < 0
+        ) {
+          return null;
+        }
 
+        const height =
+          Math.max(
+            50,
+            element.offsetHeight || 74
+          );
+
+        const y =
+          (
+            (index + 1) /
+            Math.max(
+              1,
+              ports.length + 1
+            )
+          ) *
+          height;
+
+        const width =
+          element.offsetWidth ||
+          190;
 
         return {
           x:
-            (
-              portRect.left +
-              portRect.width / 2 -
-              viewportRect.left -
-              state.offset.x
-            ) /
-            state.scale,
+            direction === 'input'
+              ? node.x
+              : node.x + width,
 
           y:
-            (
-              portRect.top +
-              portRect.height / 2 -
-              viewportRect.top -
-              state.offset.y
-            ) /
-            state.scale
+            node.y + y
         };
       }
 
@@ -1189,9 +1415,37 @@
       }
 
 
+      function removeConnectionElement(
+        id
+      ) {
+        const element =
+          connectionElements.get(
+            id
+          );
+
+        if (
+          !element
+        ) {
+          return;
+        }
+
+        element.remove();
+
+        connectionElements.delete(
+          id
+        );
+      }
+
+
       function renderConnections() {
-        connectionLayer.textContent =
-          '';
+        if (
+          state.destroyed
+        ) {
+          return;
+        }
+
+        const activeIds =
+          new Set();
 
         for (
           const connection
@@ -1218,6 +1472,50 @@
             continue;
           }
 
+          activeIds.add(
+            connection.id
+          );
+
+          let path =
+            connectionElements.get(
+              connection.id
+            );
+
+          if (
+            !path
+          ) {
+            path =
+              svgEl(
+                'path'
+              );
+
+            path.classList.add(
+              'vc-connection'
+            );
+
+            path.dataset.connectionId =
+              connection.id;
+
+            path.style.pointerEvents =
+              'stroke';
+
+            connectionLayer.appendChild(
+              path
+            );
+
+            connectionElements.set(
+              connection.id,
+              path
+            );
+          }
+
+          path.setAttribute(
+            'd',
+            pathFor(
+              from,
+              to
+            )
+          );
 
           const active =
             state.selectedNode ===
@@ -1225,30 +1523,14 @@
             state.selectedNode ===
               connection.to.node;
 
-
-          const path =
-            svgEl(
-              'path',
-              {
-                d:
-                  pathFor(
-                    from,
-                    to
-                  )
-              }
-            );
-
-          path.classList.add(
-            'vc-connection'
+          path.classList.toggle(
+            'vc-active',
+            active
           );
 
-
-          if (active) {
-            path.classList.add(
-              'vc-active'
-            );
-
-
+          if (
+            active
+          ) {
             const definition =
               getDefinition(
                 getNode(
@@ -1256,19 +1538,32 @@
                 )?.type
               );
 
-
             if (
               definition?.color
             ) {
               path.style.stroke =
                 definition.color;
             }
+          } else {
+            path.style.stroke =
+              '';
           }
+        }
 
 
-          connectionLayer.appendChild(
-            path
-          );
+        for (
+          const [
+            id
+          ]
+          of connectionElements
+        ) {
+          if (
+            !activeIds.has(id)
+          ) {
+            removeConnectionElement(
+              id
+            );
+          }
         }
 
 
@@ -1283,35 +1578,66 @@
         const drag =
           state.connectionDrag;
 
-        if (!drag) {
+        if (
+          !drag
+        ) {
           return;
         }
 
+        let from;
+        let to;
 
-        const from =
-          portPoint(
-            drag.from.node,
-            drag.from.port,
+        if (
+          drag.direction ===
+          'output'
+        ) {
+          from =
+            portPoint(
+              drag.anchor.node,
+              drag.anchor.port,
+              'output'
+            );
+
+          to =
+            screenToWorld(
+              drag.x,
+              drag.y
+            );
+        } else {
+          from =
+            screenToWorld(
+              drag.x,
+              drag.y
+            );
+
+          to =
+            portPoint(
+              drag.anchor.node,
+              drag.anchor.port,
+              'input'
+            );
+        }
+
+        if (
+          !from ||
+          !to
+        ) {
+          return;
+        }
+
+        const sourceNode =
+          drag.direction ===
             'output'
-          );
-
-        if (!from) {
-          return;
-        }
-
-
-        const to =
-          screenToWorld(
-            drag.x,
-            drag.y
-          );
-
+            ? getNode(
+                drag.anchor.node
+              )
+            : getNode(
+                drag.target?.node
+              );
 
         const definition =
           getDefinition(
-            getNode(
-              drag.from.node
-            )?.type
+            sourceNode?.type
           );
 
 
@@ -1331,6 +1657,8 @@
           'vc-drag-connection'
         );
 
+        path.style.pointerEvents =
+          'none';
 
         if (
           definition?.color
@@ -1339,9 +1667,49 @@
             definition.color;
         }
 
-
         dragLayer.appendChild(
           path
+        );
+
+
+        const dotPoint =
+          drag.direction ===
+            'output'
+            ? from
+            : to;
+
+
+        const dot =
+          svgEl(
+            'circle',
+            {
+              cx:
+                dotPoint.x,
+
+              cy:
+                dotPoint.y,
+
+              r:
+                4
+            }
+          );
+
+        dot.classList.add(
+          'vc-drag-source-dot'
+        );
+
+        if (
+          definition?.color
+        ) {
+          dot.style.fill =
+            definition.color;
+        }
+
+        dot.style.pointerEvents =
+          'none';
+
+        dragLayer.appendChild(
+          dot
         );
       }
 
@@ -1368,6 +1736,29 @@
               rect.top -
               state.offset.y
             ) /
+            state.scale
+        };
+      }
+
+
+      function worldToScreen(
+        x,
+        y
+      ) {
+        const rect =
+          viewport.getBoundingClientRect();
+
+        return {
+          x:
+            rect.left +
+            state.offset.x +
+            x *
+            state.scale,
+
+          y:
+            rect.top +
+            state.offset.y +
+            y *
             state.scale
         };
       }
@@ -1461,6 +1852,7 @@
 
 
         renderTransform();
+
         renderConnections();
       }
 
@@ -1475,32 +1867,29 @@
             node.id
           );
 
-        if (!element) {
+        if (
+          !element
+        ) {
           return;
         }
-
 
         const body =
           element.querySelector(
             '.vc-node-body'
           );
 
-
         const toggle =
           element.querySelector(
             '.vc-node-toggle'
           );
 
-
         node.expanded =
           !!expanded;
-
 
         element.classList.toggle(
           'vc-expanded',
           node.expanded
         );
-
 
         toggle?.setAttribute(
           'aria-expanded',
@@ -1508,7 +1897,6 @@
             node.expanded
           )
         );
-
 
         toggle?.setAttribute(
           'aria-label',
@@ -1519,13 +1907,16 @@
           }`
         );
 
-
-        if (!body) {
+        if (
+          !body
+        ) {
+          scheduleConnectionRender();
           return;
         }
 
-
-        if (immediate) {
+        if (
+          immediate
+        ) {
           body.style.transition =
             'none';
 
@@ -1534,6 +1925,12 @@
               ? 'auto'
               : '0px';
 
+          positionPorts(
+            element,
+            getDefinition(
+              node.type
+            )
+          );
 
           requestAnimationFrame(
             () => {
@@ -1555,14 +1952,27 @@
         }
 
 
-        if (node.expanded) {
+        if (
+          node.expanded
+        ) {
           body.style.height =
             '0px';
 
           requestAnimationFrame(
             () => {
+              if (
+                !body
+              ) {
+                return;
+              }
+
               body.style.height =
                 `${body.scrollHeight}px`;
+
+              trackExpansion(
+                element,
+                body
+              );
             }
           );
 
@@ -1577,19 +1987,89 @@
           () => {
             body.style.height =
               '0px';
+
+            trackExpansion(
+              element,
+              body
+            );
           }
         );
       }
 
 
-      function selectNode(id) {
+      function trackExpansion(
+        element,
+        body
+      ) {
+        let active = true;
+
+        let frame = null;
+
+        const started =
+          performance.now();
+
+        const duration =
+          340;
+
+
+        function tick() {
+          if (
+            !active
+          ) {
+            return;
+          }
+
+          positionPorts(
+            element,
+            getDefinition(
+              getNode(
+                element.dataset.nodeId
+              )?.type
+            )
+          );
+
+          renderConnections();
+
+          if (
+            performance.now() -
+            started <
+            duration
+          ) {
+            frame =
+              requestAnimationFrame(
+                tick
+              );
+          } else {
+            active =
+              false;
+
+            if (
+              frame !== null
+            ) {
+              cancelAnimationFrame(
+                frame
+              );
+            }
+          }
+        }
+
+
+        frame =
+          requestAnimationFrame(
+            tick
+          );
+      }
+
+
+      function selectNode(
+        id
+      ) {
         if (
           id !== null &&
           !getNode(id)
         ) {
           id = null;
         }
-
 
         state.selectedNode =
           id;
@@ -1622,21 +2102,24 @@
         id
       ) {
         const node =
-          getNode(id);
+          getNode(
+            id
+          );
 
-        if (!node) {
+        if (
+          !node
+        ) {
           return;
         }
-
 
         setNodeExpanded(
           node,
           !node.expanded
         );
 
-
-        selectNode(id);
-
+        selectNode(
+          id
+        );
 
         emit(
           'change',
@@ -1652,10 +2135,14 @@
       ) {
         const definition =
           getDefinition(
-            getNode(nodeId)?.type
+            getNode(
+              nodeId
+            )?.type
           );
 
-        if (!definition) {
+        if (
+          !definition
+        ) {
           return null;
         }
 
@@ -1664,12 +2151,15 @@
             ? definition.inputs
             : definition.outputs;
 
-
         return (
           ports.find(
             port =>
-              String(port.id) ===
-              String(portId)
+              String(
+                port.id
+              ) ===
+              String(
+                portId
+              )
           ) ||
           null
         );
@@ -1685,18 +2175,22 @@
             input?.accepts
           )
             ? input.accepts
-            : ['any'];
-
+            : [
+                'any'
+              ];
 
         return (
           !!output &&
           !!input &&
           (
-            accepts.includes('any') ||
+            accepts.includes(
+              'any'
+            ) ||
             accepts.includes(
               output.type
             ) ||
-            output.type === 'any'
+            output.type ===
+              'any'
           )
         );
       }
@@ -1707,11 +2201,11 @@
         toId
       ) {
         if (
-          fromId === toId
+          fromId ===
+          toId
         ) {
           return true;
         }
-
 
         const graph =
           new Map();
@@ -1731,7 +2225,6 @@
               []
             );
           }
-
 
           graph
             .get(
@@ -1757,13 +2250,12 @@
           const current =
             stack.pop();
 
-
           if (
-            current === fromId
+            current ===
+            fromId
           ) {
             return true;
           }
-
 
           if (
             seen.has(
@@ -1773,11 +2265,9 @@
             continue;
           }
 
-
           seen.add(
             current
           );
-
 
           for (
             const next
@@ -1790,7 +2280,6 @@
             );
           }
         }
-
 
         return false;
       }
@@ -1810,7 +2299,6 @@
             fromNodeId
           );
 
-
         const target =
           getNode(
             toNodeId
@@ -1824,7 +2312,6 @@
             'output'
           );
 
-
         const input =
           portDef(
             toNodeId,
@@ -1833,7 +2320,23 @@
           );
 
 
-        if (!source) {
+        if (
+          fromNodeId ===
+          toNodeId
+        ) {
+          errors.push({
+            code:
+              'SELF_CONNECTION',
+
+            message:
+              '노드는 자기 자신에게 연결할 수 없습니다.'
+          });
+        }
+
+
+        if (
+          !source
+        ) {
           errors.push({
             code:
               'MISSING_SOURCE_NODE',
@@ -1844,7 +2347,9 @@
         }
 
 
-        if (!target) {
+        if (
+          !target
+        ) {
           errors.push({
             code:
               'MISSING_TARGET_NODE',
@@ -1855,7 +2360,9 @@
         }
 
 
-        if (!output) {
+        if (
+          !output
+        ) {
           errors.push({
             code:
               'MISSING_SOURCE_PORT',
@@ -1866,7 +2373,9 @@
         }
 
 
-        if (!input) {
+        if (
+          !input
+        ) {
           errors.push({
             code:
               'MISSING_TARGET_PORT',
@@ -1881,32 +2390,11 @@
           errors.length
         ) {
           return {
-            ok: false,
+            ok:
+              false,
+
             errors
           };
-        }
-
-
-        if (
-          state.connections.some(
-            connection =>
-              connection.from.node ===
-                fromNodeId &&
-              connection.from.port ===
-                fromPortId &&
-              connection.to.node ===
-                toNodeId &&
-              connection.to.port ===
-                toPortId
-          )
-        ) {
-          errors.push({
-            code:
-              'DUPLICATE_CONNECTION',
-
-            message:
-              '동일한 연결이 이미 존재합니다.'
-          });
         }
 
 
@@ -1965,6 +2453,7 @@
         return {
           ok:
             errors.length === 0,
+
           errors
         };
       }
@@ -1990,19 +2479,112 @@
       }
 
 
+      function uniqueConnectionId() {
+        let id;
+
+        do {
+          id =
+            `c-${Date.now()
+              .toString(36)}` +
+            Math.random()
+              .toString(36)
+              .slice(2, 8);
+
+        } while (
+          state.connections.some(
+            connection =>
+              connection.id ===
+              id
+          )
+        );
+
+        return id;
+      }
+
+
+      function sameConnection(
+        a,
+        b
+      ) {
+        return (
+          a.from.node ===
+            b.from.node &&
+          a.from.port ===
+            b.from.port &&
+          a.to.node ===
+            b.to.node &&
+          a.to.port ===
+            b.to.port
+        );
+      }
+
+
       function connect(
         from,
         to,
         options = {}
       ) {
+        const specification = {
+          from: {
+            node:
+              String(
+                from.node
+              ),
+
+            port:
+              String(
+                from.port
+              )
+          },
+
+          to: {
+            node:
+              String(
+                to.node
+              ),
+
+            port:
+              String(
+                to.port
+              )
+          }
+        };
+
+
+        /*
+          같은 연결을 다시 만들려고 하면
+          해당 연결을 제거한다
+        */
+        const duplicate =
+          state.connections.find(
+            connection =>
+              sameConnection(
+                connection,
+                specification
+              )
+          );
+
+
+        if (
+          duplicate
+        ) {
+          disconnect(
+            duplicate.id
+          );
+
+          return null;
+        }
+
+
         const result =
-          canConnect({
-            from,
-            to
-          });
+          canConnect(
+            specification
+          );
 
 
-        if (!result.ok) {
+        if (
+          !result.ok
+        ) {
           emit(
             'connectionRejected',
             result
@@ -2014,31 +2596,19 @@
 
         const connection = {
           id:
-            `c-${Date.now()
-              .toString(36)}-` +
-            Math.random()
-              .toString(36)
-              .slice(2, 7),
+            uniqueConnectionId(),
 
-          from: {
-            node:
-              String(from.node),
+          from:
+            specification.from,
 
-            port:
-              String(from.port)
-          },
-
-          to: {
-            node:
-              String(to.node),
-
-            port:
-              String(to.port)
-          }
+          to:
+            specification.to
         };
 
 
-        if (options.data) {
+        if (
+          options.data
+        ) {
           connection.data =
             clone(
               options.data
@@ -2052,12 +2622,15 @@
 
 
         markConnectedPorts();
+
         renderConnections();
 
 
         emit(
           'connect',
-          clone(connection)
+          clone(
+            connection
+          )
         );
 
 
@@ -2077,11 +2650,14 @@
         const index =
           state.connections.findIndex(
             connection =>
-              connection.id === id
+              connection.id ===
+              id
           );
 
 
-        if (index < 0) {
+        if (
+          index < 0
+        ) {
           return false;
         }
 
@@ -2092,7 +2668,13 @@
         );
 
 
+        removeConnectionElement(
+          id
+        );
+
+
         markConnectedPorts();
+
         renderConnections();
 
 
@@ -2119,12 +2701,15 @@
         const ids =
           new Set();
 
+
         for (
           const node
           of state.nodes
         ) {
           if (
-            ids.has(node.id)
+            ids.has(
+              node.id
+            )
           ) {
             errors.push({
               code:
@@ -2171,7 +2756,6 @@
               'output'
             );
 
-
           const input =
             portDef(
               connection.to.node,
@@ -2210,7 +2794,9 @@
           }
 
 
-          if (!output) {
+          if (
+            !output
+          ) {
             errors.push({
               code:
                 'MISSING_SOURCE_PORT',
@@ -2221,7 +2807,9 @@
           }
 
 
-          if (!input) {
+          if (
+            !input
+          ) {
             errors.push({
               code:
                 'MISSING_TARGET_PORT',
@@ -2279,23 +2867,28 @@
           new Set();
 
 
-        function dfs(id) {
+        function dfs(
+          id
+        ) {
           if (
-            visiting.has(id)
+            visiting.has(
+              id
+            )
           ) {
             return true;
           }
 
-
           if (
-            visited.has(id)
+            visited.has(
+              id
+            )
           ) {
             return false;
           }
 
-
-          visiting.add(id);
-
+          visiting.add(
+            id
+          );
 
           for (
             const next
@@ -2308,9 +2901,13 @@
             }
           }
 
+          visiting.delete(
+            id
+          );
 
-          visiting.delete(id);
-          visited.add(id);
+          visited.add(
+            id
+          );
 
           return false;
         }
@@ -2324,7 +2921,9 @@
             !visited.has(
               node.id
             ) &&
-            dfs(node.id)
+            dfs(
+              node.id
+            )
           ) {
             errors.push({
               code:
@@ -2471,36 +3070,47 @@
         kind
       ) {
         return (
-          Array.isArray(edges)
+          Array.isArray(
+            edges
+          )
             ? edges
             : []
         )
-          .map(edge => {
-            try {
-              const from =
-                endpoint(edge[0]);
+          .map(
+            edge => {
+              try {
+                const from =
+                  endpoint(
+                    edge[0]
+                  );
 
-              const to =
-                endpoint(edge[1]);
+                const to =
+                  endpoint(
+                    edge[1]
+                  );
 
-              return {
-                id:
-                  `c-${Math.random()
-                    .toString(36)
-                    .slice(2, 9)}`,
+                return {
+                  id:
+                    `c-${Math.random()
+                      .toString(36)
+                      .slice(2, 9)}`,
 
-                from,
-                to,
+                  from,
 
-                data: {
-                  kind
-                }
-              };
-            } catch {
-              return null;
+                  to,
+
+                  data: {
+                    kind
+                  }
+                };
+              } catch {
+                return null;
+              }
             }
-          })
-          .filter(Boolean);
+          )
+          .filter(
+            Boolean
+          );
       }
 
 
@@ -2628,13 +3238,15 @@
             x:
               Number(
                 saved.viewport
-                  ?.offset?.x
+                  ?.offset
+                  ?.x
               ) || 0,
 
             y:
               Number(
                 saved.viewport
-                  ?.offset?.y
+                  ?.offset
+                  ?.y
               ) || 0
           };
         }
@@ -2645,7 +3257,6 @@
 
 
         render();
-
 
         emit(
           'change',
@@ -2765,7 +3376,8 @@
 
 
         const queue = [];
-        const queued = new Set();
+        const queued =
+          new Set();
 
 
         (
@@ -2804,7 +3416,8 @@
 
 
           const current =
-            rank.get(id) || 0;
+            rank.get(id) ||
+            0;
 
 
           for (
@@ -2814,7 +3427,9 @@
             rank.set(
               next,
               Math.max(
-                rank.get(next) || 0,
+                rank.get(next) ||
+                  0,
+
                 current + 1
               )
             );
@@ -2822,7 +3437,9 @@
 
             indegree.set(
               next,
-              indegree.get(next) - 1
+              indegree.get(
+                next
+              ) - 1
             );
 
 
@@ -2830,7 +3447,9 @@
               indegree.get(
                 next
               ) === 0 &&
-              !queued.has(next)
+              !queued.has(
+                next
+              )
             ) {
               queued.add(
                 next
@@ -2883,7 +3502,6 @@
               node.id
             ) || 0;
 
-
           if (
             !layers.has(r)
           ) {
@@ -2893,10 +3511,11 @@
             );
           }
 
-
           layers
             .get(r)
-            .push(node);
+            .push(
+              node
+            );
         }
 
 
@@ -2904,7 +3523,10 @@
           [
             ...layers.keys()
           ].sort(
-            (a, b) =>
+            (
+              a,
+              b
+            ) =>
               a - b
           );
 
@@ -2913,12 +3535,13 @@
           new Map();
 
 
-        function size(node) {
+        function size(
+          node
+        ) {
           const element =
             getNodeElement(
               node.id
             );
-
 
           return {
             width:
@@ -2955,8 +3578,9 @@
                 node
               ) =>
                 sum +
-                size(node)
-                  .height,
+                size(
+                  node
+                ).height,
 
               0
             );
@@ -2979,8 +3603,9 @@
             of nodes
           ) {
             const height =
-              size(node)
-                .height;
+              size(
+                node
+              ).height;
 
 
             centers.set(
@@ -3002,13 +3627,17 @@
           targetLayer
         ) {
           return [
-            ...(incoming.get(
-              node.id
-            ) || []),
+            ...(
+              incoming.get(
+                node.id
+              ) || []
+            ),
 
-            ...(outgoing.get(
-              node.id
-            ) || [])
+            ...(
+              outgoing.get(
+                node.id
+              ) || []
+            )
           ].filter(
             id =>
               rank.get(id) ===
@@ -3019,7 +3648,8 @@
 
         for (
           let pass = 0;
-          pass < RELAX_PASSES;
+          pass <
+            RELAX_PASSES;
           pass++
         ) {
           const forward =
@@ -3118,7 +3748,10 @@
                   }
                 )
                 .sort(
-                  (a, b) =>
+                  (
+                    a,
+                    b
+                  ) =>
                     a.targetY -
                     b.targetY ||
                     a.index -
@@ -3146,8 +3779,9 @@
               )
             ) {
               const height =
-                size(node)
-                  .height;
+                size(
+                  node
+                ).height;
 
 
               let center =
@@ -3205,7 +3839,9 @@
             width =
               Math.max(
                 width,
-                size(node).width
+                size(
+                  node
+                ).width
               );
           }
 
@@ -3235,9 +3871,14 @@
 
 
           x +=
-            widths.get(layer) +
+            widths.get(
+              layer
+            ) +
             clamp(
-              widths.get(layer) * .28,
+              widths.get(
+                layer
+              ) * 0.28,
+
               GAP_X_MIN,
               GAP_X_MAX
             );
@@ -3255,7 +3896,9 @@
             )
           ) {
             const s =
-              size(node);
+              size(
+                node
+              );
 
 
             node.x =
@@ -3292,6 +3935,13 @@
                 null;
 
 
+              if (
+                state.destroyed
+              ) {
+                return;
+              }
+
+
               layoutWorkflow();
 
 
@@ -3305,7 +3955,9 @@
                   );
 
 
-                if (!element) {
+                if (
+                  !element
+                ) {
                   continue;
                 }
 
@@ -3338,14 +3990,30 @@
       }
 
 
+      function cancelScheduledReflow() {
+        if (
+          state.reflowFrame ===
+          null
+        ) {
+          return;
+        }
+
+        cancelAnimationFrame(
+          state.reflowFrame
+        );
+
+        state.reflowFrame =
+          null;
+      }
+
+
       function applyWorkflowIR(
         spec,
         options = {}
       ) {
         if (
           !spec ||
-          typeof spec !==
-            'object' ||
+          typeof spec !== 'object' ||
           !Array.isArray(
             spec.nodes
           )
@@ -3422,6 +4090,9 @@
 
 
         render();
+
+        cancelScheduledReflow();
+
         layoutWorkflow();
 
 
@@ -3435,7 +4106,9 @@
             );
 
 
-          if (!element) {
+          if (
+            !element
+          ) {
             continue;
           }
 
@@ -3503,21 +4176,34 @@
         const width =
           190;
 
-
         const height =
           60;
-
 
         const gap =
           24;
 
 
         const spots = [
-          [0, 0],
-          [0, height + gap],
-          [0, -height - gap],
-          [-width - gap, 0],
-          [width + gap, 0]
+          [
+            0,
+            0
+          ],
+          [
+            0,
+            height + gap
+          ],
+          [
+            0,
+            -height - gap
+          ],
+          [
+            -width - gap,
+            0
+          ],
+          [
+            width + gap,
+            0
+          ]
         ];
 
 
@@ -3544,17 +4230,21 @@
             state.nodes.some(
               node =>
                 Math.abs(
-                  node.x - x
+                  node.x -
+                  x
                 ) <
                   width + gap &&
                 Math.abs(
-                  node.y - y
+                  node.y -
+                  y
                 ) <
                   height + gap
             );
 
 
-          if (!occupied) {
+          if (
+            !occupied
+          ) {
             return {
               x,
               y
@@ -3580,7 +4270,9 @@
         data = {}
       ) {
         if (
-          !registry.has(type)
+          !registry.has(
+            type
+          )
         ) {
           throw new Error(
             `존재하지 않는 노드 타입: ${type}`
@@ -3618,10 +4310,14 @@
           data.y != null
             ? {
                 x:
-                  Number(data.x),
+                  Number(
+                    data.x
+                  ),
 
                 y:
-                  Number(data.y)
+                  Number(
+                    data.y
+                  )
               }
             : findNewNodePosition();
 
@@ -3680,7 +4376,9 @@
         id
       ) {
         const node =
-          getNode(id);
+          getNode(
+            id
+          );
 
 
         if (
@@ -3699,6 +4397,16 @@
           );
 
 
+        const removed =
+          state.connections.filter(
+            connection =>
+              connection.from.node ===
+                id ||
+              connection.to.node ===
+                id
+          );
+
+
         state.connections =
           state.connections.filter(
             connection =>
@@ -3707,6 +4415,16 @@
               connection.to.node !==
                 id
           );
+
+
+        for (
+          const connection
+          of removed
+        ) {
+          removeConnectionElement(
+            connection.id
+          );
+        }
 
 
         if (
@@ -3752,11 +4470,7 @@
           state.pinch =
             null;
 
-          state.connectionDrag =
-            null;
-
-          dragLayer.textContent =
-            '';
+          cancelConnectionDrag();
         }
 
 
@@ -3767,6 +4481,281 @@
 
 
         return api;
+      }
+
+
+      function beginConnectionDrag(
+        event,
+        port,
+        node
+      ) {
+        const direction =
+          port.dataset
+            .portDir;
+
+        if (
+          direction !==
+            'output' &&
+          direction !==
+            'input'
+        ) {
+          return;
+        }
+
+
+        cancelScheduledReflow();
+
+
+        state.connectionDrag = {
+          pointerId:
+            event.pointerId,
+
+          direction,
+
+          anchor: {
+            node:
+              node.id,
+
+            port:
+              port.dataset
+                .portId
+          },
+
+          x:
+            event.clientX,
+
+          y:
+            event.clientY
+        };
+
+
+        try {
+          viewport.setPointerCapture(
+            event.pointerId
+          );
+        } catch {}
+
+
+        renderDragConnection();
+      }
+
+
+      function cancelConnectionDrag() {
+        const drag =
+          state.connectionDrag;
+
+        if (
+          !drag
+        ) {
+          dragLayer.textContent =
+            '';
+
+          return false;
+        }
+
+
+        try {
+          viewport.releasePointerCapture(
+            drag.pointerId
+          );
+        } catch {}
+
+
+        state.connectionDrag =
+          null;
+
+        dragLayer.textContent =
+          '';
+
+        renderConnections();
+
+        return true;
+      }
+
+
+      function getPortAtWorldPoint(
+        worldPoint,
+        direction
+      ) {
+        const tolerance =
+          20;
+
+
+        for (
+          const node
+          of state.nodes
+        ) {
+          const definition =
+            getDefinition(
+              node.type
+            );
+
+          if (
+            !definition
+          ) {
+            continue;
+          }
+
+
+          const ports =
+            direction ===
+              'input'
+              ? (
+                  definition.inputs ||
+                  []
+                )
+              : (
+                  definition.outputs ||
+                  []
+                );
+
+
+          const element =
+            getNodeElement(
+              node.id
+            );
+
+          if (
+            !element
+          ) {
+            continue;
+          }
+
+
+          const height =
+            Math.max(
+              50,
+              element.offsetHeight ||
+              74
+            );
+
+
+          const width =
+            element.offsetWidth ||
+            190;
+
+
+          for (
+            let index = 0;
+            index <
+              ports.length;
+            index++
+          ) {
+            const y =
+              (
+                (index + 1) /
+                Math.max(
+                  1,
+                  ports.length + 1
+                )
+              ) *
+              height;
+
+
+            const centerX =
+              direction ===
+                'input'
+                ? node.x
+                : node.x + width;
+
+
+            const centerY =
+              node.y + y;
+
+
+            if (
+              Math.abs(
+                worldPoint.x -
+                centerX
+              ) <=
+                tolerance &&
+              Math.abs(
+                worldPoint.y -
+                centerY
+              ) <=
+                tolerance
+            ) {
+              return {
+                node:
+                  node.id,
+
+                port:
+                  String(
+                    ports[index].id
+                  )
+              };
+            }
+          }
+        }
+
+
+        return null;
+      }
+
+
+      function finishConnection(
+        event
+      ) {
+        const drag =
+          state.connectionDrag;
+
+        if (
+          !drag
+        ) {
+          return false;
+        }
+
+
+        const point =
+          screenToWorld(
+            event.clientX,
+            event.clientY
+          );
+
+
+        let targetPort =
+          null;
+
+
+        if (
+          drag.direction ===
+          'output'
+        ) {
+          targetPort =
+            getPortAtWorldPoint(
+              point,
+              'input'
+            );
+
+          if (
+            targetPort
+          ) {
+            connect(
+              drag.anchor,
+              targetPort
+            );
+          }
+        } else {
+          targetPort =
+            getPortAtWorldPoint(
+              point,
+              'output'
+            );
+
+          if (
+            targetPort
+          ) {
+            connect(
+              targetPort,
+              drag.anchor
+            );
+          }
+        }
+
+
+        cancelConnectionDrag();
+
+        return !!targetPort;
       }
 
 
@@ -3801,7 +4790,9 @@
             );
 
 
-          if (!action) {
+          if (
+            !action
+          ) {
             return;
           }
 
@@ -3812,7 +4803,9 @@
             );
 
 
-          if (!element) {
+          if (
+            !element
+          ) {
             return;
           }
 
@@ -3828,7 +4821,9 @@
             );
 
 
-          if (!node) {
+          if (
+            !node
+          ) {
             return;
           }
 
@@ -3845,9 +4840,14 @@
           }
 
 
-          removeNode(
-            node.id
-          );
+          if (
+            action.dataset.action ===
+            'delete'
+          ) {
+            removeNode(
+              node.id
+            );
+          }
         }
       );
 
@@ -3862,7 +4862,9 @@
             );
 
 
-          if (!input) {
+          if (
+            !input
+          ) {
             return;
           }
 
@@ -3873,7 +4875,9 @@
             );
 
 
-          if (!element) {
+          if (
+            !element
+          ) {
             return;
           }
 
@@ -3885,13 +4889,18 @@
             );
 
 
-          if (!node) {
+          if (
+            !node
+          ) {
             return;
           }
 
 
-          node.data ||= {};
-          node.data.params ||= {};
+          node.data ||=
+            {};
+
+          node.data.params ||=
+            {};
 
 
           node.data.params[
@@ -3904,6 +4913,70 @@
             'change',
             getWorkflow()
           );
+        }
+      );
+
+
+      /*
+        연결선은 canvas 이동 이벤트보다
+        먼저 먹는다.
+      */
+
+      listen(
+        connectionLayer,
+        'pointerdown',
+        event => {
+          const path =
+            event.target.closest(
+              '.vc-connection'
+            );
+
+          if (
+            !path
+          ) {
+            return;
+          }
+
+          event.preventDefault();
+          event.stopPropagation();
+        },
+        {
+          passive: false
+        }
+      );
+
+
+      listen(
+        connectionLayer,
+        'click',
+        event => {
+          const path =
+            event.target.closest(
+              '.vc-connection'
+            );
+
+          if (
+            !path
+          ) {
+            return;
+          }
+
+          event.preventDefault();
+          event.stopPropagation();
+
+
+          const id =
+            path.dataset
+              .connectionId;
+
+
+          if (
+            id
+          ) {
+            disconnect(
+              id
+            );
+          }
         }
       );
 
@@ -3934,13 +5007,17 @@
           if (
             state.pointers.size >= 2
           ) {
-            state.nodeDrag =
-              null;
+            cancelConnectionDrag();
+
+
+            if (
+              state.nodeDrag
+            ) {
+              finishNodeDrag();
+            }
+
 
             state.canvasPan =
-              null;
-
-            state.connectionDrag =
               null;
 
 
@@ -3999,7 +5076,9 @@
             );
 
 
-          if (port) {
+          if (
+            port
+          ) {
             event.preventDefault();
             event.stopPropagation();
 
@@ -4011,45 +5090,18 @@
               );
 
 
-            if (!node) {
+            if (
+              !node
+            ) {
               return;
             }
 
 
-            if (
-              port.dataset.portDir ===
-              'output'
-            ) {
-              state.connectionDrag = {
-                pointerId:
-                  event.pointerId,
-
-                from: {
-                  node:
-                    node.id,
-
-                  port:
-                    port.dataset
-                      .portId
-                },
-
-                x:
-                  event.clientX,
-
-                y:
-                  event.clientY
-              };
-
-
-              try {
-                viewport.setPointerCapture(
-                  event.pointerId
-                );
-              } catch {}
-
-
-              renderDragConnection();
-            }
+            beginConnectionDrag(
+              event,
+              port,
+              node
+            );
 
 
             return;
@@ -4062,7 +5114,9 @@
             );
 
 
-          if (nodeElement) {
+          if (
+            nodeElement
+          ) {
             event.preventDefault();
             event.stopPropagation();
 
@@ -4074,7 +5128,9 @@
               );
 
 
-            if (!node) {
+            if (
+              !node
+            ) {
               return;
             }
 
@@ -4082,6 +5138,9 @@
             selectNode(
               node.id
             );
+
+
+            cancelScheduledReflow();
 
 
             state.nodeDrag = {
@@ -4164,10 +5223,20 @@
         'pointermove',
         event => {
           if (
-            !state.interactionEnabled ||
-            !state.pointers.has(
+            !state.interactionEnabled
+          ) {
+            return;
+          }
+
+
+          const tracked =
+            state.pointers.has(
               event.pointerId
-            )
+            );
+
+
+          if (
+            !tracked
           ) {
             return;
           }
@@ -4188,21 +5257,34 @@
           if (
             state.pointers.size >= 2
           ) {
-            const [
-              a,
-              b
-            ] =
+            if (
+              state.nodeDrag
+            ) {
+              finishNodeDrag();
+            }
+
+
+            cancelConnectionDrag();
+
+
+            state.canvasPan =
+              null;
+
+
+            const points =
               [
                 ...state.pointers
                   .values()
               ];
 
 
-            if (!state.pinch) {
+            if (
+              !state.pinch
+            ) {
               const center =
                 mid(
-                  a,
-                  b
+                  points[0],
+                  points[1]
                 );
 
 
@@ -4218,8 +5300,8 @@
                   Math.max(
                     1,
                     dist(
-                      a,
-                      b
+                      points[0],
+                      points[1]
                     )
                   ),
 
@@ -4235,10 +5317,17 @@
             }
 
 
+            const currentDistance =
+              dist(
+                points[0],
+                points[1]
+              );
+
+
             const center =
               mid(
-                a,
-                b
+                points[0],
+                points[1]
               );
 
 
@@ -4250,10 +5339,7 @@
               clamp(
                 state.pinch.s *
                 (
-                  dist(
-                    a,
-                    b
-                  ) /
+                  currentDistance /
                   state.pinch.d
                 ),
 
@@ -4277,7 +5363,8 @@
 
 
             renderTransform();
-            renderConnections();
+
+            scheduleConnectionRender();
 
             return;
           }
@@ -4294,12 +5381,11 @@
             state.connectionDrag.x =
               event.clientX;
 
-
             state.connectionDrag.y =
               event.clientY;
 
 
-            renderDragConnection();
+            scheduleConnectionRender();
 
             return;
           }
@@ -4329,7 +5415,8 @@
               Math.hypot(
                 dx,
                 dy
-              ) > 7
+              ) >
+                7
             ) {
               drag.moved =
                 true;
@@ -4341,7 +5428,9 @@
                 );
 
 
-              if (element) {
+              if (
+                element
+              ) {
                 element.classList.add(
                   'vc-dragging'
                 );
@@ -4352,7 +5441,8 @@
                 ) {
                   setNodeExpanded(
                     drag.node,
-                    false
+                    false,
+                    true
                   );
                 }
               }
@@ -4360,41 +5450,58 @@
 
 
             if (
-              drag.moved
+              !drag.moved
             ) {
-              event.preventDefault();
-
-
-              drag.node.x =
-                drag.nodeX +
-                dx /
-                state.scale;
-
-
-              drag.node.y =
-                drag.nodeY +
-                dy /
-                state.scale;
-
-
-              const element =
-                getNodeElement(
-                  drag.node.id
-                );
-
-
-              if (element) {
-                element.style.left =
-                  `${drag.node.x}px`;
-
-                element.style.top =
-                  `${drag.node.y}px`;
-              }
-
-
-              renderConnections();
+              return;
             }
 
+
+            event.preventDefault();
+
+
+            drag.node.x =
+              drag.nodeX +
+              dx /
+              state.scale;
+
+
+            drag.node.y =
+              drag.nodeY +
+              dy /
+              state.scale;
+
+
+            const element =
+              getNodeElement(
+                drag.node.id
+              );
+
+
+            if (
+              element
+            ) {
+              element.style.left =
+                `${drag.node.x}px`;
+
+              element.style.top =
+                `${drag.node.y}px`;
+
+
+              positionPorts(
+                element,
+                getDefinition(
+                  drag.node.type
+                )
+              );
+            }
+
+
+            /*
+              좌표를 바로 갱신한다
+              rAF에서 line DOM만 다시 그린다
+            */
+
+            scheduleConnectionRender();
 
             return;
           }
@@ -4424,7 +5531,8 @@
               Math.hypot(
                 dx,
                 dy
-              ) > 7
+              ) >
+                7
             ) {
               pan.moved =
                 true;
@@ -4432,30 +5540,85 @@
 
 
             if (
-              pan.moved
+              !pan.moved
             ) {
-              event.preventDefault();
-
-
-              state.offset.x =
-                pan.startOffsetX +
-                dx;
-
-
-              state.offset.y =
-                pan.startOffsetY +
-                dy;
-
-
-              renderTransform();
-              renderConnections();
+              return;
             }
+
+
+            event.preventDefault();
+
+
+            state.offset.x =
+              pan.startOffsetX +
+              dx;
+
+
+            state.offset.y =
+              pan.startOffsetY +
+              dy;
+
+
+            renderTransform();
+
+            scheduleConnectionRender();
           }
         },
         {
           passive: false
         }
       );
+
+
+      function finishNodeDrag() {
+        const drag =
+          state.nodeDrag;
+
+
+        if (
+          !drag
+        ) {
+          return;
+        }
+
+
+        const element =
+          getNodeElement(
+            drag.node.id
+          );
+
+
+        if (
+          element
+        ) {
+          element.classList.remove(
+            'vc-dragging'
+          );
+
+
+          if (
+            drag.wasExpanded
+          ) {
+            setNodeExpanded(
+              drag.node,
+              true
+            );
+          }
+        }
+
+
+        state.nodeDrag =
+          null;
+
+
+        renderConnections();
+
+
+        emit(
+          'change',
+          getWorkflow()
+        );
+      }
 
 
       function endPointer(
@@ -4466,52 +5629,16 @@
             ?.pointerId ===
           event.pointerId
         ) {
-          const drag =
-            state.connectionDrag;
-
-
-          const target =
-            document
-              .elementFromPoint(
-                event.clientX,
-                event.clientY
-              )
-              ?.closest(
-                '.vc-port-hit.vc-input'
-              );
-
-
-          const node =
-            target?.closest(
-              '.vc-node'
-            );
-
-
           if (
-            target &&
-            node
+            event.type ===
+            'pointercancel'
           ) {
-            connect(
-              drag.from,
-              {
-                node:
-                  node.dataset
-                    .nodeId,
-
-                port:
-                  target.dataset
-                    .portId
-              }
+            cancelConnectionDrag();
+          } else {
+            finishConnection(
+              event
             );
           }
-
-
-          state.connectionDrag =
-            null;
-
-
-          dragLayer.textContent =
-            '';
         }
 
 
@@ -4520,41 +5647,7 @@
             ?.pointerId ===
           event.pointerId
         ) {
-          const drag =
-            state.nodeDrag;
-
-
-          const element =
-            getNodeElement(
-              drag.node.id
-            );
-
-
-          if (element) {
-            element.classList.remove(
-              'vc-dragging'
-            );
-
-
-            if (
-              drag.wasExpanded
-            ) {
-              setNodeExpanded(
-                drag.node,
-                true
-              );
-            }
-          }
-
-
-          state.nodeDrag =
-            null;
-
-
-          emit(
-            'change',
-            getWorkflow()
-          );
+          finishNodeDrag();
         }
 
 
@@ -4564,7 +5657,8 @@
 
 
         if (
-          state.pointers.size < 2
+          state.pointers.size <
+          2
         ) {
           state.pinch =
             null;
@@ -4572,14 +5666,22 @@
 
 
         if (
-          state.pointers.size === 0
+          state.pointers.size ===
+          0
         ) {
           state.canvasPan =
             null;
+
+          cancelConnectionDrag();
+
+          try {
+            viewport.releasePointerCapture(
+              event.pointerId
+            );
+          } catch {}
+
+          renderConnections();
         }
-
-
-        renderConnections();
       }
 
 
@@ -4621,7 +5723,7 @@
           const factor =
             Math.exp(
               -event.deltaY *
-              .0015
+              0.0015
             );
 
 
@@ -4654,6 +5756,7 @@
 
 
           renderTransform();
+
           renderConnections();
         },
         {
@@ -4665,6 +5768,13 @@
       const resizeObserver =
         new ResizeObserver(
           () => {
+            if (
+              state.destroyed
+            ) {
+              return;
+            }
+
+
             for (
               const node
               of state.nodes
@@ -4675,7 +5785,9 @@
                 );
 
 
-              if (element) {
+              if (
+                element
+              ) {
                 positionPorts(
                   element,
                   getDefinition(
@@ -4687,7 +5799,8 @@
 
 
             scheduleReflow();
-            renderConnections();
+
+            scheduleConnectionRender();
           }
         );
 
@@ -4697,9 +5810,17 @@
       );
 
 
+      observers.push(
+        () =>
+          resizeObserver.disconnect()
+      );
+
+
       function render() {
         renderTransform();
+
         renderNodes();
+
         renderConnections();
       }
 
@@ -4714,19 +5835,20 @@
 
         getWorkflowIR,
 
-        getState: () => ({
-          workflow:
-            getWorkflow(),
+        getState:
+          () => ({
+            workflow:
+              getWorkflow(),
 
-          viewport: {
-            scale:
-              state.scale,
+            viewport: {
+              scale:
+                state.scale,
 
-            offset: {
-              ...state.offset
+              offset: {
+                ...state.offset
+              }
             }
-          }
-        }),
+          }),
 
         setState,
 
@@ -4756,7 +5878,9 @@
 
         getNodeDefinition:
           type =>
-            getDefinition(type),
+            getDefinition(
+              type
+            ),
 
         getNodeDefinitions:
           () =>
@@ -4766,6 +5890,7 @@
 
         center() {
           centerWorkflow();
+
           return api;
         },
 
@@ -4787,15 +5912,18 @@
             true;
 
 
+          cancelScheduledReflow();
+
+
           if (
-            state.reflowFrame !==
+            state.connectionFrame !==
             null
           ) {
             cancelAnimationFrame(
-              state.reflowFrame
+              state.connectionFrame
             );
 
-            state.reflowFrame =
+            state.connectionFrame =
               null;
           }
 
@@ -4811,11 +5939,40 @@
             );
 
 
-          resizeObserver.disconnect();
+          observers
+            .splice(0)
+            .forEach(
+              cleanup => {
+                try {
+                  cleanup();
+                } catch {}
+              }
+            );
+
 
           state.pointers.clear();
 
-          events.clear();
+          state.nodeDrag =
+            null;
+
+          state.canvasPan =
+            null;
+
+          state.pinch =
+            null;
+
+          state.connectionDrag =
+            null;
+
+
+          connectionElements
+            .forEach(
+              element =>
+                element.remove()
+            );
+
+          connectionElements.clear();
+
 
           connectionLayer
             .textContent =
@@ -4828,6 +5985,9 @@
           nodesLayer
             .textContent =
             '';
+
+
+          events.clear();
 
 
           if (
@@ -4892,7 +6052,7 @@
 
       setInteractionEnabled(
         options.interactionEnabled ===
-          true
+        true
       );
 
 
@@ -4957,7 +6117,8 @@
       target
     ) {
       if (
-        typeof target === 'string'
+        typeof target ===
+        'string'
       ) {
         target =
           document.querySelector(
