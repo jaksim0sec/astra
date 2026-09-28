@@ -187,13 +187,6 @@
     }
     function renderSlotContent(node, definition) {
       const out = [];
-      if (definition.desc || definition.description) {
-        out.push(`
-          <div class="vc-slot-description">
-            ${escapeHtml(definition.desc || definition.description || '')}
-          </div>
-        `);
-      }
       const values = node.data?.params || {};
       for (const param of definition.params || []) {
         out.push(`
@@ -201,13 +194,11 @@
             <label class="vc-param-label">
               ${escapeHtml(param.name || param.id)}
             </label>
-            <input
+            <textarea
               class="vc-slot-param"
-              type="text"
               data-param-id="${escapeHtml(param.id)}"
-              value="${escapeHtml(values[param.id] ?? '')}"
               placeholder="${escapeHtml(param.placeholder || '')}"
-            >
+            >${escapeHtml(values[param.id] ?? '')}</textarea>
           </div>
         `);
       }
@@ -225,6 +216,13 @@
               <span>${escapeHtml(mime)}</span>
               <span>${escapeHtml(text)}</span>
             </div>
+          </div>
+        `);
+      }
+      if (definition.desc || definition.description) {
+        out.push(`
+          <div class="vc-slot-description">
+            ${escapeHtml(definition.desc || definition.description || '')}
           </div>
         `);
       }
@@ -270,7 +268,6 @@
           node.type === 'file' &&
           String(node.data?.mime || '').startsWith('image/');
         const classes = ['vc-node'];
-        if (node.type === 'start') classes.push('vc-start-node');
         if (node.type === 'file') classes.push('vc-file-node');
         if (isImageFile) classes.push('vc-image-file-node');
         if (node.id === state.selectedNode) classes.push('vc-selected');
@@ -317,13 +314,6 @@
                   </span>
                 `
             }
-            ${
-              node.type === 'start'
-                ? `
-                  <span class="vc-start-badge">START</span>
-                `
-                : ''
-            }
             <div class="vc-node-actions">
               <button
                 type="button"
@@ -339,23 +329,17 @@
           <div class="vc-node-body">
             ${renderSlotContent(node, definition)}
           </div>
-          ${
-            node.type !== 'start'
-              ? `
-                <div class="vc-node-footer">
-                  <button
-                    type="button"
-                    class="vc-node-delete"
-                    data-action="delete"
-                    aria-label="노드 삭제"
-                  >
-                    ${icons.delete}
-                    <span>삭제하기</span>
-                  </button>
-                </div>
-              `
-              : ''
-          }
+          <div class="vc-node-footer">
+            <button
+              type="button"
+              class="vc-node-delete"
+              data-action="delete"
+              aria-label="노드 삭제"
+            >
+              ${icons.delete}
+              <span>삭제하기</span>
+            </button>
+          </div>
           ${renderPorts(node, definition.inputs, 'input')}
           ${renderPorts(node, definition.outputs, 'output')}
         `;
@@ -1189,19 +1173,6 @@
           `존재하지 않는 노드 타입: ${type}`
         );
       }
-      if (
-        type === 'start' &&
-        state.nodes.some(
-          node => node.type === 'start'
-        )
-      ) {
-        const existing =
-          state.nodes.find(
-            node => node.type === 'start'
-          );
-        selectNode(existing.id);
-        return existing;
-      }
       const position =
         data.x != null &&
         data.y != null
@@ -1234,10 +1205,7 @@
     }
     function removeNode(id) {
       const node = getNode(id);
-      if (
-        !node ||
-        node.type === 'start'
-      ) {
+      if (!node) {
         return false;
       }
       state.nodes =
@@ -2116,26 +2084,13 @@
     };
     target._canvasNode = api;
     viewport._canvasNode = api;
-    const initialPosition = findNewNodePosition();
-    const initial = {
-      nodes: [
-        {
-          id: 'start',
-          type: 'start',
-          x: initialPosition.x,
-          y: initialPosition.y,
-          expanded: true,
-          data: {
-            params: {}
-          }
-        }
-      ],
-      connections: []
-    };
     const initialState =
       options.initialWorkflow ||
       previousState ||
-      initial;
+      {
+        nodes: [],
+        connections: []
+      };
     setState(initialState);
     setInteractionEnabled(
       options.interactionEnabled ===
