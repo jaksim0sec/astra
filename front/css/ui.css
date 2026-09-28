@@ -3,6 +3,11 @@
    UI / Layout
    ========================================================= */
 
+:root {
+  --composer-input-height: 38px;
+  --composer-extra-height: 50px;
+  --composer-live-height: max(var(--composer-height), calc(var(--composer-input-height) + var(--composer-extra-height)));
+}
 
 /* =========================================================
    TOPBAR
@@ -11,42 +16,25 @@
 #topbar {
   position: fixed;
   z-index: 100;
-
   top: 0;
   left: 0;
   right: 0;
-
-  height:
-    calc(
-      var(--topbar-height) +
-      var(--safe-top)
-    );
-
-  padding:
-    var(--safe-top)
-    max(13px, var(--safe-right))
-    0
-    max(13px, var(--safe-left));
-
+  height: calc(var(--topbar-height) + var(--safe-top));
+  padding: var(--safe-top) max(13px, var(--safe-right)) 0 max(13px, var(--safe-left));
   display: flex;
   align-items: center;
   justify-content: center;
-
   pointer-events: none;
 }
 
 #topbar-left,
 #topbar-right {
   position: absolute;
-
   top: var(--safe-top);
   bottom: 0;
-
   width: 42px;
-
   display: flex;
   align-items: center;
-
   pointer-events: auto;
 }
 
@@ -56,10 +44,8 @@
 
 #topbar-right {
   right: max(13px, var(--safe-right));
-
   justify-content: flex-end;
 }
-
 
 /* =========================================================
    MODE SWITCH
@@ -67,146 +53,76 @@
 
 #mode-switch {
   position: relative;
-
   width: 150px;
   height: 40px;
-
   padding: 4px;
-
   display: grid;
   grid-template-columns: 1fr 1fr;
-
-  border:
-    1px solid
-    var(--line);
-
+  border: 1px solid var(--line);
   border-radius: 999px;
-
-  background:
-    var(--panel-soft);
-
-  backdrop-filter:
-    blur(22px)
-    saturate(1.08);
-
-  -webkit-backdrop-filter:
-    blur(22px)
-    saturate(1.08);
-
-  box-shadow:
-    var(--shadow-soft);
-
+  background: var(--panel-soft);
+  backdrop-filter: blur(22px) saturate(1.08);
+  -webkit-backdrop-filter: blur(22px) saturate(1.08);
+  box-shadow: var(--shadow-soft);
   overflow: hidden;
-
   pointer-events: auto;
-
   touch-action: none;
-
   user-select: none;
   -webkit-user-select: none;
 }
 
-
-/*
- * 선택 영역
- */
-
 #mode-switch::before {
   content: "";
-
   position: absolute;
   z-index: 1;
-
   top: 4px;
   left: 4px;
-
-  width:
-    calc(
-      50% - 4px
-    );
-
+  width: calc(50% - 4px);
   height: 30px;
-
-  border:
-    1px solid
-    var(--line);
-
+  border: 1px solid var(--line);
   border-radius: 999px;
-
-  background:
-    var(--panel-strong);
-
-  box-shadow:
-    0 2px 8px
-    rgba(0, 0, 0, .035);
-
-  transform:
-    translate3d(
-      calc(
-        var(--page-progress) * 100%
-      ),
-      0,
-      0
-    );
-
-  transition:
-    transform .52s var(--ease);
-
+  background: var(--panel-strong);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, .035);
+  transform: translate3d(calc(var(--page-progress) * 100%), 0, 0);
+  transition: transform .52s var(--ease);
   pointer-events: none;
 }
 
 :root.dark #mode-switch::before {
-  box-shadow:
-    0 2px 9px
-    rgba(0, 0, 0, .12);
+  box-shadow: 0 2px 9px rgba(0, 0, 0, .12);
 }
 
 #mode-switch.is-dragging::before {
   transition: none;
 }
 
-
 #mode-switch button {
   position: relative;
   z-index: 2;
-
   height: 30px;
-
   display: flex;
   align-items: center;
   justify-content: center;
-
   border-radius: 999px;
-
-  color:
-    var(--muted);
-
+  color: var(--muted);
   font-size: 12px;
   font-weight: 700;
-
   letter-spacing: -.01em;
-
-  transition:
-    color .18s ease,
-    opacity .15s ease;
-
+  transition: color .18s ease, opacity .15s ease;
   touch-action: none;
 }
 
 #mode-switch button[aria-selected="true"] {
-  color:
-    var(--text);
+  color: var(--text);
 }
 
 #mode-switch button[aria-selected="false"] {
-  color:
-    var(--muted);
+  color: var(--muted);
 }
 
 #mode-switch button:active {
   opacity: .68;
 }
-
 
 /* =========================================================
    WORKSPACE
@@ -214,31 +130,15 @@
 
 #workspace {
   position: fixed;
-
-  top:
-    calc(
-      var(--topbar-height) +
-      var(--safe-top)
-    );
-
+  top: calc(var(--topbar-height) + var(--safe-top));
   right: 0;
-
-  bottom:
-    calc(
-      var(--composer-height) +
-      var(--safe-bottom)
-    );
-
+  bottom: calc(var(--composer-live-height) + var(--safe-bottom));
   left: 0;
-
   overflow: hidden;
-
-  background:
-    var(--bg);
-
+  background: var(--bg);
   touch-action: pan-y;
+  transition: bottom .18s ease;
 }
-
 
 /* =========================================================
    PAGES
@@ -246,104 +146,43 @@
 
 #workspace > .page {
   position: absolute;
-
   top: 0;
   bottom: 0;
-
   width: 100%;
-
   overflow: hidden;
-
-  background:
-    var(--bg);
-
-  will-change:
-    transform,
-    opacity,
-    filter;
-
-  transition:
-    transform .52s var(--ease),
-    opacity .22s ease,
-    filter .22s ease;
+  background: var(--bg);
+  will-change: transform, opacity, filter;
+  transition: transform .52s var(--ease), opacity .22s ease, filter .22s ease;
 }
-
-
-/* Chat = 왼쪽 */
 
 #chat-page {
   left: 0;
-
-  transform:
-    translate3d(
-      calc(
-        var(--page-progress) * -100%
-      ),
-      0,
-      0
-    );
-
+  transform: translate3d(calc(var(--page-progress) * -100%), 0, 0);
   touch-action: pan-y;
 }
 
-
-/* Canvas = 오른쪽 */
-
 #canvas-page {
   left: 100%;
-
-  transform:
-    translate3d(
-      calc(
-        var(--page-progress) * -100%
-      ),
-      0,
-      0
-    );
-
+  transform: translate3d(calc(var(--page-progress) * -100%), 0, 0);
   touch-action: none;
 }
-
-
-/* 드래그 중 */
 
 #workspace.is-dragging > .page {
   transition: none !important;
 }
-
 
 /* =========================================================
    PAGE DEPTH
    ========================================================= */
 
 #chat-page {
-  opacity:
-    calc(
-      1 -
-      (var(--page-progress) * .14)
-    );
-
-  filter:
-    blur(
-      calc(
-        var(--page-progress) * 2px
-      )
-    );
+  opacity: calc(1 - (var(--page-progress) * .14));
+  filter: blur(calc(var(--page-progress) * 2px));
 }
 
 #canvas-page {
-  opacity:
-    calc(
-      .86 +
-      (var(--page-progress) * .14)
-    );
-
-  filter:
-    blur(
-      calc(
-        (1 - var(--page-progress)) * 2px
-      )
-    );
+  opacity: calc(.86 + (var(--page-progress) * .14));
+  filter: blur(calc((1 - var(--page-progress)) * 2px));
 }
 
 #workspace[data-mode="chat"] #chat-page,
@@ -360,7 +199,6 @@
   pointer-events: none;
 }
 
-
 /* =========================================================
    CHAT PAGE
    ========================================================= */
@@ -368,45 +206,23 @@
 #chat-page {
   display: flex;
   flex-direction: column;
-
-  background:
-    radial-gradient(
-      circle at 50% 0%,
-      rgba(255, 255, 255, .34),
-      transparent 42%
-    ),
-    var(--bg);
+  background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, .34), transparent 42%), var(--bg);
 }
 
 :root.dark #chat-page {
-  background:
-    radial-gradient(
-      circle at 50% 0%,
-      rgba(255, 255, 255, .025),
-      transparent 42%
-    ),
-    var(--bg);
+  background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, .025), transparent 42%), var(--bg);
 }
 
 #chat-content {
   width: 100%;
   height: 100%;
   min-height: 0;
-
   overflow-x: hidden;
   overflow-y: auto;
-
-  padding:
-    30px
-    max(17px, var(--safe-right))
-    34px
-    max(17px, var(--safe-left));
-
+  padding: 30px max(17px, var(--safe-right)) 34px max(17px, var(--safe-left));
   scrollbar-width: none;
-
   overscroll-behavior-x: none;
   overscroll-behavior-y: contain;
-
   -webkit-overflow-scrolling: touch;
 }
 
@@ -417,58 +233,39 @@
 #chat-messages {
   width: min(760px, 100%);
   min-height: 100%;
-
   margin: 0 auto;
-
   display: flex;
   flex-direction: column;
 }
-
 
 /* =========================================================
    CANVAS PAGE
    ========================================================= */
 
 #canvas-page {
-  background:
-    radial-gradient(
-      circle at 50% 28%,
-      rgba(120, 120, 120, .035),
-      transparent 44%
-    ),
-    var(--bg);
+  background: radial-gradient(circle at 50% 28%, rgba(120, 120, 120, .035), transparent 44%), var(--bg);
 }
 
 #canvas-viewport {
   position: relative;
-
   width: 100%;
   height: 100%;
   min-height: 0;
-
   overflow: hidden;
-
   touch-action: none;
-
   overscroll-behavior: none;
-
   user-select: none;
   -webkit-user-select: none;
 }
 
 #canvas-world {
   position: absolute;
-
   inset: 0;
-
   transform-origin: 0 0;
-
   touch-action: none;
-
   user-select: none;
   -webkit-user-select: none;
 }
-
 
 /* =========================================================
    COMPOSER
@@ -477,120 +274,54 @@
 #composer {
   position: fixed;
   z-index: 110;
-
   right: 0;
   bottom: 0;
   left: 0;
-
-  height:
-    calc(
-      var(--composer-height) +
-      var(--safe-bottom)
-    );
-
-  padding:
-    0
-    max(10px, var(--safe-right))
-    var(--safe-bottom)
-    max(10px, var(--safe-left));
-
+  height: calc(var(--composer-live-height) + var(--safe-bottom));
+  padding: 0 max(10px, var(--safe-right)) var(--safe-bottom) max(10px, var(--safe-left));
   display: flex;
   align-items: center;
   justify-content: center;
-
   pointer-events: none;
-
-  background:
-    linear-gradient(
-      to bottom,
-      rgba(243, 243, 242, 0),
-      rgba(243, 243, 242, .52) 34%,
-      rgba(243, 243, 242, .90) 100%
-    );
+  background: linear-gradient(to bottom, rgba(243, 243, 242, 0), rgba(243, 243, 242, .52) 34%, rgba(243, 243, 242, .90) 100%);
+  transition: height .18s ease;
 }
 
 :root.dark #composer {
-  background:
-    linear-gradient(
-      to bottom,
-      rgba(16, 16, 16, 0),
-      rgba(16, 16, 16, .52) 34%,
-      rgba(16, 16, 16, .90) 100%
-    );
+  background: linear-gradient(to bottom, rgba(16, 16, 16, 0), rgba(16, 16, 16, .52) 34%, rgba(16, 16, 16, .90) 100%);
 }
-
 
 /* =========================================================
    COMPOSER FORM
    ========================================================= */
 
 #composer-form {
-  width:
-    min(
-      720px,
-      100%
-    );
-
+  width: min(720px, 100%);
   min-height: 54px;
-
   margin: 0 auto;
-
-  padding:
-    7px
-    7px
-    7px
-    17px;
-
+  padding: 7px 7px 7px 17px;
   display: flex;
   align-items: center;
-
   gap: 9px;
-
-  border:
-    1px solid
-    var(--line);
-
-  border-radius:
-    999px;
-
-  background:
-    var(--panel-soft);
-
-  backdrop-filter:
-    blur(22px)
-    saturate(1.08);
-
-  -webkit-backdrop-filter:
-    blur(22px)
-    saturate(1.08);
-
-  box-shadow:
-    var(--shadow-soft);
-
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-soft);
+  backdrop-filter: blur(22px) saturate(1.08);
+  -webkit-backdrop-filter: blur(22px) saturate(1.08);
+  box-shadow: var(--shadow-soft);
   pointer-events: auto;
-
-  transition:
-    border-color .18s ease,
-    background-color .18s ease,
-    box-shadow .18s ease;
+  transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease, border-radius .18s ease;
 }
 
-
-/*
- * 포커스
- */
+#composer-form.is-expanded {
+  border-radius: var(--radius-lg);
+}
 
 #composer-form:focus-within {
-  border-color:
-    var(--line-strong);
-
-  background:
-    var(--panel-strong);
-
-  box-shadow:
-    var(--shadow-soft);
+  border-color: var(--line-strong);
+  background: var(--panel-strong);
+  box-shadow: var(--shadow-soft);
 }
-
 
 /* =========================================================
    COMPOSER INPUT
@@ -599,36 +330,21 @@
 #composer-input {
   width: 100%;
   min-width: 0;
-
   height: 38px;
   min-height: 38px;
   max-height: 120px;
-
   margin: 0;
-
-  padding:
-    8px
-    2px;
-
+  padding: 8px 2px;
   border: 0;
   outline: 0;
-
   resize: none;
-
-  background:
-    transparent;
-
-  color:
-    var(--text);
-
+  background: transparent;
+  color: var(--text);
   font-size: 13px;
   font-weight: 450;
-
   line-height: 22px;
   letter-spacing: -.015em;
-
   overflow-y: auto;
-
   scrollbar-width: none;
 }
 
@@ -637,10 +353,8 @@
 }
 
 #composer-input::placeholder {
-  color:
-    var(--muted);
+  color: var(--muted);
 }
-
 
 /* =========================================================
    COMPOSER SUBMIT
@@ -649,34 +363,18 @@
 #composer-submit {
   width: 38px;
   height: 38px;
-
-  flex:
-    0 0 38px;
-
+  flex: 0 0 38px;
   margin: 0;
-
   display: grid;
   place-items: center;
-
-  border-radius:
-    50%;
-
-  background:
-    var(--text);
-
-  color:
-    var(--bg);
-
+  border-radius: 50%;
+  background: var(--text);
+  color: var(--bg);
   font-size: 16px;
   font-weight: 700;
-
   line-height: 1;
-
   cursor: pointer;
-
-  transition:
-    transform .14s ease,
-    opacity .14s ease;
+  transition: transform .14s ease, opacity .14s ease;
 }
 
 #composer-submit:hover {
@@ -684,22 +382,23 @@
 }
 
 #composer-submit:active {
-  transform:
-    scale(.91);
+  transform: scale(.91);
 }
 
 #composer-submit:disabled {
   opacity: .30;
-
   cursor: default;
 }
-
 
 /* =========================================================
    MOBILE
    ========================================================= */
 
 @media (max-width: 700px) {
+  :root {
+    --composer-extra-height: 47px;
+    --composer-input-height: 37px;
+  }
 
   #topbar {
     padding-left: 10px;
@@ -720,11 +419,7 @@
   }
 
   #chat-content {
-    padding:
-      24px
-      max(14px, var(--safe-right))
-      30px
-      max(14px, var(--safe-left));
+    padding: 24px max(14px, var(--safe-right)) 30px max(14px, var(--safe-left));
   }
 
   #composer {
@@ -734,40 +429,32 @@
 
   #composer-form {
     min-height: 52px;
-
-    padding:
-      6px
-      6px
-      6px
-      16px;
-
+    padding: 6px 6px 6px 16px;
     gap: 8px;
-
-    border-radius:
-      999px;
   }
 
   #composer-input {
     height: 37px;
     min-height: 37px;
-
     font-size: 14px;
   }
 
   #composer-submit {
     width: 36px;
     height: 36px;
-
     flex-basis: 36px;
   }
 }
-
 
 /* =========================================================
    SMALL PHONE
    ========================================================= */
 
 @media (max-width: 420px) {
+  :root {
+    --composer-extra-height: 48px;
+    --composer-input-height: 36px;
+  }
 
   #mode-switch {
     width: 140px;
@@ -784,49 +471,40 @@
 
   #composer-form {
     min-height: 51px;
-
-    padding:
-      6px
-      6px
-      6px
-      15px;
-
+    padding: 6px 6px 6px 15px;
     gap: 7px;
   }
 
   #composer-input {
     height: 36px;
     min-height: 36px;
-
     font-size: 16px;
   }
 
   #composer-submit {
     width: 35px;
     height: 35px;
-
     flex-basis: 35px;
   }
-}
 
+  #composer-form.is-expanded {
+    border-radius: var(--radius-md);
+  }
+}
 
 /* =========================================================
    SHORT VIEWPORT
    ========================================================= */
 
 @media (max-height: 520px) {
+  :root {
+    --composer-extra-height: 37px;
+    --composer-input-height: 31px;
+  }
 
   #composer-form {
     min-height: 44px;
-
-    padding:
-      5px
-      5px
-      5px
-      13px;
-
-    border-radius:
-      999px;
+    padding: 5px 5px 5px 13px;
   }
 
   #composer-input {
@@ -837,8 +515,11 @@
   #composer-submit {
     width: 32px;
     height: 32px;
-
     flex-basis: 32px;
+  }
+
+  #composer-form.is-expanded {
+    border-radius: var(--radius-md);
   }
 }
 
@@ -849,7 +530,7 @@
 #canvas-node-builder {
   position: absolute;
   z-index: 40;
-  left: max(14px, var(--safe-left));
+  left: max(max(10px, var(--safe-left)), calc((100% - 720px) / 2));
   bottom: 14px;
   pointer-events: none;
 }

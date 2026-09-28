@@ -537,6 +537,10 @@ function buildNodeDefinitionPrompt() {
   return Object.entries(
     defaultNodeDef
   )
+    .filter(
+      ([type]) =>
+        type !== 'start'
+    )
     .map(
       ([type, def]) => {
         const inputs =
@@ -625,8 +629,6 @@ Workflow:
 - 없는 node, port, parameter는 만들지 않음
 - 새 node id는 기존 id와 겹치지 않게 함
 - node id는 문자열임
-- start는 정확히 하나여야 함
-- start는 다른 node가 있다면 최소 하나의 flow 연결을 가져야 함
 - 실행 순서와 데이터 전달을 구분함
 - 데이터가 필요한 작업은 data 연결을 사용함
 - 불필요한 data 연결은 만들지 않음
@@ -984,113 +986,6 @@ function removeNodeEdges(
 
   workflow.data =
     workflow.data.filter(keep);
-}
-
-
-/* =========================================================
-   WORKFLOW NODE ORDER
-========================================================= */
-
-function reorderWorkflowNodes(
-  workflow
-) {
-  const nodeMap =
-    new Map(
-      workflow.nodes.map(
-        node => [
-          node.id,
-          node
-        ]
-      )
-    );
-
-  const nextMap =
-    new Map();
-
-  for (
-    const edge
-      of workflow.links
-  ) {
-    if (
-      !Array.isArray(edge) ||
-      edge.length !== 2
-    ) {
-      continue;
-    }
-
-    const from =
-      endpoint(edge[0]);
-
-    const to =
-      endpoint(edge[1]);
-
-    if (
-      !nodeMap.has(from.node) ||
-      !nodeMap.has(to.node)
-    ) {
-      continue;
-    }
-
-    if (!nextMap.has(from.node)) {
-      nextMap.set(
-        from.node,
-        []
-      );
-    }
-
-    nextMap
-      .get(from.node)
-      .push(to.node);
-  }
-
-  const ordered = [];
-  const visited = new Set();
-
-  function visit(nodeId) {
-    if (
-      visited.has(nodeId) ||
-      !nodeMap.has(nodeId)
-    ) {
-      return;
-    }
-
-    visited.add(nodeId);
-    ordered.push(
-      nodeMap.get(nodeId)
-    );
-
-    for (
-      const nextId
-        of nextMap.get(nodeId) || []
-    ) {
-      visit(nextId);
-    }
-  }
-
-  const start =
-    workflow.nodes.find(
-      node =>
-        node.type === 'start'
-    );
-
-  if (start) {
-    visit(start.id);
-  }
-
-  for (
-    const node
-      of workflow.nodes
-  ) {
-    if (
-      !visited.has(node.id)
-    ) {
-      ordered.push(node);
-    }
-  }
-
-  workflow.nodes = ordered;
-
-  return workflow;
 }
 
 
@@ -1531,9 +1426,7 @@ function applyPatch(
     }
   }
 
-  return reorderWorkflowNodes(
-    workflow
-  );
+  return workflow;
 }
 
 
@@ -1582,7 +1475,6 @@ function validateWorkflow(
   const ids =
     new Set();
 
-  let startCount = 0;
 
   for (
     const node
@@ -1621,11 +1513,6 @@ function validateWorkflow(
       );
     }
 
-    if (
-      node.type === 'start'
-    ) {
-      startCount++;
-    }
 
     node.params =
       cleanParams(
@@ -1634,13 +1521,6 @@ function validateWorkflow(
       );
   }
 
-  if (
-    startCount !== 1
-  ) {
-    throw new Error(
-      'start 노드는 정확히 하나 있어야 합니다.'
-    );
-  }
 
 
   function checkEdges(
@@ -1748,32 +1628,7 @@ function validateWorkflow(
   );
 
 
-  /*
-    start → 다른 노드 연결 보장
-  */
-
-  const start =
-    spec.nodes.find(
-      node =>
-        node.type === 'start'
-    );
-
-  const hasStartFlow =
-    spec.links.some(
-      edge =>
-        Array.isArray(edge) &&
-        edge.length === 2 &&
-        endpoint(edge[0]).node === start.id
-    );
-
-  if (
-    spec.nodes.length > 1 &&
-    !hasStartFlow
-  ) {
-    throw new Error(
-      'start 노드에서 시작하는 flow 연결이 없습니다.'
-    );
-  }
+  
 
 
   return spec;
