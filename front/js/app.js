@@ -6,7 +6,6 @@
 (function (global) {
   "use strict";
 
-
   /* =======================================================
      Dependencies
      ======================================================= */
@@ -19,7 +18,6 @@
 
   const mountCanvasNode =
     global.mountCanvasNode;
-
 
   /* =======================================================
      DOM
@@ -43,7 +41,6 @@
   const composerSubmit =
     document.querySelector("#composer-submit");
 
-
   if (
     !workspace ||
     !chatContent ||
@@ -57,7 +54,6 @@
     );
   }
 
-
   if (
     !UI ||
     !API ||
@@ -68,30 +64,27 @@
     );
   }
 
-
   /* =======================================================
      State
      ======================================================= */
 
   const state = {
     destroyed: false,
-
     ready: false,
-
     busy: false,
-
     canvas: null,
-
     workflow: null,
-
     nodeDefinitions: null,
+
+    nodeBuilder: {
+      root: null,
+      open: false
+    },
 
     messageCount: 0
   };
 
-
   const listeners = [];
-
 
   /* =======================================================
      Utilities
@@ -120,7 +113,6 @@
     );
   }
 
-
   function clone(
     value
   ) {
@@ -137,7 +129,6 @@
       JSON.stringify(value)
     );
   }
-
 
   function getCurrentWorkflow() {
     if (
@@ -161,7 +152,6 @@
     return null;
   }
 
-
   function scrollChatToBottom(
     immediate = false
   ) {
@@ -181,7 +171,6 @@
       }
     );
   }
-
 
   /* =======================================================
      Chat
@@ -218,7 +207,6 @@
     body.textContent =
       String(text ?? "");
 
-
     message.appendChild(
       body
     );
@@ -231,7 +219,6 @@
 
     return message;
   }
-
 
   function addUserMessage(
     text
@@ -249,7 +236,6 @@
     );
   }
 
-
   function addAssistantMessage(
     text
   ) {
@@ -266,7 +252,6 @@
     );
   }
 
-
   function addSystemMessage(
     text
   ) {
@@ -282,7 +267,6 @@
       value
     );
   }
-
 
   /* =======================================================
      Composer
@@ -301,7 +285,6 @@
     composerInput.style.height =
       `${height}px`;
   }
-
 
   function setBusy(
     busy
@@ -335,7 +318,6 @@
     }
   }
 
-
   /* =======================================================
      Workflow
      ======================================================= */
@@ -350,7 +332,6 @@
     return workflow;
   }
 
-
   function handleCanvasChange(
     workflow
   ) {
@@ -364,7 +345,6 @@
       clone(workflow);
   }
 
-
   function handleCanvasWorkflowApplied(
     workflow
   ) {
@@ -377,7 +357,6 @@
     state.workflow =
       clone(workflow);
   }
-
 
   /* =======================================================
      Planner
@@ -409,7 +388,6 @@
         result.workflow
       );
 
-
     if (
       state.canvas &&
       typeof state.canvas.applyWorkflowIR ===
@@ -423,10 +401,8 @@
       );
     }
 
-
     return result;
   }
-
 
   async function handleSubmit(
     event
@@ -447,11 +423,9 @@
       return;
     }
 
-
     addUserMessage(
       text
     );
-
 
     composerInput.value =
       "";
@@ -462,13 +436,11 @@
       true
     );
 
-
     try {
       const result =
         await plan(
           text
         );
-
 
       if (
         result.message
@@ -478,7 +450,6 @@
         );
       }
 
-
       if (
         result.question
       ) {
@@ -486,7 +457,6 @@
           result.question
         );
       }
-
 
       /*
        * 현재는 Planner 결과가
@@ -518,11 +488,9 @@
     }
   }
 
-
   function handleComposerInput() {
     resizeComposer();
   }
-
 
   function handleComposerKeydown(
     event
@@ -546,7 +514,6 @@
     composerForm.requestSubmit();
   }
 
-
   /* =======================================================
      Canvas
      ======================================================= */
@@ -556,38 +523,342 @@
       await mountCanvasNode(
         "#canvas-viewport",
         {
+          nodeDefinitions:
+            state.nodeDefinitions ||
+            undefined,
+
           interactionEnabled:
             false
         }
       );
 
-
     state.canvas =
       canvas;
 
+    initializeNodeBuilder();
 
     UI.bindCanvas(
       canvas
     );
-
 
     canvas.on(
       "change",
       handleCanvasChange
     );
 
-
     canvas.on(
       "workflowApplied",
       handleCanvasWorkflowApplied
     );
-
 
     syncWorkflow();
 
     return canvas;
   }
 
+  /* =======================================================
+     Canvas Node Builder
+     ======================================================= */
+
+  function getNodeDefinitionsForBuilder() {
+    if (
+      state.nodeDefinitions &&
+      typeof state.nodeDefinitions === "object"
+    ) {
+      return state.nodeDefinitions;
+    }
+
+    if (
+      state.canvas &&
+      typeof state.canvas.getNodeDefinitions ===
+        "function"
+    ) {
+      return state.canvas.getNodeDefinitions();
+    }
+
+    return {};
+  }
+
+  function renderNodeBuilderOptions() {
+    const root =
+      state.nodeBuilder.root;
+
+    if (!root) {
+      return;
+    }
+
+    const list =
+      root.querySelector(
+        "#canvas-node-builder-list"
+      );
+
+    if (!list) {
+      return;
+    }
+
+    list.textContent =
+      "";
+
+    const definitions =
+      getNodeDefinitionsForBuilder();
+
+    for (
+      const [type, definition]
+      of Object.entries(definitions)
+    ) {
+      if (
+        type === "start" ||
+        !definition
+      ) {
+        continue;
+      }
+
+      const button =
+        document.createElement(
+          "button"
+        );
+
+      button.type =
+        "button";
+
+      button.className =
+        "canvas-node-builder-option";
+
+      button.dataset.nodeType =
+        type;
+
+      button.style.setProperty(
+        "--builder-node-color",
+        definition.color ||
+          "var(--text)"
+      );
+
+      const icon =
+        document.createElement(
+          "span"
+        );
+
+      icon.className =
+        "canvas-node-builder-icon";
+
+      icon.innerHTML =
+        definition.icon ||
+        "";
+
+      const name =
+        document.createElement(
+          "span"
+        );
+
+      name.className =
+        "canvas-node-builder-name";
+
+      name.textContent =
+        definition.name ||
+        type;
+
+      button.appendChild(
+        icon
+      );
+
+      button.appendChild(
+        name
+      );
+
+      list.appendChild(
+        button
+      );
+    }
+
+    root.classList.toggle(
+      "is-empty",
+      list.children.length === 0
+    );
+  }
+
+  function setNodeBuilderOpen(
+    open
+  ) {
+    if (
+      !state.nodeBuilder.root
+    ) {
+      return;
+    }
+
+    state.nodeBuilder.open =
+      !!open;
+
+    state.nodeBuilder.root.classList.toggle(
+      "is-open",
+      state.nodeBuilder.open
+    );
+
+    const toggle =
+      state.nodeBuilder.root.querySelector(
+        "#canvas-node-builder-toggle"
+      );
+
+    toggle?.setAttribute(
+      "aria-expanded",
+      String(
+        state.nodeBuilder.open
+      )
+    );
+  }
+
+  function initializeNodeBuilder() {
+    if (
+      state.nodeBuilder.root
+    ) {
+      renderNodeBuilderOptions();
+
+      return;
+    }
+
+    const root =
+      document.createElement(
+        "div"
+      );
+
+    root.id =
+      "canvas-node-builder";
+
+    root.innerHTML = `
+      <div
+        id="canvas-node-builder-panel"
+        role="dialog"
+        aria-label="노드 추가"
+      >
+        <div
+          class="canvas-node-builder-header"
+        >
+          <span>노드 추가</span>
+          <span
+            class="canvas-node-builder-hint"
+          >
+            필요한 노드를 선택해
+          </span>
+        </div>
+
+        <div
+          id="canvas-node-builder-list"
+          class="canvas-node-builder-list"
+        ></div>
+      </div>
+
+      <button
+        id="canvas-node-builder-toggle"
+        type="button"
+        aria-expanded="false"
+        aria-controls="canvas-node-builder-panel"
+      >
+        <span
+          class="canvas-node-builder-plus"
+          aria-hidden="true"
+        >+</span>
+
+        <span>노드</span>
+      </button>
+    `;
+
+    document
+      .querySelector(
+        "#canvas-page"
+      )
+      ?.appendChild(
+        root
+      );
+
+    state.nodeBuilder.root =
+      root;
+
+    listen(
+      root,
+      "click",
+      event => {
+        const toggle =
+          event.target.closest(
+            "#canvas-node-builder-toggle"
+          );
+
+        if (
+          toggle
+        ) {
+          event.preventDefault();
+
+          setNodeBuilderOpen(
+            !state.nodeBuilder.open
+          );
+
+          return;
+        }
+
+        const option =
+          event.target.closest(
+            ".canvas-node-builder-option"
+          );
+
+        if (
+          !option ||
+          !root.contains(option)
+        ) {
+          return;
+        }
+
+        const type =
+          option.dataset.nodeType;
+
+        if (
+          !type ||
+          !state.canvas ||
+          typeof state.canvas.addNode !==
+            "function"
+        ) {
+          return;
+        }
+
+        state.canvas.addNode(
+          type
+        );
+
+        setNodeBuilderOpen(
+          false
+        );
+      }
+    );
+
+    listen(
+      document,
+      "pointerdown",
+      event => {
+        if (
+          state.nodeBuilder.open &&
+          !root.contains(event.target)
+        ) {
+          setNodeBuilderOpen(
+            false
+          );
+        }
+      }
+    );
+
+    listen(
+      document,
+      "keydown",
+      event => {
+        if (
+          event.key === "Escape" &&
+          state.nodeBuilder.open
+        ) {
+          setNodeBuilderOpen(
+            false
+          );
+        }
+      }
+    );
+
+    renderNodeBuilderOptions();
+  }
 
   /* =======================================================
      Initialization
@@ -600,14 +871,11 @@
       return;
     }
 
-
     setBusy(
       false
     );
 
-
     resizeComposer();
-
 
     listen(
       composerForm,
@@ -615,20 +883,17 @@
       handleSubmit
     );
 
-
     listen(
       composerInput,
       "input",
       handleComposerInput
     );
 
-
     listen(
       composerInput,
       "keydown",
       handleComposerKeydown
     );
-
 
     UI.on(
       "modechange",
@@ -644,7 +909,6 @@
         }
       }
     );
-
 
     /*
      * Node Definition은 Canvas가 필요로 하므로
@@ -667,18 +931,16 @@
         null;
     }
 
-
     await initializeCanvas();
 
+    renderNodeBuilderOptions();
 
     state.ready =
       true;
 
-
     addSystemMessage(
       "무엇을 만들지 입력하면 Astra가 워크플로우를 구성합니다."
     );
-
 
     resizeComposer();
 
@@ -686,7 +948,6 @@
       true
     );
   }
-
 
   /* =======================================================
      Public API
@@ -771,8 +1032,17 @@
       state.canvas
         ?.destroy?.();
 
+      state.nodeBuilder.root
+        ?.remove();
+
       state.canvas =
         null;
+
+      state.nodeBuilder.root =
+        null;
+
+      state.nodeBuilder.open =
+        false;
 
       state.workflow =
         null;
@@ -785,12 +1055,10 @@
     }
   };
 
-
   global.AstraApp =
     Object.freeze(
       app
     );
-
 
   /* =======================================================
      Start

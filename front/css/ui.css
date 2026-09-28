@@ -841,3 +841,199 @@
     flex-basis: 32px;
   }
 }
+
+/* =========================================================
+   CANVAS NODE BUILDER
+   ========================================================= */
+
+#canvas-node-builder {
+  position: absolute;
+  z-index: 40;
+  left: max(14px, var(--safe-left));
+  bottom: 14px;
+  pointer-events: none;
+}
+
+#canvas-node-builder-toggle {
+  min-width: 82px;
+  height: 40px;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-soft);
+  color: var(--text);
+  backdrop-filter: blur(20px) saturate(1.06);
+  -webkit-backdrop-filter: blur(20px) saturate(1.06);
+  box-shadow: var(--shadow-soft);
+  pointer-events: auto;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 750;
+  letter-spacing: -.01em;
+  transition: background .18s ease, border-color .18s ease, transform .16s ease;
+}
+
+#canvas-node-builder-toggle:hover {
+  border-color: var(--line-strong);
+  background: var(--panel-strong);
+}
+
+#canvas-node-builder-toggle:active {
+  transform: scale(.95);
+}
+
+.canvas-node-builder-plus {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1;
+}
+
+#canvas-node-builder-panel {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 10px);
+  width: min(320px, calc(100vw - 28px));
+  max-height: min(360px, calc(100% - 20px));
+  padding: 12px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--panel-soft);
+  backdrop-filter: blur(24px) saturate(1.08);
+  -webkit-backdrop-filter: blur(24px) saturate(1.08);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px) scale(.98);
+  transform-origin: 0 100%;
+  pointer-events: none;
+  transition: opacity .18s ease, transform .22s var(--ease), visibility .18s ease;
+}
+
+#canvas-node-builder.is-open #canvas-node-builder-panel {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0) scale(1);
+  pointer-events: auto;
+}
+
+.canvas-node-builder-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 3px 10px;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.canvas-node-builder-hint {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.canvas-node-builder-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.canvas-node-builder-option {
+  min-width: 0;
+  min-height: 46px;
+  padding: 8px 9px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .16s ease, background .16s ease, transform .16s ease;
+}
+
+.canvas-node-builder-option:hover {
+  border-color: var(--line-strong);
+  background: var(--panel-strong);
+}
+
+.canvas-node-builder-option:active {
+  transform: scale(.97);
+}
+
+.canvas-node-builder-icon {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--builder-node-color) 10%, var(--panel));
+  color: var(--builder-node-color);
+}
+
+.canvas-node-builder-icon svg {
+  width: 16px;
+  height: 16px;
+  max-width: none;
+}
+
+.canvas-node-builder-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+#canvas-node-builder.is-empty {
+  display: none;
+}
+
+@media (max-width: 420px) {
+  #canvas-node-builder {
+    left: max(10px, var(--safe-left));
+    bottom: 10px;
+  }
+
+  #canvas-node-builder-panel {
+    width: min(310px, calc(100vw - 20px));
+    padding: 10px;
+    border-radius: var(--radius-md);
+  }
+
+  .canvas-node-builder-list {
+    gap: 6px;
+  }
+
+  .canvas-node-builder-option {
+    min-height: 44px;
+    padding: 7px;
+    gap: 7px;
+  }
+
+  .canvas-node-builder-icon {
+    width: 24px;
+    height: 24px;
+    flex-basis: 24px;
+  }
+
+  .canvas-node-builder-name {
+    font-size: 10.5px;
+  }
+}
