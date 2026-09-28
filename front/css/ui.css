@@ -584,6 +584,8 @@
   bottom: calc(100% + 10px);
   width: min(320px, calc(100vw - 28px));
   max-height: min(360px, calc(100% - 20px));
+  height:fit-content;
+  max-height:50vh;
   padding: 12px;
   overflow-y: auto;
   border: 1px solid var(--line);

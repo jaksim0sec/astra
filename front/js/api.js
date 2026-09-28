@@ -6,13 +6,11 @@
 (function (global) {
   "use strict";
 
-
   /* =======================================================
      Configuration
      ======================================================= */
 
   const API_PREFIX = "/api";
-
 
   /* =======================================================
      Internal State
@@ -21,7 +19,6 @@
   let nodeDefinitionsCache = null;
 
   let nodeDefinitionsPromise = null;
-
 
   /* =======================================================
      Request
@@ -71,7 +68,6 @@
       );
     }
 
-
     let data = null;
 
     try {
@@ -81,7 +77,6 @@
         `HTTP ${response.status}`
       );
     }
-
 
     if (
       !response.ok ||
@@ -96,7 +91,6 @@
     return data;
   }
 
-
   /* =======================================================
      Workflow
      ======================================================= */
@@ -104,6 +98,7 @@
   async function planWorkflow(
     text,
     workflow = null,
+    memory = null,
     options = {}
   ) {
     const normalizedText =
@@ -119,19 +114,18 @@
       "workflow",
       {
         method: "POST",
-
         body: {
           text: normalizedText,
           workflow:
-            workflow ?? null
+            workflow ?? null,
+          memory:
+            memory ?? null
         },
-
         signal:
           options.signal
       }
     );
   }
-
 
   /* =======================================================
      Node Definitions
@@ -153,7 +147,6 @@
     ) {
       return nodeDefinitionsPromise;
     }
-
 
     nodeDefinitionsPromise =
       request(
@@ -196,7 +189,6 @@
     return nodeDefinitionsPromise;
   }
 
-
   function getNodeDefinitionSync(
     definitions,
     type
@@ -216,11 +208,9 @@
     );
   }
 
-
   function clearNodeDefinitionsCache() {
     nodeDefinitionsCache = null;
   }
-
 
   /* =======================================================
      Definition Helpers
@@ -261,7 +251,6 @@
     );
   }
 
-
   function getParamDefinition(
     definition,
     paramId
@@ -285,7 +274,6 @@
       ) || null
     );
   }
-
 
   function normalizeParamsFromDefinition(
     definition,
@@ -346,7 +334,6 @@
     return result;
   }
 
-
   /* =======================================================
      Workflow Helpers
      ======================================================= */
@@ -389,7 +376,6 @@
       port
     };
   }
-
 
   function validateWorkflowShape(
     workflow
@@ -438,7 +424,6 @@
     return workflow;
   }
 
-
   /*
    * 서버에서 반환된 Workflow를
    * UI에서 안전하게 사용할 수 있도록
@@ -475,7 +460,6 @@
 
     return workflow;
   }
-
 
   /* =======================================================
      Execution
@@ -516,7 +500,6 @@
     );
   }
 
-
   /* =======================================================
      Public API
      ======================================================= */
@@ -546,8 +529,6 @@
 
   });
 
-
   global.AstraAPI = api;
-
 
 })(window);

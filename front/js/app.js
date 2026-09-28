@@ -33,6 +33,8 @@
   /* =======================================================
      State
      ======================================================= */
+  const MEMORY_STORAGE_KEY = "astra-conversation-memory";
+
   const state = {
     destroyed: false,
     ready: false,
@@ -40,6 +42,7 @@
     canvas: null,
     workflow: null,
     nodeDefinitions: null,
+    conversationMemory: null,
     nodeBuilder: { root: null, open: false },
     messageCount: 0
   };
@@ -71,6 +74,82 @@
       return clone(state.workflow);
     }
     return null;
+  }
+
+  function normalizeMemory(memory) {
+    if (
+      !memory ||
+      typeof memory !== "object" ||
+      Array.isArray(memory)
+    ) {
+      return null;
+    }
+
+    return {
+      flow:
+        typeof memory.flow === "string"
+          ? memory.flow.trim()
+          : "",
+      recent:
+        typeof memory.recent === "string"
+          ? memory.recent.trim()
+          : "",
+      detail:
+        typeof memory.detail === "string"
+          ? memory.detail.trim()
+          : ""
+    };
+  }
+
+  function loadMemory() {
+    try {
+      const stored =
+        localStorage.getItem(
+          MEMORY_STORAGE_KEY
+        );
+
+      if (!stored) {
+        return null;
+      }
+
+      return normalizeMemory(
+        JSON.parse(stored)
+      );
+    } catch {
+      localStorage.removeItem(
+        MEMORY_STORAGE_KEY
+      );
+      return null;
+    }
+  }
+
+  function saveMemory(memory) {
+    const normalized =
+      normalizeMemory(memory);
+
+    if (!normalized) {
+      return;
+    }
+
+    state.conversationMemory =
+      normalized;
+
+    try {
+      localStorage.setItem(
+        MEMORY_STORAGE_KEY,
+        JSON.stringify(normalized)
+      );
+    } catch {}
+  }
+
+  function clearMemory() {
+    state.conversationMemory = null;
+
+    try {
+      localStorage.removeItem(
+        MEMORY_STORAGE_KEY
+      );
+    } catch {}
   }
 
   function scrollChatToBottom(immediate = false) {
@@ -185,16 +264,35 @@
      ======================================================= */
   async function plan(text) {
     const workflow = syncWorkflow();
-    const result = await API.planWorkflow(text, workflow);
+
+    const result =
+      await API.planWorkflow(
+        text,
+        workflow,
+        state.conversationMemory
+      );
 
     if (!result || !result.workflow) {
-      throw new Error("Planner가 올바른 workflow를 반환하지 않았습니다.");
+      throw new Error(
+        "Planner가 올바른 workflow를 반환하지 않았습니다."
+      );
     }
 
-    state.workflow = clone(result.workflow);
+    state.workflow =
+      clone(result.workflow);
 
-    if (state.canvas && typeof state.canvas.applyWorkflowIR === "function") {
-      state.canvas.applyWorkflowIR(result.workflow, { center: true });
+    if (
+      state.canvas &&
+      typeof state.canvas.applyWorkflowIR === "function"
+    ) {
+      state.canvas.applyWorkflowIR(
+        result.workflow,
+        { center: true }
+      );
+    }
+
+    if (result.memory) {
+      saveMemory(result.memory);
     }
 
     return result;
@@ -226,8 +324,14 @@
 
       syncWorkflow();
     } catch (error) {
-      console.error("Astra Planner Error:", error);
-      addAssistantMessage(error?.message || "워크플로우를 처리하지 못했습니다.");
+      console.error(
+        "Astra Planner Error:",
+        error
+      );
+      addAssistantMessage(
+        error?.message ||
+        "워크플로우를 처리하지 못했습니다."
+      );
     } finally {
       setBusy(false);
       composerInput.focus();
@@ -345,7 +449,7 @@
       <div id="canvas-node-builder-panel" role="dialog" aria-label="노드 추가">
         <div class="canvas-node-builder-header">
           <span>노드 추가</span>
-          <span class="canvas-node-builder-hint">필요한 노드를 선택해</span>
+          <span class="canvas-node-builder-hint">워크플로우를 직접 조립해봐요</span>
         </div>
         <div id="canvas-node-builder-list" class="canvas-node-builder-list"></div>
       </div>
@@ -400,6 +504,9 @@
   async function initialize() {
     if (state.destroyed) return;
 
+    state.conversationMemory =
+      loadMemory();
+
     setBusy(false);
     resizeComposer();
 
@@ -421,9 +528,13 @@
     });
 
     try {
-      state.nodeDefinitions = await API.getNodeDefinitions();
+      state.nodeDefinitions =
+        await API.getNodeDefinitions();
     } catch (error) {
-      console.error("Node Definition Load Error:", error);
+      console.error(
+        "Node Definition Load Error:",
+        error
+      );
       state.nodeDefinitions = null;
     }
 
@@ -433,7 +544,9 @@
 
     state.ready = true;
 
-    addSystemMessage("무엇을 만들지 입력하면 Astra가 워크플로우를 구성합니다.");
+    addSystemMessage(
+      "무엇을 만들지 입력하면 Astra가 워크플로우를 구성합니다."
+    );
 
     resizeComposer();
     scrollChatToBottom(true);
@@ -461,6 +574,16 @@
 
     getNodeDefinitions() {
       return state.nodeDefinitions ? clone(state.nodeDefinitions) : null;
+    },
+
+    getConversationMemory() {
+      return state.conversationMemory
+        ? clone(state.conversationMemory)
+        : null;
+    },
+
+    clearConversationMemory() {
+      clearMemory();
     },
 
     addUserMessage,
@@ -499,6 +622,7 @@
       state.nodeBuilder.open = false;
       state.workflow = null;
       state.nodeDefinitions = null;
+      state.conversationMemory = null;
       state.ready = false;
     }
   };
@@ -509,7 +633,13 @@
      Start
      ======================================================= */
   initialize().catch(error => {
-    console.error("Astra Initialization Error:", error);
-    addSystemMessage(error?.message || "Astra를 초기화하지 못했습니다.");
+    console.error(
+      "Astra Initialization Error:",
+      error
+    );
+    addSystemMessage(
+      error?.message ||
+      "Astra를 초기화하지 못했습니다."
+    );
   });
 })(window);

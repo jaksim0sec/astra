@@ -25,7 +25,6 @@ const htmlRoutes = {
   '/home': 'index.html'
 };
 
-
 /* =========================================================
    CANONICAL NODE DEFINITION
 ========================================================= */
@@ -484,7 +483,6 @@ const defaultNodeDef = {
 
 };
 
-
 /* =========================================================
    PUBLIC DEFINITION
 ========================================================= */
@@ -496,11 +494,9 @@ const nodeDefinitionsPublic =
     )
   );
 
-
 function getNodeDefinition(type) {
   return defaultNodeDef[type] || null;
 }
-
 
 function getPortDefinition(
   type,
@@ -527,7 +523,6 @@ function getPortDefinition(
     ) || null
   );
 }
-
 
 /* =========================================================
    LLM NODE DEFINITION
@@ -577,107 +572,76 @@ function buildNodeDefinitionPrompt() {
     .join('\n');
 }
 
-
 const NODE_DEFINITION_PROMPT =
   buildNodeDefinitionPrompt();
-
 
 /* =========================================================
    STATIC PLANNER PROMPT
 ========================================================= */
 
 const SYSTEM_PROMPT = `
-너는 Astra Workflow Planner다.
-현재 Workflow에 사용자 요청을 반영할 Patch와 자연어 응답을 만든다.
+Astra Workflow Planner. Return only the JSON schema-defined output.
+Goal=interpret the user in context, minimally update the workflow when needed, return a concise user-facing message, and rewrite bounded memory.
 
-절대 Markdown, 코드블록, Patch 설명을 출력하지 않는다.
-자연어 응답은 사용자 언어로 작성한다.
+PRIORITY:
+1) Explicit task/workflow request
+2) Modification/correction of the current task
+3) Conversation or response-style instruction
+4) Casual conversation
+Resolve each turn by intent, not by forcing every message into workflow changes.
 
-원칙:
-- 필요한 작업만 구성함
-- 불필요한 노드, 연결, 분기, 변환, 필터를 추가하지 않음
-- 기존 Workflow를 최대한 재사용함
-- 자신을 만든 조상 노드들에 다시 결과를 넣는 사이클은 불가능. 보이면 제거하고 자연어에서 구체적으로 설명할것.
+PLANNER BOUNDARY:
+- Plan/modify workflow; do not execute downstream work.
+- A task such as writing/reporting/analysis means construct the needed workflow, not perform the task in message.
+- Conversation, style, reaction, greeting, and context questions normally => ops=[].
+- A conversational/style correction does not alter workflow unless the user explicitly changes the task.
+- For vague references, use the nearest semantically compatible context before older or more prominent context.
 
-후속 요청:
-- 현재 Workflow와 대화 문맥을 기준으로 해석함
-- 추가, 수정, 삭제, 대체를 구분함
-- 새 작업은 필요한 노드를 추가하고 기존 구조에 연결함
-- 값 변경은 기존 node 또는 parameter를 수정함
-- 삭제 요청은 해당 node, 연결, parameter를 제거함
-- 일부만 바뀌면 관련 부분만 수정하고 나머지는 유지함
-- parameter ID를 직접 말하지 않아도 값, 역할, 노드 의미, 문맥으로 대상을 판단함
-- 짧거나 생략된 요청도 직전 문맥과 자연스럽게 연결함
-- 이미 알 수 있는 내용은 다시 묻지 않음
+MEMORY:
+- Memory is bounded state, not transcript/archive.
+- flow=durable goals, decisions, constraints, preferences, unresolved intent.
+- recent=latest relevant conversation/task state.
+- detail=immediate exact values, references, wording, instructions, pending items.
+- Rewrite all three each turn from previous memory + current workflow + current request + current response.
+- Replace stale/less relevant information; never append, nest, or duplicate old memory.
+- Do not preserve information merely because it existed.
+- Do not fill unused space.
+- Explicit user instructions and current decisions persist until changed.
+- Use semantic recency when resolving "this/that/just now/before".
+- Never claim memory not present in supplied context.
+- Keep memory compact: flow<=300 chars, recent<=350 chars, detail<=250 chars.
+- Avoid repeating the same fact across memory fields.
 
-Parameter:
-- Node Definition에 있는 parameter만 사용함
-- 사용자가 값을 지정하면 그대로 사용함
-- 지정하지 않아도 작업상 필요하고 합리적인 값을 판단할 수 있으면 적절히 채움
-- "알아서", "적당히", "알잘딱"은 작업 목적에 맞는 일반적이고 합리적인 값으로 판단함
-- 빈 문자열, null, placeholder를 넣지 않음
-- 불확실한 세부값만 임의로 만들지 않음
-- 기존 Workflow 값은 가능한 한 재사용함
-- 새 요청과 기존 값이 충돌하면 새 요청에 맞게 기존 값을 수정함
-- 직접 수정 대상이 아닌 기존 parameter를 소실하지 않음
-- parameter가 실제 수행에 필요하지만 합리적 기본값을 정할 수 없으면 question을 사용함
-- 파일 형식 등 규격값은 규격에 맞추고 그 외 값은 사용자 언어로 자연스럽게 작성함
+WORKFLOW:
+- Preserve valid existing structure and unrelated params.
+- Distinguish add/modify/delete/replace.
+- Modify only affected parts; reuse existing nodes/connections.
+- Never invent node types, ids, ports, or params.
+- No unnecessary nodes, links, branches, transforms, or filters.
+- No cycles.
+- No change => ops=[].
+- links=execution flow; data=data transfer. Keep them distinct.
+- Use data links only for actual data transfer.
 
-Workflow:
-- 변경이 없으면 ops=[]로 반환함
-- 기존 node id와 params는 필요할 때만 수정함
-- 없는 node, port, parameter는 만들지 않음
-- 새 node id는 기존 id와 겹치지 않게 함
-- node id는 문자열임
-- 실행 순서와 데이터 전달을 구분함
-- 데이터가 필요한 작업은 data 연결을 사용함
-- 불필요한 data 연결은 만들지 않음
+NODE RULES:
+Judge=conditional branching only; inputs/outputs=true,false; never in/result.
+File=source-only; inputs=0; output=file.file; never target file; file.in invalid.
+CreateFile=input createFile.in; outputs=0; use only for file export; filename has no extension.
+Use only params defined by the node type. Preserve unrelated params. User values override old values. Infer reasonable values when possible. Ask only when a required value cannot be reasonably inferred.
 
-Judge:
-- 조건 분기에만 사용함
-- 입력 포트는 true, false만 사용함
-- 출력 포트도 true, false만 사용함
-- in, result 포트는 없음
-- 단순 순차 작업에는 추가하지 않음
-- 조건적이거나 가정적, 상황에 따라 달라지는 작업을 정확히 분석하여 정확히 분기로 나눠야함.
+RESPONSE:
+- message=user-facing only; concise and natural in the user's language.
+- Markdown is allowed. Use it when structure, emphasis, lists, or headings improve readability; plain text is fine for short replies.
+- Never expose ops, ids, schema, memory, or internal implementation.
+- Explain only completed changes or necessary clarification.
+- question=null unless clarification is required.
+- If the user changes response style, update behavior accordingly; later style instructions supersede earlier ones. Style instructions apply to message generation, not workflow state.
+- "Attach X to the end of speech" means apply X to sentence endings, not every word, unless the user explicitly says otherwise.
 
-File:
-- file은 사용자 제공 파일을 입력하는 source-only node임
-- 입력 포트는 정확히 0개임
-- 유일한 출력 포트는 file.file임
-- file.in은 존재하지 않음
-- file은 연결의 destination으로 사용하지 않음
-- 첨부 파일을 다른 작업에 전달할 때 file.file을 source로 사용함
-- 파일 생성 용도로 file을 사용하지 않음
-- createFile은 결과를 파일로 내보내는 output node임
-
-CreateFile:
-- createFile.in은 입력 포트임
-- 출력 포트는 없음
-- 결과 파일 생성이 필요하면 사용함
-- createFile.filename에는 확장자를 붙이지 않음
-
-General:
-- 최종적으로 무언가를 작성해야 하면 write를 사용함
-- 조건이나 분기가 필요하면 judge를 사용함
-
-자연어 응답:
-- 최대한 친절하고 이해하기 쉽게 작성함
-- 이모티콘도 조금 사용해도 좋음 친절해져
-- message에는 실제 변경한 내용만 설명함
-- node id, Patch 등 내부 구현은 설명하지 않음
-- 완료하지 않은 작업을 완료했다고 말하지 않음
-- 과하게 길게 작성하지 않음
-- question은 현재 Workflow와 요청만으로 결정할 수 없는 경우에만 작성함
-- 합리적 기본값으로 처리할 수 있으면 묻지 않음
-- 질문이 필요하면 message에 현재 처리한 내용을 설명하고 question에는 핵심 질문 하나만 작성함
-- 질문이 없으면 question=null로 함
-- 아무것도 처리를 하지 않았다 굳이 말할필요없음
-
-노드 정의:
+NODE DEFINITIONS:
 ${NODE_DEFINITION_PROMPT}
 
-Patch:
+PATCH:
 ["a",id,type,paramsJson]
 ["m",id,paramsJson]
 ["dn",id]
@@ -685,31 +649,12 @@ Patch:
 ["dc",source,target]
 ["d",source,target]
 ["dd",source,target]
-
-a=노드 추가
-m=기존 parameter 수정
-dn=노드 삭제
-c=links 추가
-dc=links 삭제
-d=data 추가
-dd=data 삭제
-
-paramsJson은 JSON 문자열임.
-예:["a","n2","research","{\\"topic\\":\\"일본어 단어\\"}"]
-
-연결 endpoint는 nodeId.portId 형식임.
-
-Patch 적용 순서:
-dn → dc/dd → m → a → c/d
-
-중요:
-- c는 links에만 적용함
-- d는 data에만 적용함
-- file.file은 데이터 전달 source임
-- file.in은 존재하지 않음
-- createFile.in은 입력 포트임
+a=add;m=modify;dn=delete;c=link add;dc=link delete;d=data add;dd=data delete
+paramsJson=JSON string
+endpoint=nodeId.portId
+Apply: dn → dc/dd → m → a → c/d
+c modifies links only. d modifies data only. file.file=data source. createFile.in=input.
 `;
-
 
 /* =========================================================
    PLANNER RESPONSE SCHEMA
@@ -717,47 +662,63 @@ dn → dc/dd → m → a → c/d
 
 const PLANNER_SCHEMA = {
   type: 'object',
-
   additionalProperties: false,
-
   properties: {
     ops: {
       type: 'array',
       minItems: 0,
       maxItems: 24,
-
       items: {
         type: 'array',
         minItems: 2,
         maxItems: 4,
-
         items: {
           type: 'string'
         }
       }
     },
-
     message: {
       type: 'string',
       maxLength: 300
     },
-
     question: {
       type: [
         'string',
         'null'
       ],
       maxLength: 300
+    },
+    memory: {
+      type: 'object',
+      additionalProperties: false,
+      properties: {
+        flow: {
+          type: 'string',
+          maxLength: 800
+        },
+        recent: {
+          type: 'string',
+          maxLength: 800
+        },
+        detail: {
+          type: 'string',
+          maxLength: 600
+        }
+      },
+      required: [
+        'flow',
+        'recent',
+        'detail'
+      ]
     }
   },
-
   required: [
     'ops',
     'message',
-    'question'
+    'question',
+    'memory'
   ]
 };
-
 
 /* =========================================================
    HELPERS
@@ -772,7 +733,6 @@ function parseJson(text) {
     );
   }
 }
-
 
 function cloneWorkflow(workflow) {
   if (
@@ -816,7 +776,6 @@ function cloneWorkflow(workflow) {
         : []
   };
 }
-
 
 function cleanParams(
   type,
@@ -872,7 +831,6 @@ function cleanParams(
   return result;
 }
 
-
 function parsePatchParams(
   value,
   label = 'params'
@@ -906,7 +864,6 @@ function parsePatchParams(
     );
   }
 }
-
 
 function endpoint(value) {
   if (
@@ -944,7 +901,6 @@ function endpoint(value) {
   };
 }
 
-
 function hasEdge(
   edges,
   source,
@@ -958,7 +914,6 @@ function hasEdge(
       edge[1] === target
   );
 }
-
 
 function removeNodeEdges(
   workflow,
@@ -987,7 +942,6 @@ function removeNodeEdges(
   workflow.data =
     workflow.data.filter(keep);
 }
-
 
 /* =========================================================
    PATCH VALIDATION
@@ -1153,10 +1107,29 @@ function validatePatch(
   return patch;
 }
 
-
 /* =========================================================
    PLANNER RESPONSE VALIDATION
 ========================================================= */
+
+function cleanMemory(value) {
+  const source =
+    value &&
+    typeof value === 'object' &&
+    !Array.isArray(value)
+      ? value
+      : {};
+
+  const limit = (input, max) =>
+    String(input ?? '')
+      .trim()
+      .slice(0, max);
+
+  return {
+    flow: limit(source.flow, 800),
+    recent: limit(source.recent, 800),
+    detail: limit(source.detail, 600)
+  };
+}
 
 function validatePlannerResponse(
   result
@@ -1204,9 +1177,21 @@ function validatePlannerResponse(
       result.question.trim();
   }
 
+  result.memory =
+    cleanMemory(result.memory);
+
+  if (
+    !result.memory.flow &&
+    !result.memory.recent &&
+    !result.memory.detail
+  ) {
+    throw new Error(
+      'Planner memory가 비어 있습니다.'
+    );
+  }
+
   return result;
 }
-
 
 /* =========================================================
    PATCH APPLY
@@ -1232,7 +1217,6 @@ function applyPatch(
         ]
       )
     );
-
 
   // 1. delete nodes
 
@@ -1265,7 +1249,6 @@ function applyPatch(
       id
     );
   }
-
 
   // 2. delete connections
 
@@ -1301,7 +1284,6 @@ function applyPatch(
       list.splice(index, 1);
     }
   }
-
 
   // 3. modify
 
@@ -1340,7 +1322,6 @@ function applyPatch(
         }
       );
   }
-
 
   // 4. add
 
@@ -1383,7 +1364,6 @@ function applyPatch(
     workflow.nodes.push(node);
     nodeMap.set(id, node);
   }
-
 
   // 5. add connections
 
@@ -1429,7 +1409,6 @@ function applyPatch(
   return workflow;
 }
 
-
 /* =========================================================
    WORKFLOW VALIDATION
 ========================================================= */
@@ -1471,10 +1450,8 @@ function validateWorkflow(
     );
   }
 
-
   const ids =
     new Set();
-
 
   for (
     const node
@@ -1513,15 +1490,12 @@ function validateWorkflow(
       );
     }
 
-
     node.params =
       cleanParams(
         node.type,
         node.params
       );
   }
-
-
 
   function checkEdges(
     edges,
@@ -1616,7 +1590,6 @@ function validateWorkflow(
     }
   }
 
-
   checkEdges(
     spec.links,
     'links'
@@ -1627,13 +1600,10 @@ function validateWorkflow(
     'data'
   );
 
-
   
-
 
   return spec;
 }
-
 
 /* =========================================================
    PATCH REQUEST
@@ -1641,50 +1611,53 @@ function validateWorkflow(
 
 function buildUserPrompt(
   text,
-  workflow
+  workflow,
+  memory
 ) {
+  const normalizedMemory =
+    cleanMemory(memory);
+
   return [
-    'CURRENT WORKFLOW',
-    JSON.stringify(
-      workflow || null
-    ),
-    '',
-    'USER REQUEST',
+    'MEMORY',
+    `flow:${normalizedMemory.flow || '-'}`,
+    `recent:${normalizedMemory.recent || '-'}`,
+    `detail:${normalizedMemory.detail || '-'}`,
+    'WORKFLOW',
+    JSON.stringify(workflow || null),
+    'REQUEST',
     text
   ].join('\n');
 }
-
 
 function buildRetryPrompt(
   text,
   workflow,
+  memory,
   plannerResult,
   errorMessage
 ) {
+  const normalizedMemory =
+    cleanMemory(memory);
+
   return [
-    'CURRENT WORKFLOW',
-    JSON.stringify(
-      workflow || null
-    ),
-    '',
+    'MEMORY',
+    `flow:${normalizedMemory.flow || '-'}`,
+    `recent:${normalizedMemory.recent || '-'}`,
+    `detail:${normalizedMemory.detail || '-'}`,
+    'WORKFLOW',
+    JSON.stringify(workflow || null),
     'PREVIOUS OPS',
-    JSON.stringify(
-      plannerResult.ops
-    ),
-    '',
+    JSON.stringify(plannerResult.ops),
     'VALIDATION ERROR',
     errorMessage,
-    '',
-    'IMPORTANT NODE RULE',
-    'file has zero input ports and only one output port: file.file',
-    'file.in does not exist',
-    'file must never be a connection destination',
-    '',
-    'USER REQUEST',
+    'NODE RULE',
+    'file: inputs=0 outputs=file.file only',
+    'file.in=invalid',
+    'file=source only',
+    'REQUEST',
     text
   ].join('\n');
 }
-
 
 /* =========================================================
    GROQ
@@ -1757,6 +1730,15 @@ async function requestPatch(
   const result =
     await response.json();
 
+  const cachedTokens =
+    result?.usage?.prompt_tokens_details?.cached_tokens;
+
+  if (Number.isFinite(cachedTokens)) {
+    console.log(
+      `Groq cached input tokens: ${cachedTokens}`
+    );
+  }
+
   const content =
     result
       ?.choices?.[0]
@@ -1776,7 +1758,6 @@ async function requestPatch(
     parseJson(content)
   );
 }
-
 
 /* =========================================================
    WORKFLOW API
@@ -1799,6 +1780,11 @@ app.post(
         req.body?.workflow ||
         null;
 
+      const memory =
+        cleanMemory(
+          req.body?.memory
+        );
+
       if (!text) {
         return res.status(400).json({
           ok: false,
@@ -1817,7 +1803,6 @@ app.post(
         });
       }
 
-
       /*
         1차 Planner
       */
@@ -1826,10 +1811,10 @@ app.post(
         await requestPatch(
           buildUserPrompt(
             text,
-            currentWorkflow
+            currentWorkflow,
+            memory
           )
         );
-
 
       /*
         Patch 적용 + 검증
@@ -1857,7 +1842,6 @@ app.post(
           firstError.message
         );
 
-
         /*
           2차 Planner
         */
@@ -1867,6 +1851,7 @@ app.post(
             buildRetryPrompt(
               text,
               currentWorkflow,
+              memory,
               plannerResult,
               firstError.message
             )
@@ -1884,7 +1869,6 @@ app.post(
           );
       }
 
-
       return res.json({
         ok: true,
 
@@ -1894,7 +1878,10 @@ app.post(
           plannerResult.message,
 
         question:
-          plannerResult.question
+          plannerResult.question,
+
+        memory:
+          plannerResult.memory
       });
 
     } catch (
@@ -1906,12 +1893,11 @@ app.post(
         ok: false,
         error:
           error.message ||
-          '워크플로우 생성에 실패했습니다.'
+          '워크플로우를 처리하지 못했습니다.'
       });
     }
   }
 );
-
 
 /* =========================================================
    NODE DEFINITION API
@@ -1928,7 +1914,6 @@ app.get(
   }
 );
 
-
 /* =========================================================
    HTML / STATIC
 ========================================================= */
@@ -1939,7 +1924,6 @@ app.get(
     res.redirect('/home');
   }
 );
-
 
 app.get(
   '/*splat',
@@ -1975,7 +1959,6 @@ app.get(
   }
 );
 
-
 /* =========================================================
    404
 ========================================================= */
@@ -1987,7 +1970,6 @@ app.use(
     );
   }
 );
-
 
 /* =========================================================
    SERVER

@@ -1075,55 +1075,597 @@
       return api;
     }
     function applyWorkflowIR(spec, options = {}) {
-      if (!spec || typeof spec !== 'object' || !Array.isArray(spec.nodes)) {
-        throw new Error('workflow spec가 올바르지 않습니다.');
-      }
-      const previousNodes = new Map(state.nodes.map(node => [node.id, node]));
-      const nextNodes = spec.nodes.map(node => {
-        const id = String(node.id);
-        const previous = previousNodes.get(id);
-        const hasPosition = Number.isFinite(Number(node.x)) && Number.isFinite(Number(node.y));
-        return normalizeNode({
-          id,
-          type: node.type,
-          x: hasPosition ? Number(node.x) : previous?.x ?? 0,
-          y: hasPosition ? Number(node.y) : previous?.y ?? 0,
-          expanded: node.expanded !== undefined ? !!node.expanded : previous?.expanded ?? (options.expanded ?? true),
-          data: {
-            params: clone(node.params || previous?.data?.params || {})
-          }
-        });
-      }).filter(node => registry.has(node.type));
-      state.nodes = nextNodes;
-      for (const node of state.nodes) {
-        if (previousNodes.has(node.id)) continue;
-        const position = findNewNodePosition(node.id);
-        node.x = position.x;
-        node.y = position.y;
-      }
-      state.connections = [
-        ...convertEdges(spec.links, 'flow'),
-        ...convertEdges(spec.data, 'data')
-      ].filter(
-        connection =>
-          getNode(connection.from.node) &&
-          getNode(connection.to.node)
-      );
-      state.selectedNode = null;
-      render();
-      for (const node of state.nodes) {
-        const element = getNodeElement(node.id);
-        if (!element) continue;
-        positionPorts(element, getDefinition(node.type));
-      }
-      renderConnections();
-      if (options.center !== false) {
-        centerWorkflow();
-      }
-      emit('workflowApplied', getWorkflow());
-      emit('change', getWorkflow());
-      return getWorkflow();
+  if (
+    !spec ||
+    typeof spec !== 'object' ||
+    !Array.isArray(spec.nodes)
+  ) {
+    throw new Error('workflow spec가 올바르지 않습니다.');
+  }
+
+  const previousNodes = new Map(
+    state.nodes.map(node => [node.id, node])
+  );
+
+  const hasMissingPosition = spec.nodes.some(node =>
+    !Number.isFinite(Number(node.x)) ||
+    !Number.isFinite(Number(node.y))
+  );
+
+  const nextNodes = spec.nodes
+    .map(node => {
+      const id = String(node.id);
+      const previous = previousNodes.get(id);
+
+      const hasPosition =
+        Number.isFinite(Number(node.x)) &&
+        Number.isFinite(Number(node.y));
+
+      return normalizeNode({
+        id,
+        type: node.type,
+        x: hasPosition
+          ? Number(node.x)
+          : previous?.x ?? 0,
+        y: hasPosition
+          ? Number(node.y)
+          : previous?.y ?? 0,
+        expanded:
+          node.expanded !== undefined
+            ? !!node.expanded
+            : previous?.expanded ??
+              (options.expanded ?? true),
+        data: {
+          params: clone(
+            node.params ||
+            previous?.data?.params ||
+            {}
+          )
+        }
+      });
+    })
+    .filter(node => registry.has(node.type));
+
+  state.nodes = nextNodes;
+
+  state.connections = [
+    ...convertEdges(spec.links, 'flow'),
+    ...convertEdges(spec.data, 'data')
+  ].filter(
+    connection =>
+      getNode(connection.from.node) &&
+      getNode(connection.to.node)
+  );
+
+  state.selectedNode = null;
+
+  /*
+   * IR에 좌표가 하나라도 빠져 있으면
+   * 전체 워크플로우를 자동 배치한다.
+   *
+   * links = 실행 흐름 / 계층 구조
+   * data  = 데이터 전달만 담당
+   *
+   * 배치 방향:
+   * x = depth
+   * y = 같은 depth 안에서의 순서
+   */
+  if (hasMissingPosition) {
+    for (const node of state.nodes) {
+      node.x = 0;
+      node.y = 0;
     }
+
+    render();
+
+    const GAP_X = 80;
+    const GAP_Y = 80;
+
+    const nodeInfo = new Map();
+
+    for (const node of state.nodes) {
+      const element = getNodeElement(node.id);
+
+      nodeInfo.set(node.id, {
+        width: Math.max(
+          190,
+          element?.offsetWidth || 190
+        ),
+        height: Math.max(
+          50,
+          element?.offsetHeight || 74
+        )
+      });
+    }
+
+    const flowConnections = state.connections.filter(
+      connection =>
+        connection.data?.kind !== 'data'
+    );
+
+    const incoming = new Map();
+    const outgoing = new Map();
+
+    for (const node of state.nodes) {
+      incoming.set(node.id, []);
+      outgoing.set(node.id, []);
+    }
+
+    for (const connection of flowConnections) {
+      const from = connection.from.node;
+      const to = connection.to.node;
+
+      if (
+        !incoming.has(to) ||
+        !outgoing.has(from)
+      ) {
+        continue;
+      }
+
+      if (!outgoing.get(from).includes(to)) {
+        outgoing.get(from).push(to);
+      }
+
+      if (!incoming.get(to).includes(from)) {
+        incoming.get(to).push(from);
+      }
+    }
+
+    const nodeOrder = new Map(
+      state.nodes.map((node, index) => [
+        node.id,
+        index
+      ])
+    );
+
+    /*
+     * depth 계산.
+     *
+     * start가 있으면 start를 반드시 0층으로 둔다.
+     * 이후에는 부모보다 한 단계 오른쪽으로 배치한다.
+     */
+    const depth = new Map();
+
+    const startNode = state.nodes.find(
+      node => node.id === 'start'
+    );
+
+    if (startNode) {
+      depth.set(startNode.id, 0);
+    }
+
+    const indegree = new Map();
+
+    for (const node of state.nodes) {
+      indegree.set(
+        node.id,
+        incoming.get(node.id)?.length || 0
+      );
+    }
+
+    /*
+     * start는 항상 루트 취급.
+     * 일반적인 루트들은 indegree 0.
+     */
+    const queue = [];
+
+    if (startNode) {
+      queue.push(startNode.id);
+    }
+
+    for (const node of state.nodes) {
+      if (node.id === 'start') continue;
+
+      if (
+        (indegree.get(node.id) || 0) === 0
+      ) {
+        queue.push(node.id);
+
+        if (!depth.has(node.id)) {
+          depth.set(node.id, 0);
+        }
+      }
+    }
+
+    const queued = new Set(queue);
+
+    /*
+     * 위상 순회하면서
+     * 여러 부모가 있으면 가장 깊은 부모 기준으로 배치.
+     */
+    while (queue.length) {
+      const currentId = queue.shift();
+
+      const currentDepth =
+        depth.get(currentId) ?? 0;
+
+      for (const childId of
+        outgoing.get(currentId) || []) {
+        const nextDepth =
+          currentDepth + 1;
+
+        const previousDepth =
+          depth.get(childId);
+
+        if (
+          previousDepth === undefined ||
+          nextDepth > previousDepth
+        ) {
+          depth.set(
+            childId,
+            nextDepth
+          );
+        }
+
+        const nextIndegree =
+          (indegree.get(childId) || 0) - 1;
+
+        indegree.set(
+          childId,
+          nextIndegree
+        );
+
+        if (
+          nextIndegree === 0 &&
+          !queued.has(childId)
+        ) {
+          queued.add(childId);
+          queue.push(childId);
+        }
+      }
+    }
+
+    /*
+     * 순환이나 비정상적인 IR 때문에
+     * depth를 못 받은 노드는 마지막 층 이후에 배치.
+     */
+    let maxDepth = 0;
+
+    for (const value of depth.values()) {
+      maxDepth = Math.max(
+        maxDepth,
+        value
+      );
+    }
+
+    for (const node of state.nodes) {
+      if (depth.has(node.id)) continue;
+
+      depth.set(
+        node.id,
+        ++maxDepth
+      );
+    }
+
+    /*
+     * depth별 layer 구성.
+     */
+    const layers = new Map();
+
+    for (const node of state.nodes) {
+      const d = depth.get(node.id);
+
+      if (!layers.has(d)) {
+        layers.set(d, []);
+      }
+
+      layers.get(d).push(node);
+    }
+
+    const positions = new Map();
+
+    /*
+     * 부모 중심 y 좌표를 계산하는 함수.
+     */
+    function getParentCenter(nodeId) {
+      const parents =
+        incoming.get(nodeId) || [];
+
+      const centers = parents
+        .map(parentId => {
+          const parentPos =
+            positions.get(parentId);
+
+          if (!parentPos) return null;
+
+          return (
+            parentPos.y +
+            parentPos.height / 2
+          );
+        })
+        .filter(
+          value =>
+            Number.isFinite(value)
+        );
+
+      if (!centers.length) {
+        return null;
+      }
+
+      return (
+        centers.reduce(
+          (sum, value) =>
+            sum + value,
+          0
+        ) /
+        centers.length
+      );
+    }
+
+    /*
+     * 같은 depth의 노드를 세로 방향으로 배치.
+     *
+     * 같은 부모를 가진 노드들은
+     * parent-set 단위로 하나의 그룹으로 묶어서
+     * 부모 중심 주변에 연속적으로 배치한다.
+     */
+    function layoutLayer(
+      layerNodes,
+      currentX
+    ) {
+      const groups = new Map();
+
+      for (const node of layerNodes) {
+        const parents = (
+          incoming.get(node.id) || []
+        ).slice().sort(
+          (a, b) =>
+            (nodeOrder.get(a) || 0) -
+            (nodeOrder.get(b) || 0)
+        );
+
+        /*
+         * 부모가 완전히 동일한 노드끼리 같은 그룹.
+         * root는 자기 자신을 key로 사용해서
+         * 서로 합쳐지지 않게 한다.
+         */
+        const key = parents.length
+          ? parents.join('|')
+          : `root:${node.id}`;
+
+        if (!groups.has(key)) {
+          groups.set(key, {
+            parents,
+            nodes: []
+          });
+        }
+
+        groups.get(key).nodes.push(node);
+      }
+
+      const groupList = [...groups.values()];
+
+      /*
+       * 원래 IR 순서를 유지하되,
+       * 부모 중심이 존재하면 부모의 y를 기준으로 정렬.
+       */
+      for (const group of groupList) {
+        const parentCenters = group.parents
+          .map(parentId => {
+            const pos =
+              positions.get(parentId);
+
+            return pos
+              ? pos.y + pos.height / 2
+              : null;
+          })
+          .filter(
+            value =>
+              Number.isFinite(value)
+          );
+
+        group.anchor =
+          parentCenters.length
+            ? parentCenters.reduce(
+                (sum, value) =>
+                  sum + value,
+                0
+              ) /
+              parentCenters.length
+            : 0;
+
+        group.originalIndex = Math.min(
+          ...group.nodes.map(
+            node =>
+              nodeOrder.get(node.id) ??
+              Infinity
+          )
+        );
+
+        group.nodes.sort(
+          (a, b) =>
+            (nodeOrder.get(a.id) || 0) -
+            (nodeOrder.get(b.id) || 0)
+        );
+      }
+
+      groupList.sort(
+        (a, b) =>
+          a.anchor - b.anchor ||
+          a.originalIndex -
+            b.originalIndex
+      );
+
+      let previousBottom =
+        -Infinity;
+
+      for (const group of groupList) {
+        let totalHeight = 0;
+
+        for (
+          let i = 0;
+          i < group.nodes.length;
+          i++
+        ) {
+          const node =
+            group.nodes[i];
+
+          const info =
+            nodeInfo.get(node.id);
+
+          totalHeight += info.height;
+
+          if (
+            i <
+            group.nodes.length - 1
+          ) {
+            totalHeight += GAP_Y;
+          }
+        }
+
+        /*
+         * 그룹 전체를 부모 중심에 맞춘다.
+         */
+        let groupTop =
+          group.anchor -
+          totalHeight / 2;
+
+        /*
+         * 이전 그룹과 겹치면
+         * 전체 그룹을 아래로 민다.
+         */
+        if (
+          groupTop <
+          previousBottom + GAP_Y
+        ) {
+          groupTop =
+            previousBottom + GAP_Y;
+        }
+
+        let y = groupTop;
+
+        for (const node of group.nodes) {
+          const info =
+            nodeInfo.get(node.id);
+
+          positions.set(
+            node.id,
+            {
+              x: currentX,
+              y,
+              width: info.width,
+              height: info.height
+            }
+          );
+
+          y +=
+            info.height +
+            GAP_Y;
+        }
+
+        previousBottom =
+          y - GAP_Y;
+      }
+    }
+
+    /*
+     * depth 0부터 순차적으로 배치.
+     * 각 depth의 실제 최대 너비를 기준으로
+     * 다음 depth의 x를 결정한다.
+     */
+    const sortedDepths = [
+      ...layers.keys()
+    ].sort((a, b) => a - b);
+
+    let currentX = 0;
+
+    for (const d of sortedDepths) {
+      const layerNodes =
+        layers.get(d) || [];
+
+      if (!layerNodes.length) {
+        continue;
+      }
+
+      layoutLayer(
+        layerNodes,
+        currentX
+      );
+
+      const layerWidth =
+        Math.max(
+          ...layerNodes.map(
+            node =>
+              nodeInfo.get(
+                node.id
+              )?.width || 190
+          )
+        );
+
+      currentX +=
+        layerWidth + GAP_X;
+    }
+
+    /*
+     * 최종 좌표 반영.
+     */
+    for (const node of state.nodes) {
+      const position =
+        positions.get(node.id);
+
+      if (!position) continue;
+
+      node.x = position.x;
+      node.y = position.y;
+    }
+
+    /*
+     * 실제 좌표로 다시 렌더링해서
+     * 포트와 연결선을 최종 갱신.
+     */
+    render();
+
+    for (const node of state.nodes) {
+      const element =
+        getNodeElement(node.id);
+
+      if (!element) continue;
+
+      positionPorts(
+        element,
+        getDefinition(node.type)
+      );
+    }
+
+    renderConnections();
+  } else {
+    /*
+     * 모든 노드에 좌표가 명시된 IR이면
+     * AI가 준 좌표를 그대로 사용한다.
+     */
+    render();
+
+    for (const node of state.nodes) {
+      const element =
+        getNodeElement(node.id);
+
+      if (!element) continue;
+
+      positionPorts(
+        element,
+        getDefinition(node.type)
+      );
+    }
+
+    renderConnections();
+  }
+
+  if (options.center !== false) {
+    centerWorkflow();
+  }
+
+  emit(
+    'workflowApplied',
+    getWorkflow()
+  );
+
+  emit(
+    'change',
+    getWorkflow()
+  );
+
+  return getWorkflow();
+}
     function findNewNodePosition(ignoreNodeId = null) {
       const rect = viewport.getBoundingClientRect();
       const center = screenToWorld(
@@ -1447,33 +1989,62 @@
       }
     );
     listen(
-      nodesLayer,
-      'input',
-      event => {
-        const input =
-          event.target.closest(
-            '.vc-slot-param'
+  nodesLayer,
+  'input',
+  event => {
+    const input =
+      event.target.closest(
+        '.vc-slot-param'
+      );
+
+    if (!input) return;
+
+    const element =
+      input.closest('.vc-node');
+
+    if (!element) return;
+
+    const node =
+      getNode(
+        element.dataset.nodeId
+      );
+
+    if (!node) return;
+
+    node.data ||= {};
+    node.data.params ||= {};
+
+    node.data.params[
+      input.dataset.paramId
+    ] = input.value;
+
+    if (node.expanded) {
+      requestAnimationFrame(() => {
+        const body =
+          element.querySelector(
+            '.vc-node-body'
           );
-        if (!input) return;
-        const element =
-          input.closest('.vc-node');
-        if (!element) return;
-        const node =
-          getNode(
-            element.dataset.nodeId
-          );
-        if (!node) return;
-        node.data ||= {};
-        node.data.params ||= {};
-        node.data.params[
-          input.dataset.paramId
-        ] = input.value;
-        emit(
-          'change',
-          getWorkflow()
+
+        if (!body) return;
+
+        body.style.height =
+          `${body.scrollHeight}px`;
+
+        positionPorts(
+          element,
+          getDefinition(node.type)
         );
-      }
+
+        renderConnections();
+      });
+    }
+
+    emit(
+      'change',
+      getWorkflow()
     );
+  }
+);
     /*
       연결선은 canvas 이동 이벤트보다
       먼저 먹는다.
