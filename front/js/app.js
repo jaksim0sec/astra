@@ -33,7 +33,7 @@
   /* =======================================================
      State
      ======================================================= */
-  const MEMORY_STORAGE_KEY = "astra-conversation-memory";
+  const memoryStore = { value: null };
 
   const state = {
     destroyed: false,
@@ -102,25 +102,7 @@
   }
 
   function loadMemory() {
-    try {
-      const stored =
-        localStorage.getItem(
-          MEMORY_STORAGE_KEY
-        );
-
-      if (!stored) {
-        return null;
-      }
-
-      return normalizeMemory(
-        JSON.parse(stored)
-      );
-    } catch {
-      localStorage.removeItem(
-        MEMORY_STORAGE_KEY
-      );
-      return null;
-    }
+    return normalizeMemory(memoryStore.value);
   }
 
   function saveMemory(memory) {
@@ -133,23 +115,12 @@
 
     state.conversationMemory =
       normalized;
-
-    try {
-      localStorage.setItem(
-        MEMORY_STORAGE_KEY,
-        JSON.stringify(normalized)
-      );
-    } catch {}
+    memoryStore.value = normalized;
   }
 
   function clearMemory() {
     state.conversationMemory = null;
-
-    try {
-      localStorage.removeItem(
-        MEMORY_STORAGE_KEY
-      );
-    } catch {}
+    memoryStore.value = null;
   }
 
   function scrollChatToBottom(immediate = false) {

@@ -1087,226 +1087,465 @@
     state.nodes.map(node => [node.id, node])
   );
 
-  const hasMissingPosition = spec.nodes.some(node =>
-    !Number.isFinite(Number(node.x)) ||
-    !Number.isFinite(Number(node.y))
+  const previousNodeCount = previousNodes.size;
+
+  const seenNodeIds = new Set();
+
+  const nextNodes = spec.nodes.map((node, index) => {
+    if (
+      !node ||
+      typeof node !== 'object' ||
+      Array.isArray(node)
+    ) {
+      throw new Error(`잘못된 노드입니다: ${index}`);
+    }
+
+    if (
+      typeof node.id !== 'string' ||
+      !node.id.trim()
+    ) {
+      throw new Error(`노드 ID가 올바르지 않습니다: ${index}`);
+    }
+
+    const id = node.id.trim();
+
+    if (seenNodeIds.has(id)) {
+      throw new Error(`중복된 노드 ID: ${id}`);
+    }
+
+    seenNodeIds.add(id);
+
+    if (
+      typeof node.type !== 'string' ||
+      !registry.has(node.type)
+    ) {
+      throw new Error(`존재하지 않는 노드 타입: ${node.type}`);
+    }
+
+    const previous =
+      previousNodes.get(id);
+
+    const hasPosition =
+      Number.isFinite(Number(node.x)) &&
+      Number.isFinite(Number(node.y));
+
+    const previousData =
+      previous?.data &&
+      typeof previous.data === 'object'
+        ? clone(previous.data)
+        : {};
+
+    const incomingData =
+      node.data &&
+      typeof node.data === 'object'
+        ? clone(node.data)
+        : {};
+
+    const params =
+      node.params &&
+      typeof node.params === 'object' &&
+      !Array.isArray(node.params)
+        ? clone(node.params)
+        : previousData.params &&
+          typeof previousData.params === 'object'
+          ? clone(previousData.params)
+          : {};
+
+    return normalizeNode({
+      id,
+      type: node.type,
+      x: hasPosition
+        ? Number(node.x)
+        : previous?.x ?? 0,
+      y: hasPosition
+        ? Number(node.y)
+        : previous?.y ?? 0,
+      expanded:
+        node.expanded !== undefined
+          ? !!node.expanded
+          : previous?.expanded ??
+            (options.expanded ?? true),
+      data: {
+        ...previousData,
+        ...incomingData,
+        params
+      }
+    });
+  });
+
+  const nextNodeMap = new Map(
+    nextNodes.map(node => [node.id, node])
   );
 
-  const nextNodes = spec.nodes
-    .map(node => {
-      const id = String(node.id);
-      const previous = previousNodes.get(id);
+  function buildConnections(edges, kind) {
+    if (edges === undefined) {
+      return [];
+    }
 
-      const hasPosition =
-        Number.isFinite(Number(node.x)) &&
-        Number.isFinite(Number(node.y));
+    if (!Array.isArray(edges)) {
+      throw new Error(
+        `${kind} 연결이 배열이 아닙니다.`
+      );
+    }
 
-      return normalizeNode({
-        id,
-        type: node.type,
-        x: hasPosition
-          ? Number(node.x)
-          : previous?.x ?? 0,
-        y: hasPosition
-          ? Number(node.y)
-          : previous?.y ?? 0,
-        expanded:
-          node.expanded !== undefined
-            ? !!node.expanded
-            : previous?.expanded ??
-              (options.expanded ?? true),
-        data: {
-          params: clone(
-            node.params ||
-            previous?.data?.params ||
-            {}
-          )
-        }
+    const seen = new Set();
+    const result = [];
+
+    for (
+      const edge of edges
+    ) {
+      if (
+        !Array.isArray(edge) ||
+        edge.length !== 2
+      ) {
+        throw new Error(
+          `잘못된 ${kind} 연결입니다.`
+        );
+      }
+
+      const from =
+        endpoint(edge[0]);
+
+      const to =
+        endpoint(edge[1]);
+
+      const fromNode =
+        nextNodeMap.get(from.node);
+
+      const toNode =
+        nextNodeMap.get(to.node);
+
+      if (!fromNode) {
+        throw new Error(
+          `${kind}: 출발 노드가 없습니다: ${from.node}`
+        );
+      }
+
+      if (!toNode) {
+        throw new Error(
+          `${kind}: 도착 노드가 없습니다: ${to.node}`
+        );
+      }
+
+      const output =
+        portDef(
+          from.node,
+          from.port,
+          'output'
+        );
+
+      const input =
+        portDef(
+          to.node,
+          to.port,
+          'input'
+        );
+
+      if (!output) {
+        throw new Error(
+          `${kind}: ${fromNode.type}.${from.port}는 존재하지 않는 출력 포트입니다.`
+        );
+      }
+
+      if (!input) {
+        throw new Error(
+          `${kind}: ${toNode.type}.${to.port}는 존재하지 않는 입력 포트입니다.`
+        );
+      }
+
+      if (
+        !compatible(
+          output,
+          input
+        )
+      ) {
+        throw new Error(
+          `${kind}: ${output.type} → ${input.type} 타입이 호환되지 않습니다.`
+        );
+      }
+
+      const key =
+        `${edge[0]}->${edge[1]}`;
+
+      if (seen.has(key)) {
+        throw new Error(
+          `${kind}: 중복된 연결입니다: ${key}`
+        );
+      }
+
+      seen.add(key);
+
+      result.push({
+        id:
+          `c-${Math.random().toString(36).slice(2, 9)}`,
+        from,
+        to,
+        data: { kind }
       });
-    })
-    .filter(node => registry.has(node.type));
+    }
 
-  state.nodes = nextNodes;
+    return result;
+  }
 
-  state.connections = [
-    ...convertEdges(spec.links, 'flow'),
-    ...convertEdges(spec.data, 'data')
-  ].filter(
-    connection =>
-      getNode(connection.from.node) &&
-      getNode(connection.to.node)
-  );
+  const connections = [
+    ...buildConnections(
+      spec.links,
+      'links'
+    ),
+    ...buildConnections(
+      spec.data,
+      'data'
+    )
+  ];
+
+  const sharedNodeCount =
+    nextNodes.reduce(
+      (count, node) =>
+        count +
+        (
+          previousNodes.has(node.id)
+            ? 1
+            : 0
+        ),
+      0
+    );
+
+  const isNewWorkflow =
+    previousNodeCount === 0 ||
+    (
+      nextNodes.length > 0 &&
+      sharedNodeCount === 0
+    );
+
+  state.nodes =
+    nextNodes;
+
+  state.connections =
+    connections;
 
   state.selectedNode = null;
 
-  /*
-   * IR에 좌표가 하나라도 빠져 있으면
-   * 전체 워크플로우를 자동 배치한다.
-   *
-   * links = 실행 흐름 / 계층 구조
-   * data  = 데이터 전달만 담당
-   *
-   * 배치 방향:
-   * x = depth
-   * y = 같은 depth 안에서의 순서
-   */
-  if (hasMissingPosition) {
-    for (const node of state.nodes) {
-      node.x = 0;
-      node.y = 0;
-    }
+  render();
 
-    render();
+  const GAP_X = 80;
+  const DEFAULT_Y = 0;
 
-    const GAP_X = 80;
-    const GAP_Y = 80;
+  const nodeInfo = new Map();
 
-    const nodeInfo = new Map();
+  for (const node of state.nodes) {
+    const element =
+      getNodeElement(node.id);
 
-    for (const node of state.nodes) {
-      const element = getNodeElement(node.id);
+    nodeInfo.set(node.id, {
+      width: Math.max(
+        190,
+        element?.offsetWidth || 190
+      ),
+      height: Math.max(
+        50,
+        element?.offsetHeight || 74
+      )
+    });
+  }
 
-      nodeInfo.set(node.id, {
-        width: Math.max(
-          190,
-          element?.offsetWidth || 190
-        ),
-        height: Math.max(
-          50,
-          element?.offsetHeight || 74
-        )
-      });
-    }
-
-    const flowConnections = state.connections.filter(
+  const flowConnections =
+    state.connections.filter(
       connection =>
         connection.data?.kind !== 'data'
     );
 
-    const incoming = new Map();
-    const outgoing = new Map();
+  const incoming =
+    new Map();
 
-    for (const node of state.nodes) {
-      incoming.set(node.id, []);
-      outgoing.set(node.id, []);
-    }
+  const outgoing =
+    new Map();
 
-    for (const connection of flowConnections) {
-      const from = connection.from.node;
-      const to = connection.to.node;
-
-      if (
-        !incoming.has(to) ||
-        !outgoing.has(from)
-      ) {
-        continue;
-      }
-
-      if (!outgoing.get(from).includes(to)) {
-        outgoing.get(from).push(to);
-      }
-
-      if (!incoming.get(to).includes(from)) {
-        incoming.get(to).push(from);
-      }
-    }
-
-    const nodeOrder = new Map(
-      state.nodes.map((node, index) => [
-        node.id,
-        index
-      ])
+  for (const node of state.nodes) {
+    incoming.set(
+      node.id,
+      []
     );
 
-    /*
-     * depth 계산.
-     *
-     * start가 있으면 start를 반드시 0층으로 둔다.
-     * 이후에는 부모보다 한 단계 오른쪽으로 배치한다.
-     */
-    const depth = new Map();
-
-    const startNode = state.nodes.find(
-      node => node.id === 'start'
+    outgoing.set(
+      node.id,
+      []
     );
+  }
 
-    if (startNode) {
-      depth.set(startNode.id, 0);
+  for (
+    const connection of flowConnections
+  ) {
+    const from =
+      connection.from.node;
+
+    const to =
+      connection.to.node;
+
+    if (
+      !incoming.has(to) ||
+      !outgoing.has(from)
+    ) {
+      continue;
     }
 
-    const indegree = new Map();
+    if (
+      !outgoing
+        .get(from)
+        .includes(to)
+    ) {
+      outgoing
+        .get(from)
+        .push(to);
+    }
+
+    if (
+      !incoming
+        .get(to)
+        .includes(from)
+    ) {
+      incoming
+        .get(to)
+        .push(from);
+    }
+  }
+
+  const nodeOrder =
+    new Map(
+      state.nodes.map(
+        (node, index) => [
+          node.id,
+          index
+        ]
+      )
+    );
+
+  /*
+   * 좌표가 명시되지 않은 노드는
+   * 새로 추가된 노드에 한해서만 배치한다.
+   *
+   * 기존 노드는 이전 좌표를 그대로 유지한다.
+   *
+   * 전체가 새 워크플로우라면
+   * 모든 노드를 하나의 가로 행으로 배치한다.
+   */
+  const nodesNeedingPosition =
+    state.nodes.filter(
+      node => {
+        const source =
+          spec.nodes.find(
+            item =>
+              String(item.id) ===
+              node.id
+          );
+
+        const hasExplicitPosition =
+          Number.isFinite(
+            Number(source?.x)
+          ) &&
+          Number.isFinite(
+            Number(source?.y)
+          );
+
+        return (
+          !hasExplicitPosition &&
+          !previousNodes.has(node.id)
+        );
+      }
+    );
+
+  if (
+    nodesNeedingPosition.length
+  ) {
+    const indegree =
+      new Map();
 
     for (const node of state.nodes) {
       indegree.set(
         node.id,
-        incoming.get(node.id)?.length || 0
+        (
+          incoming.get(node.id) ||
+          []
+        ).length
       );
     }
 
-    /*
-     * start는 항상 루트 취급.
-     * 일반적인 루트들은 indegree 0.
-     */
     const queue = [];
 
-    if (startNode) {
-      queue.push(startNode.id);
+    const queued =
+      new Set();
+
+    const initiallyReady =
+      state.nodes
+        .filter(
+          node =>
+            (
+              indegree.get(node.id) ||
+              0
+            ) === 0
+        )
+        .sort(
+          (a, b) =>
+            (
+              nodeOrder.get(a.id) ||
+              0
+            ) -
+            (
+              nodeOrder.get(b.id) ||
+              0
+            )
+        );
+
+    for (
+      const node of initiallyReady
+    ) {
+      queue.push(node.id);
+      queued.add(node.id);
     }
 
-    for (const node of state.nodes) {
-      if (node.id === 'start') continue;
+    const topologicalOrder = [];
 
-      if (
-        (indegree.get(node.id) || 0) === 0
-      ) {
-        queue.push(node.id);
-
-        if (!depth.has(node.id)) {
-          depth.set(node.id, 0);
-        }
-      }
-    }
-
-    const queued = new Set(queue);
-
-    /*
-     * 위상 순회하면서
-     * 여러 부모가 있으면 가장 깊은 부모 기준으로 배치.
-     */
     while (queue.length) {
-      const currentId = queue.shift();
+      const currentId =
+        queue.shift();
 
-      const currentDepth =
-        depth.get(currentId) ?? 0;
+      topologicalOrder.push(
+        currentId
+      );
 
-      for (const childId of
-        outgoing.get(currentId) || []) {
-        const nextDepth =
-          currentDepth + 1;
+      const children =
+        (
+          outgoing.get(
+            currentId
+          ) || []
+        ).slice().sort(
+          (a, b) =>
+            (
+              nodeOrder.get(a) ||
+              0
+            ) -
+            (
+              nodeOrder.get(b) ||
+              0
+            )
+        );
 
-        const previousDepth =
-          depth.get(childId);
-
-        if (
-          previousDepth === undefined ||
-          nextDepth > previousDepth
-        ) {
-          depth.set(
-            childId,
-            nextDepth
-          );
-        }
-
-        const nextIndegree =
-          (indegree.get(childId) || 0) - 1;
+      for (
+        const childId of children
+      ) {
+        const next =
+          (
+            indegree.get(
+              childId
+            ) || 0
+          ) - 1;
 
         indegree.set(
           childId,
-          nextIndegree
+          next
         );
 
         if (
-          nextIndegree === 0 &&
+          next === 0 &&
           !queued.has(childId)
         ) {
           queued.add(childId);
@@ -1315,342 +1554,195 @@
       }
     }
 
-    /*
-     * 순환이나 비정상적인 IR 때문에
-     * depth를 못 받은 노드는 마지막 층 이후에 배치.
-     */
-    let maxDepth = 0;
-
-    for (const value of depth.values()) {
-      maxDepth = Math.max(
-        maxDepth,
-        value
-      );
-    }
-
     for (const node of state.nodes) {
-      if (depth.has(node.id)) continue;
-
-      depth.set(
-        node.id,
-        ++maxDepth
-      );
-    }
-
-    /*
-     * depth별 layer 구성.
-     */
-    const layers = new Map();
-
-    for (const node of state.nodes) {
-      const d = depth.get(node.id);
-
-      if (!layers.has(d)) {
-        layers.set(d, []);
-      }
-
-      layers.get(d).push(node);
-    }
-
-    const positions = new Map();
-
-    /*
-     * 부모 중심 y 좌표를 계산하는 함수.
-     */
-    function getParentCenter(nodeId) {
-      const parents =
-        incoming.get(nodeId) || [];
-
-      const centers = parents
-        .map(parentId => {
-          const parentPos =
-            positions.get(parentId);
-
-          if (!parentPos) return null;
-
-          return (
-            parentPos.y +
-            parentPos.height / 2
-          );
-        })
-        .filter(
-          value =>
-            Number.isFinite(value)
+      if (
+        !topologicalOrder.includes(
+          node.id
+        )
+      ) {
+        topologicalOrder.push(
+          node.id
         );
-
-      if (!centers.length) {
-        return null;
       }
-
-      return (
-        centers.reduce(
-          (sum, value) =>
-            sum + value,
-          0
-        ) /
-        centers.length
-      );
     }
 
-    /*
-     * 같은 depth의 노드를 세로 방향으로 배치.
-     *
-     * 같은 부모를 가진 노드들은
-     * parent-set 단위로 하나의 그룹으로 묶어서
-     * 부모 중심 주변에 연속적으로 배치한다.
-     */
-    function layoutLayer(
-      layerNodes,
-      currentX
-    ) {
-      const groups = new Map();
-
-      for (const node of layerNodes) {
-        const parents = (
-          incoming.get(node.id) || []
-        ).slice().sort(
-          (a, b) =>
-            (nodeOrder.get(a) || 0) -
-            (nodeOrder.get(b) || 0)
-        );
-
-        /*
-         * 부모가 완전히 동일한 노드끼리 같은 그룹.
-         * root는 자기 자신을 key로 사용해서
-         * 서로 합쳐지지 않게 한다.
-         */
-        const key = parents.length
-          ? parents.join('|')
-          : `root:${node.id}`;
-
-        if (!groups.has(key)) {
-          groups.set(key, {
-            parents,
-            nodes: []
-          });
-        }
-
-        groups.get(key).nodes.push(node);
-      }
-
-      const groupList = [...groups.values()];
-
-      /*
-       * 원래 IR 순서를 유지하되,
-       * 부모 중심이 존재하면 부모의 y를 기준으로 정렬.
-       */
-      for (const group of groupList) {
-        const parentCenters = group.parents
-          .map(parentId => {
-            const pos =
-              positions.get(parentId);
-
-            return pos
-              ? pos.y + pos.height / 2
-              : null;
-          })
+    const positioned =
+      new Set(
+        state.nodes
           .filter(
-            value =>
-              Number.isFinite(value)
-          );
-
-        group.anchor =
-          parentCenters.length
-            ? parentCenters.reduce(
-                (sum, value) =>
-                  sum + value,
-                0
-              ) /
-              parentCenters.length
-            : 0;
-
-        group.originalIndex = Math.min(
-          ...group.nodes.map(
             node =>
-              nodeOrder.get(node.id) ??
-              Infinity
+              previousNodes.has(
+                node.id
+              ) ||
+              !nodesNeedingPosition.some(
+                target =>
+                  target.id === node.id
+              )
           )
-        );
-
-        group.nodes.sort(
-          (a, b) =>
-            (nodeOrder.get(a.id) || 0) -
-            (nodeOrder.get(b.id) || 0)
-        );
-      }
-
-      groupList.sort(
-        (a, b) =>
-          a.anchor - b.anchor ||
-          a.originalIndex -
-            b.originalIndex
+          .map(
+            node =>
+              node.id
+          )
       );
 
-      let previousBottom =
-        -Infinity;
+    let maxX =
+      0;
 
-      for (const group of groupList) {
-        let totalHeight = 0;
+    let baseY =
+      DEFAULT_Y;
 
-        for (
-          let i = 0;
-          i < group.nodes.length;
-          i++
-        ) {
-          const node =
-            group.nodes[i];
-
-          const info =
-            nodeInfo.get(node.id);
-
-          totalHeight += info.height;
-
-          if (
-            i <
-            group.nodes.length - 1
-          ) {
-            totalHeight += GAP_Y;
-          }
-        }
-
-        /*
-         * 그룹 전체를 부모 중심에 맞춘다.
-         */
-        let groupTop =
-          group.anchor -
-          totalHeight / 2;
-
-        /*
-         * 이전 그룹과 겹치면
-         * 전체 그룹을 아래로 민다.
-         */
-        if (
-          groupTop <
-          previousBottom + GAP_Y
-        ) {
-          groupTop =
-            previousBottom + GAP_Y;
-        }
-
-        let y = groupTop;
-
-        for (const node of group.nodes) {
-          const info =
-            nodeInfo.get(node.id);
-
-          positions.set(
-            node.id,
-            {
-              x: currentX,
-              y,
-              width: info.width,
-              height: info.height
-            }
-          );
-
-          y +=
-            info.height +
-            GAP_Y;
-        }
-
-        previousBottom =
-          y - GAP_Y;
-      }
-    }
-
-    /*
-     * depth 0부터 순차적으로 배치.
-     * 각 depth의 실제 최대 너비를 기준으로
-     * 다음 depth의 x를 결정한다.
-     */
-    const sortedDepths = [
-      ...layers.keys()
-    ].sort((a, b) => a - b);
-
-    let currentX = 0;
-
-    for (const d of sortedDepths) {
-      const layerNodes =
-        layers.get(d) || [];
-
-      if (!layerNodes.length) {
+    for (
+      const node of state.nodes
+    ) {
+      if (
+        !positioned.has(node.id)
+      ) {
         continue;
       }
 
-      layoutLayer(
-        layerNodes,
-        currentX
-      );
-
-      const layerWidth =
-        Math.max(
-          ...layerNodes.map(
-            node =>
-              nodeInfo.get(
-                node.id
-              )?.width || 190
-          )
+      const info =
+        nodeInfo.get(
+          node.id
         );
 
-      currentX +=
-        layerWidth + GAP_X;
+      maxX =
+        Math.max(
+          maxX,
+          node.x +
+            (
+              info?.width ||
+              190
+            )
+        );
+
+      if (
+        Number.isFinite(node.y)
+      ) {
+        baseY =
+          node.y;
+      }
     }
 
-    /*
-     * 최종 좌표 반영.
-     */
-    for (const node of state.nodes) {
-      const position =
-        positions.get(node.id);
+    if (
+      isNewWorkflow
+    ) {
+      maxX = 0;
 
-      if (!position) continue;
-
-      node.x = position.x;
-      node.y = position.y;
+      baseY =
+        state.nodes.length
+          ? state.nodes[0].y
+          : DEFAULT_Y;
+    } else if (
+      positioned.size
+    ) {
+      maxX += GAP_X;
     }
 
-    /*
-     * 실제 좌표로 다시 렌더링해서
-     * 포트와 연결선을 최종 갱신.
-     */
-    render();
+    for (
+      const nodeId of topologicalOrder
+    ) {
+      const node =
+        nextNodeMap.get(
+          nodeId
+        );
 
-    for (const node of state.nodes) {
-      const element =
-        getNodeElement(node.id);
+      if (!node) {
+        continue;
+      }
 
-      if (!element) continue;
+      if (
+        !nodesNeedingPosition.some(
+          target =>
+            target.id === nodeId
+        )
+      ) {
+        continue;
+      }
 
-      positionPorts(
-        element,
-        getDefinition(node.type)
+      const info =
+        nodeInfo.get(
+          nodeId
+        );
+
+      const width =
+        info?.width || 190;
+
+      node.x =
+        maxX;
+
+      node.y =
+        baseY;
+
+      maxX +=
+        width +
+        GAP_X;
+
+      positioned.add(
+        nodeId
       );
     }
 
-    renderConnections();
-  } else {
     /*
-     * 모든 노드에 좌표가 명시된 IR이면
-     * AI가 준 좌표를 그대로 사용한다.
+     * 새 워크플로우에서 좌표가 명시되지 않은
+     * 모든 노드는 완전히 동일한 행에 둔다.
      */
-    render();
+    if (isNewWorkflow) {
+      for (
+        const node of state.nodes
+      ) {
+        const source =
+          spec.nodes.find(
+            item =>
+              String(item.id) ===
+              node.id
+          );
 
-    for (const node of state.nodes) {
-      const element =
-        getNodeElement(node.id);
+        const hasExplicitPosition =
+          Number.isFinite(
+            Number(source?.x)
+          ) &&
+          Number.isFinite(
+            Number(source?.y)
+          );
 
-      if (!element) continue;
-
-      positionPorts(
-        element,
-        getDefinition(node.type)
-      );
+        if (
+          !hasExplicitPosition
+        ) {
+          node.y =
+            baseY;
+        }
+      }
     }
 
-    renderConnections();
+    render();
   }
 
-  if (options.center !== false) {
+  for (
+    const node of state.nodes
+  ) {
+    const element =
+      getNodeElement(node.id);
+
+    if (!element) {
+      continue;
+    }
+
+    positionPorts(
+      element,
+      getDefinition(node.type)
+    );
+  }
+
+  renderConnections();
+
+  /*
+   * center는 최초 생성 또는 완전 교체일 때만 허용한다.
+   * 일반적인 Planner 갱신에서는 사용자의 viewport를 유지한다.
+   */
+  if (
+    options.center !== false &&
+    isNewWorkflow
+  ) {
     centerWorkflow();
   }
 
