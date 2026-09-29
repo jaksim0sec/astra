@@ -2,28 +2,20 @@
    Astra
    API Layer
    ========================================================= */
-
 (function (global) {
   "use strict";
-
   /* =======================================================
      Configuration
      ======================================================= */
-
   const API_PREFIX = "/api";
-
   /* =======================================================
      Internal State
      ======================================================= */
-
   let nodeDefinitionsCache = null;
-
   let nodeDefinitionsPromise = null;
-
   /* =======================================================
      Request
      ======================================================= */
-
   async function request(
     path,
     options = {}
@@ -32,9 +24,9 @@
       method = "GET",
       headers = {},
       body = null,
-      signal
+      signal,
+      cache
     } = options;
-
     const fetchOptions = {
       method,
       headers: {
@@ -46,16 +38,18 @@
           : {}),
         ...headers
       },
-      signal
+      signal,
+      ...(cache !== undefined
+        ? {
+            cache
+          }
+        : {})
     };
-
     if (body !== null) {
       fetchOptions.body =
         JSON.stringify(body);
     }
-
     let response;
-
     try {
       response = await fetch(
         `${API_PREFIX}/${path}`,
@@ -67,9 +61,7 @@
         "서버에 연결할 수 없습니다."
       );
     }
-
     let data = null;
-
     try {
       data = await response.json();
     } catch {
@@ -77,7 +69,6 @@
         `HTTP ${response.status}`
       );
     }
-
     if (
       !response.ok ||
       data?.ok === false
@@ -87,14 +78,11 @@
         `HTTP ${response.status}`
       );
     }
-
     return data;
   }
-
   /* =======================================================
      Workflow
      ======================================================= */
-
   async function planWorkflow(
     text,
     workflow = null,
@@ -103,13 +91,11 @@
   ) {
     const normalizedText =
       String(text ?? "").trim();
-
     if (!normalizedText) {
       throw new TypeError(
         "작업 내용을 입력해주세요."
       );
     }
-
     return request(
       "workflow",
       {
@@ -126,11 +112,9 @@
       }
     );
   }
-
   /* =======================================================
      Node Definitions
      ======================================================= */
-
   async function getNodeDefinitions(
     options = {}
   ) {
@@ -140,19 +124,18 @@
     ) {
       return nodeDefinitionsCache;
     }
-
     if (
       nodeDefinitionsPromise &&
       !options.force
     ) {
       return nodeDefinitionsPromise;
     }
-
     nodeDefinitionsPromise =
       request(
         "node-definitions",
         {
           method: "GET",
+          cache: "no-store",
           signal: options.signal
         }
       )
@@ -168,27 +151,22 @@
             "노드 정의 응답이 올바르지 않습니다."
           );
         }
-
         nodeDefinitionsCache =
           result.nodes;
-
         /*
          * 기존 코드와의 호환성을 위해
          * 전역에도 노출한다.
          */
         global.nodeDefinitions =
           nodeDefinitionsCache;
-
         return nodeDefinitionsCache;
       })
       .finally(() => {
         nodeDefinitionsPromise =
           null;
       });
-
     return nodeDefinitionsPromise;
   }
-
   function getNodeDefinitionSync(
     definitions,
     type
@@ -201,21 +179,17 @@
     ) {
       return null;
     }
-
     return (
       definitions[type] ||
       null
     );
   }
-
   function clearNodeDefinitionsCache() {
     nodeDefinitionsCache = null;
   }
-
   /* =======================================================
      Definition Helpers
      ======================================================= */
-
   function getPortDefinition(
     definition,
     direction,
@@ -224,7 +198,6 @@
     if (!definition) {
       return null;
     }
-
     const ports =
       direction === "input"
         ? (
@@ -241,7 +214,6 @@
               ? definition.outputs
               : []
           );
-
     return (
       ports.find(
         port =>
@@ -250,7 +222,6 @@
       ) || null
     );
   }
-
   function getParamDefinition(
     definition,
     paramId
@@ -258,14 +229,12 @@
     if (!definition) {
       return null;
     }
-
     const params =
       Array.isArray(
         definition.params
       )
         ? definition.params
         : [];
-
     return (
       params.find(
         param =>
@@ -274,7 +243,6 @@
       ) || null
     );
   }
-
   function normalizeParamsFromDefinition(
     definition,
     params
@@ -287,13 +255,10 @@
     ) {
       return {};
     }
-
     if (!definition) {
       return {};
     }
-
     const result = {};
-
     for (
       const [key, value] of
       Object.entries(params)
@@ -303,26 +268,21 @@
           definition,
           key
         );
-
       if (!definitionParam) {
         continue;
       }
-
       if (
         typeof value ===
         "string"
       ) {
         const trimmed =
           value.trim();
-
         if (trimmed) {
           result[key] =
             trimmed;
         }
-
         continue;
       }
-
       /*
        * 현재 Node Definition의
        * params는 문자열 기반이므로
@@ -330,14 +290,11 @@
        * 제외한다.
        */
     }
-
     return result;
   }
-
   /* =======================================================
      Workflow Helpers
      ======================================================= */
-
   function parseWorkflowEndpoint(
     value
   ) {
@@ -349,48 +306,40 @@
         "연결 endpoint가 문자열이 아닙니다."
       );
     }
-
     const dot =
       value.lastIndexOf(".");
-
     if (dot === -1) {
       throw new Error(
         `포트가 지정되지 않았습니다: ${value}`
       );
     }
-
     const node =
       value.slice(0, dot);
-
     const port =
       value.slice(dot + 1);
-
     if (!node || !port) {
       throw new Error(
         `잘못된 endpoint입니다: ${value}`
       );
     }
-
     return {
       node,
       port
     };
   }
-
   function validateWorkflowShape(
     workflow
   ) {
     if (
       !workflow ||
       typeof workflow !==
-        "object" ||
+      "object" ||
       Array.isArray(workflow)
     ) {
       throw new Error(
         "워크플로우가 없습니다."
       );
     }
-
     if (
       !Array.isArray(
         workflow.nodes
@@ -400,7 +349,6 @@
         "workflow nodes가 배열이 아닙니다."
       );
     }
-
     if (
       !Array.isArray(
         workflow.links
@@ -410,7 +358,6 @@
         "workflow links가 배열이 아닙니다."
       );
     }
-
     if (
       !Array.isArray(
         workflow.data
@@ -420,10 +367,8 @@
         "workflow data가 배열이 아닙니다."
       );
     }
-
     return workflow;
   }
-
   /*
    * 서버에서 반환된 Workflow를
    * UI에서 안전하게 사용할 수 있도록
@@ -438,7 +383,6 @@
     validateWorkflowShape(
       workflow
     );
-
     for (
       const node of
       workflow.nodes
@@ -446,25 +390,22 @@
       if (
         !node ||
         typeof node !==
-          "object" ||
+        "object" ||
         typeof node.id !==
-          "string" ||
+        "string" ||
         typeof node.type !==
-          "string"
+        "string"
       ) {
         throw new Error(
           "잘못된 workflow 노드입니다."
         );
       }
     }
-
     return workflow;
   }
-
   /* =======================================================
      Execution
      ======================================================= */
-
   /*
    * 실행 API는 Executor가 연결되는 시점에
    * 서버 계약에 맞춰 확장한다.
@@ -479,7 +420,6 @@
     validateWorkflow(
       workflow
     );
-
     /*
      * 아직 실행 endpoint를
      * 연결하지 않는다.
@@ -494,41 +434,26 @@
      *
      * 가 확정되면 이 함수만 변경한다.
      */
-
     throw new Error(
       "Workflow 실행 API가 아직 연결되지 않았습니다."
     );
   }
-
   /* =======================================================
      Public API
      ======================================================= */
-
   const api = Object.freeze({
-
     request,
-
     planWorkflow,
-
     execute,
-
     getNodeDefinitions,
     getNodeDefinitionSync,
-
     getPortDefinition,
     getParamDefinition,
-
     normalizeParamsFromDefinition,
-
     parseWorkflowEndpoint,
-
     validateWorkflowShape,
     validateWorkflow,
-
     clearNodeDefinitionsCache
-
   });
-
   global.AstraAPI = api;
-
 })(window);
