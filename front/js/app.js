@@ -35,7 +35,13 @@
   /* =======================================================
      State
      ======================================================= */
-  const memoryStore = { value: null };
+  const memoryStore = {
+    value: {
+      flow: "",
+      recent: "",
+      detail: ""
+    }
+  };
   const MAX_CONVERSATION_HISTORY = 20;
   const MAX_CONVERSATION_MESSAGE_CHARS = 1600;
 
@@ -745,17 +751,14 @@
   /* =======================================================
      Planner
      ======================================================= */
-  async function plan(text, history = []) {
+  async function plan(text) {
     const workflow = syncWorkflow();
 
     const result =
       await API.planWorkflow(
         text,
         workflow,
-        state.conversationMemory,
-        {
-          history
-        }
+        state.conversationMemory
       );
 
     if (!result || !result.workflow) {
@@ -792,19 +795,8 @@
 
     if (!value) return;
 
-    const requestHistory =
-      normalizeConversationHistory(
-        options.historyOverride ??
-        state.conversationHistory
-      );
-
     if (options.addUserMessage !== false) {
       addUserMessage(value);
-
-      recordConversationMessage(
-        "user",
-        value
-      );
 
       composerInput.value = "";
       resizeComposer();
@@ -814,10 +806,7 @@
 
     try {
       const result =
-        await plan(
-          value,
-          requestHistory
-        );
+        await plan(value);
 
       if (result.message) {
         const message =
@@ -831,15 +820,9 @@
           );
 
         if (message) {
-          message._astraRequestHistory =
-            clone(requestHistory);
-        }
+          }
 
-        recordConversationMessage(
-          "assistant",
-          result.message
-        );
-      }
+        }
 
       if (result.question) {
         const message =
@@ -848,15 +831,9 @@
           );
 
         if (message) {
-          message._astraRequestHistory =
-            clone(requestHistory);
-        }
+          }
 
-        recordConversationMessage(
-          "assistant",
-          result.question
-        );
-      }
+        }
 
       syncWorkflow();
     } catch (error) {

@@ -5,40 +5,30 @@
 
 :root {
   color-scheme: light;
-
   --bg: #f3f3f2;
   --panel: #ffffff;
   --panel-soft: rgba(255, 255, 255, 0.72);
   --panel-strong: rgba(255, 255, 255, 0.92);
-
   --text: #171717;
   --sub: #656565;
   --muted: #989898;
-
   --line: rgba(0, 0, 0, 0.075);
   --line-strong: rgba(0, 0, 0, 0.12);
-
   --shadow:
     0 8px 26px rgba(0, 0, 0, 0.045);
-
   --shadow-soft:
     0 3px 12px rgba(0, 0, 0, 0.035);
-
   --topbar-height: 68px;
   --composer-height: 88px;
-
   --real-vh: 100dvh;
   --viewport-height: 100dvh;
   --real-vh-unit: 1vh;
-
   --ease: cubic-bezier(.2, .82, .2, 1);
-
   --radius-sm: 11px;
-  --radius-md: 16px;
+  --radius-md: 1.5em;
   --radius-lg: 21px;
   --radius-xl: 27px;
   --radius-round: 999px;
-
   --page-progress: 0;
 }
 
