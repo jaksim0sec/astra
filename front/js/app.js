@@ -213,13 +213,29 @@
         "canvas-ai-preview";
 
       preview.innerHTML = `
-        <div class="canvas-ai-preview-label">
-          Astra
-        </div>
+        <div class="canvas-ai-preview-label">Astra</div>
         <div class="canvas-ai-preview-text"></div>
+        <button
+          class="canvas-ai-preview-close"
+          type="button"
+          aria-label="미리보기 닫기"
+          title="닫기"
+        >×</button>
       `;
 
       page.appendChild(preview);
+
+      preview
+        .querySelector(".canvas-ai-preview-close")
+        ?.addEventListener("click", event => {
+          event.preventDefault();
+          event.stopPropagation();
+          preview.classList.add("is-hidden");
+          preview.classList.remove(
+      "is-hidden",
+      "is-visible"
+    );
+        });
     }
 
     const body =

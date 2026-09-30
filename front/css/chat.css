@@ -105,10 +105,10 @@
 .astra-message-actions {
   display: flex;
   align-items: center;
-  gap: 4px;
-  margin-top: 6px;
+  gap: .3rem;
+  margin-top: .4rem;
   opacity: .58;
-  transform: translateY(-1px);
+  transform: translateY(-.08rem);
   transition:
     opacity .15s ease,
     transform .18s ease;
@@ -137,23 +137,18 @@
 }
 
 .astra-message-action {
-  height: 28px;
-  padding: 0 7px;
-
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-
-  border-radius: 8px;
-
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: .55rem;
+  background: transparent;
   color: var(--muted);
-
-  font-size: 10px;
-  font-weight: 650;
+  font-size: 0;
   line-height: 1;
-
   cursor: pointer;
-
   transition:
     color .14s ease,
     background-color .14s ease,
@@ -176,14 +171,17 @@
 }
 
 .astra-message-action svg {
-  width: 13px;
-  height: 13px;
-
+  width: 1rem;
+  height: 1rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.35;
+  stroke-width: 1.7;
   stroke-linecap: round;
   stroke-linejoin: round;
+}
+
+.astra-message-action span {
+  display: none;
 }
 
 .astra-message-action.is-done {
@@ -242,58 +240,51 @@
 
 @media (max-width: 700px) {
   #chat-messages {
-    padding: 12px 0 20px;
-    gap: 20px;
+    padding: .75rem 0 1.25rem;
+    gap: 1.25rem;
   }
 
   .astra-message-system {
-    padding: 10px 0 6px;
+    padding: .625rem 0 .375rem;
   }
 
   .astra-message-system
   .astra-message-body {
-    font-size: 10px;
+    font-size: .625rem;
   }
 
   .astra-message-user
   .astra-message-body {
     max-width: 90%;
-    padding: 10px 13px;
-
-    border-radius:
-      18px
-      18px
-      6px
-      18px;
-
-    font-size: 13px;
+    padding: .625rem .8125rem;
+    border-radius: 1.125rem 1.125rem .375rem 1.125rem;
+    font-size: .8125rem;
   }
 
   .astra-message-assistant {
-    padding: 0 1px;
+    padding: 0 .0625rem;
   }
 
   .astra-message-assistant
   .astra-message-body {
     max-width: 96%;
-    font-size: 13.5px;
+    font-size: .84375rem;
     line-height: 1.7;
   }
 
   .astra-message-actions {
-    margin-top: 5px;
+    margin-top: .3125rem;
   }
 
   .astra-message-action {
-    height: 27px;
-    padding: 0 6px;
-    gap: 4px;
-    font-size: 9.5px;
+    width: 2rem;
+    height: 2rem;
   }
 
   .astra-message-action svg {
-    width: 12px;
-    height: 12px;
+    width: 1rem;
+    height: 1rem;
+    stroke-width: 1.7;
   }
 }
 
@@ -307,4 +298,37 @@
   .astra-message-body {
     max-width: 98%;
   }
+}
+
+
+.astra-message-user:hover
+.astra-message-user:focus-within
+.astra-message-user.is-actions-visible {
+  --user-actions-opacity: .9;
+}
+
+.astra-message-user
+.astra-message-actions {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-.2rem);
+}
+
+.astra-message-user:hover
+.astra-message-actions,
+.astra-message-user:focus-within
+.astra-message-actions,
+.astra-message-user.is-actions-visible
+.astra-message-actions {
+  opacity: var(--user-actions-opacity, .9);
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
+.astra-message-assistant:hover
+.astra-message-actions,
+.astra-message-assistant:focus-within
+.astra-message-actions {
+  opacity: .9;
+  transform: translateY(0);
 }
