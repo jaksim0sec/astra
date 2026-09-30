@@ -1454,9 +1454,13 @@
       }
     );
 
+  let topologicalOrder = [];
+
   if (
     nodesNeedingPosition.length
   ) {
+    let baseY = DEFAULT_Y;
+
     if (
       isNewWorkflow ||
       options.layout === true
@@ -1576,7 +1580,7 @@
           state.connections
         );
 
-      let topologicalOrder =
+      topologicalOrder =
         topologicalSort(
           layoutGraph
         );
@@ -1815,7 +1819,6 @@
         );
 
       let maxX = 0;
-      let baseY = DEFAULT_Y;
 
       for (
         const node of state.nodes

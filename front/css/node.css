@@ -68,7 +68,7 @@
   padding:
     .625rem
     .75rem;
-  border: 1.5px solid color-mix(in srgb, var(--line) 90%, var(--node-state-color) 10%);
+  border: .09375rem solid color-mix(in srgb, var(--line) 90%, var(--node-state-color) 10%);
   border-radius:
     var(--node-radius);
   background:
@@ -104,23 +104,23 @@
    HOVER
    ========================================================= */
 .vc-node:hover {
-  border: 1.5px solid color-mix(in srgb, var(--line) 40%, var(--node-state-color) 60%);
+  border: .09375rem solid color-mix(in srgb, var(--line) 40%, var(--node-state-color) 60%);
   box-shadow: none;
 }
 /* =========================================================
    SELECTED / EXPANDED
    ========================================================= */
 .vc-node.vc-expanded {
-  border: 1.5px solid color-mix(in srgb, var(--line) 90%, var(--node-state-color) 10%);
+  border: .09375rem solid color-mix(in srgb, var(--line) 90%, var(--node-state-color) 10%);
   box-shadow: none;
   transform: none;
 }
 .vc-node.vc-selected {
   border:
-    1.5px solid
+    .09375rem solid
     var(--node-state-color);
   box-shadow:
-    0 0 0 1px
+    0 0 0 .0625rem
     color-mix(
       in srgb,
       var(--node-color) 10%,
@@ -131,10 +131,10 @@
 }
 .vc-node.vc-selected.vc-expanded {
   border:
-    1.5px solid
+    .09375rem solid
     var(--node-state-color);
   box-shadow:
-    0 0 0 1px
+    0 0 0 .0625rem
     color-mix(
       in srgb,
       var(--node-color) 10%,
@@ -157,7 +157,7 @@
 }
 .vc-node.vc-dragging.vc-selected {
   box-shadow:
-    0 0 0 1px
+    0 0 0 .0625rem
     color-mix(
       in srgb,
       var(--node-color) 10%,
@@ -272,13 +272,13 @@
 }
 .vc-node-action:focus-visible {
   outline:
-    2px solid
+    .125rem solid
     color-mix(
       in srgb,
       var(--text) 18%,
       transparent
     );
-  outline-offset: 2px;
+  outline-offset: .125rem;
 }
 .vc-node-action svg {
   width: 1.1rem;
@@ -347,7 +347,7 @@
     .3125rem
     .25rem
     .5625rem;
-  border: 1.5px solid color-mix(in srgb, var(--line) 90%, var(--node-state-color) 10%);
+  border: .09375rem solid color-mix(in srgb, var(--line) 90%, var(--node-state-color) 10%);
   
   border-radius:
     .6875rem;
@@ -398,7 +398,7 @@
       transparent
     );
   box-shadow:
-    inset 0 0 0 1px
+    inset 0 0 0 .0625rem
     color-mix(
       in srgb,
       var(--node-color) 8%,
@@ -500,7 +500,7 @@
   padding:
     .1875rem
     .375rem;
-  border-radius: 999px;
+  border-radius: 62.4375rem;
   color:
     var(--node-color);
   background:
@@ -731,7 +731,7 @@
   background:
     var(--canvas, var(--bg));
   border:
-    1.5px solid
+    .09375rem solid
     var(--node-color);
   opacity: .42;
   box-shadow: none;
@@ -815,10 +815,10 @@
 .vc-connection {
   fill: none;
   stroke: var(--text);
-  stroke-width: 1.8px;
+  stroke-width: .1125rem;
   stroke-linecap: round;
   stroke-linejoin: round;
-  stroke-dasharray: 2px 5px;
+  stroke-dasharray: .125rem .3125rem;
   opacity: .2;
   pointer-events: none;
   vector-effect: non-scaling-stroke;
@@ -831,16 +831,16 @@
 .vc-connection.vc-active {
   stroke: var(--accent);
   stroke-dasharray:
-    9999px 0px;
+    624.9375rem 0;
   opacity: .76;
-  stroke-width: 2.2px;
+  stroke-width: .1375rem;
 }
 .vc-connection-dot {
   fill:
     var(--bg);
   stroke:
     var(--text);
-  stroke-width: 1.2px;
+  stroke-width: .075rem;
   opacity: .38;
   vector-effect: non-scaling-stroke;
 }
@@ -850,7 +850,7 @@
 .vc-drag-connection {
   fill: none;
   stroke: var(--accent);
-  stroke-width: 2.2px;
+  stroke-width: .1375rem;
   stroke-linecap: round;
   opacity: .88;
   pointer-events: none;
@@ -878,7 +878,7 @@
 /* =========================================================
    MOBILE
    ========================================================= */
-@media (max-width: 600px) {
+@media (max-width: 37.5rem) {
   #canvas-nodes {
     --node-width: 11.125rem;
   }
@@ -947,13 +947,13 @@
   width: fit-content;
   max-width: 7rem;
   padding: .16rem .34rem;
-  border: 1px solid
+  border: .0625rem solid
     color-mix(
       in srgb,
       var(--node-color) 18%,
       var(--line)
     );
-  border-radius: 999px;
+  border-radius: 62.4375rem;
   background:
     color-mix(
       in srgb,
@@ -975,7 +975,7 @@
 .vc-file-meta {
   margin-top: .5rem;
   padding-top: .45rem;
-  border-top: 1px solid
+  border-top: .0625rem solid
     color-mix(
       in srgb,
       var(--line) 72%,
@@ -998,7 +998,7 @@
 .vc-file-meta span:last-child {
   flex: none;
   padding-left: .3rem;
-  border-left: 1px solid
+  border-left: .0625rem solid
     color-mix(
       in srgb,
       var(--line) 78%,

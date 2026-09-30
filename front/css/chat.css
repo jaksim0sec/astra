@@ -4,12 +4,12 @@
    ========================================================= */
 
 #chat-messages {
-  width: min(760px, 100%);
+  width: min(47.5rem, 100%);
   margin: 0 auto;
-  padding: 18px 0 24px;
+  padding: 1.125rem 0 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 22px;
+  gap: 1.375rem;
 }
 
 .astra-message {
@@ -27,7 +27,7 @@
 @keyframes astra-message-in {
   from {
     opacity: 0;
-    transform: translateY(4px);
+    transform: translateY(.25rem);
   }
 
   to {
@@ -39,7 +39,7 @@
 .astra-message-body {
   min-width: 0;
   color: var(--text);
-  font-size: 14px;
+  font-size: .875rem;
   line-height: 1.7;
   letter-spacing: -.018em;
   overflow-wrap: anywhere;
@@ -47,14 +47,14 @@
 
 .astra-message-system {
   justify-content: center;
-  padding: 12px 0 8px;
+  padding: .75rem 0 .5rem;
 }
 
 .astra-message-system
 .astra-message-body {
-  max-width: 520px;
+  max-width: 32.5rem;
   color: var(--muted);
-  font-size: 11px;
+  font-size: .6875rem;
   line-height: 1.55;
   text-align: center;
 }
@@ -68,13 +68,13 @@
 
 .astra-message-user
 .astra-message-body {
-  max-width: min(620px, 84%);
-  padding: 11px 15px;
-  border: 1px solid rgba(0, 0, 0, .035);
-  border-radius: 19px 19px 6px 19px;
+  max-width: min(38.75rem, 84%);
+  padding: .6875rem .9375rem;
+  border: .0625rem solid rgba(0, 0, 0, .035);
+  border-radius: 1.1875rem 1.1875rem .375rem 1.1875rem;
   background: var(--text);
   color: var(--bg);
-  font-size: 13px;
+  font-size: .8125rem;
   line-height: 1.58;
   white-space: pre-wrap;
 }
@@ -90,14 +90,14 @@
   justify-content: flex-start;
   flex-direction: column;
   align-items: flex-start;
-  padding: 0 3px;
+  padding: 0 .1875rem;
 }
 
 .astra-message-assistant
 .astra-message-body {
-  max-width: min(700px, 94%);
-  padding: 1px 0;
-  font-size: 14px;
+  max-width: min(43.75rem, 94%);
+  padding: .0625rem 0;
+  font-size: .875rem;
   line-height: 1.75;
   white-space: pre-wrap;
 }
@@ -118,7 +118,7 @@
 .astra-message-actions {
   opacity: 0;
   pointer-events: none;
-  transform: translateY(-3px);
+  transform: translateY(-.1875rem);
 }
 
 .astra-message-user.is-actions-visible
@@ -196,12 +196,12 @@
 
 .astra-message-system
 + .astra-message-user {
-  margin-top: 2px;
+  margin-top: .125rem;
 }
 
 .astra-message-user
 + .astra-message-assistant {
-  margin-top: 2px;
+  margin-top: .125rem;
 }
 
 .astra-message-assistant:first-of-type
@@ -238,7 +238,7 @@
   }
 }
 
-@media (max-width: 700px) {
+@media (max-width: 43.75rem) {
   #chat-messages {
     padding: .75rem 0 1.25rem;
     gap: 1.25rem;
@@ -288,7 +288,7 @@
   }
 }
 
-@media (max-width: 420px) {
+@media (max-width: 26.25rem) {
   .astra-message-user
   .astra-message-body {
     max-width: 94%;
@@ -331,4 +331,105 @@
 .astra-message-actions {
   opacity: .9;
   transform: translateY(0);
+}
+
+
+.astra-message-canvas-link{
+  pointer-events:auto;
+  position:relative;
+  z-index:2;
+  min-width:0;
+  min-height:2.5rem;
+  margin-top:.75rem;
+  padding:.3125rem .625rem .3125rem .3125rem;
+  display:inline-flex;
+  align-items:center;
+  gap:.5rem;
+  border:1px solid var(--line);
+  border-radius:999px;
+  background:var(--panel-soft);
+  color:var(--sub);
+  box-shadow:var(--shadow-soft);
+  backdrop-filter:blur(1rem) saturate(1.06);
+  -webkit-backdrop-filter:blur(1rem) saturate(1.06);
+  font-size:.6875rem;
+  font-weight:700;
+  letter-spacing:-.012em;
+  line-height:1;
+  cursor:pointer;
+  transition:
+    color .16s ease,
+    background-color .16s ease,
+    border-color .16s ease,
+    transform .16s cubic-bezier(.22,.8,.25,1),
+    box-shadow .16s ease;
+}
+.astra-message-canvas-link:hover{
+  color:var(--text);
+  background:var(--panel-strong);
+  border-color:var(--line-strong);
+  box-shadow:var(--shadow);
+  transform:translateY(-.0625rem);
+}
+.astra-message-canvas-link:active{
+  transform:scale(.97);
+}
+.astra-message-canvas-link:focus-visible{
+  outline:.125rem solid var(--line-strong);
+  outline-offset:.125rem;
+}
+.astra-message-canvas-link svg{
+  width:1.875rem;
+  height:1.875rem;
+  flex:0 0 1.875rem;
+  padding:.375rem;
+  border:1px solid var(--line);
+  border-radius:.6875rem;
+  background:color-mix(
+    in srgb,
+    var(--text) 6%,
+    transparent
+  );
+  color:var(--text);
+  fill:none;
+  stroke:currentColor;
+  stroke-width:.09375rem;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  max-width:none;
+}
+.astra-message-canvas-link span{
+  display:block;
+  white-space:nowrap;
+}
+.astra-message-canvas-link::after{
+  content:"›";
+  margin-left:.0625rem;
+  color:var(--muted);
+  font-size:1.125rem;
+  font-weight:500;
+  line-height:.8;
+  transform:translateY(-.02rem);
+  transition:
+    color .16s ease,
+    transform .16s cubic-bezier(.22,.8,.25,1);
+}
+.astra-message-canvas-link:hover::after{
+  color:var(--text);
+  transform:translateX(.0625rem) translateY(-.02rem);
+}
+
+@media (max-width:26.25rem){
+  .astra-message-canvas-link{
+    min-height:2.375rem;
+    padding-right:.5625rem;
+    gap:.4375rem;
+    font-size:.65625rem;
+  }
+  .astra-message-canvas-link svg{
+    width:1.75rem;
+    height:1.75rem;
+    flex-basis:1.75rem;
+    padding:.3125rem;
+  }
 }

@@ -955,9 +955,9 @@ html.dark .vc-param-group:focus-within{
   color:var(--text);
 }
 .vc-add-button{
-  color:#18191c;
+  color:#171717;
   background:#fff;
-  border-color:rgba(20,25,32,.12);
+  border-color:rgba(20,25,32,.1);
   box-shadow:none;
 }
 html.dark .vc-add-button{

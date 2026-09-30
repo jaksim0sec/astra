@@ -42,7 +42,7 @@
       detail: ""
     }
   };
-  const MAX_CONVERSATION_HISTORY = 20;
+  const MAX_CONVERSATION_HISTORY = 40;
   const MAX_CONVERSATION_MESSAGE_CHARS = 1600;
 
   const state = {
@@ -326,6 +326,26 @@
         <span>캔버스에서 보기</span>
       `;
 
+      listen(canvasButton, "click", event => {
+        event.preventDefault();
+        event.stopPropagation();
+
+        const modeButton =
+          document.querySelector("#mode-canvas");
+
+        if (modeButton) {
+          modeButton.click();
+          return;
+        }
+
+        if (
+          typeof UI.setMode ===
+          "function"
+        ) {
+          UI.setMode("canvas");
+        }
+      });
+
       message.appendChild(canvasButton);
     }
 
@@ -605,25 +625,6 @@
   function handleMessageClick(
     event
   ) {
-    const canvasButton =
-      event.target.closest(
-        ".astra-message-canvas-link"
-      );
-
-    if (canvasButton) {
-      event.preventDefault();
-      event.stopPropagation();
-
-      if (
-        typeof UI.setMode ===
-        "function"
-      ) {
-        UI.setMode("canvas");
-      }
-
-      return;
-    }
-
     const action =
       event.target.closest(
         ".astra-message-action"

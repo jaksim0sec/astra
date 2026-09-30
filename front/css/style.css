@@ -15,20 +15,20 @@
   --line: rgba(0, 0, 0, 0.075);
   --line-strong: rgba(0, 0, 0, 0.12);
   --shadow:
-    0 8px 26px rgba(0, 0, 0, 0.045);
+    0 .5rem 1.625rem rgba(0, 0, 0, 0.045);
   --shadow-soft:
-    0 3px 12px rgba(0, 0, 0, 0.035);
-  --topbar-height: 68px;
-  --composer-height: 88px;
+    0 .1875rem .75rem rgba(0, 0, 0, 0.035);
+  --topbar-height: 4.25rem;
+  --composer-height: 5.5rem;
   --real-vh: 100dvh;
   --viewport-height: 100dvh;
   --real-vh-unit: 1vh;
   --ease: cubic-bezier(.2, .82, .2, 1);
-  --radius-sm: 11px;
+  --radius-sm: .6875rem;
   --radius-md: 1.5em;
-  --radius-lg: 21px;
-  --radius-xl: 27px;
-  --radius-round: 999px;
+  --radius-lg: 1.3125rem;
+  --radius-xl: 1.6875rem;
+  --radius-round: 62.4375rem;
   --page-progress: 0;
 }
 
@@ -48,10 +48,10 @@
   --line-strong: rgba(255, 255, 255, 0.13);
 
   --shadow:
-    0 10px 30px rgba(0, 0, 0, 0.18);
+    0 .625rem 1.875rem rgba(0, 0, 0, 0.18);
 
   --shadow-soft:
-    0 4px 14px rgba(0, 0, 0, 0.14);
+    0 .25rem .875rem rgba(0, 0, 0, 0.14);
 }
 
 
@@ -64,6 +64,41 @@
 *::after {
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
+}
+
+html{
+  font-size:clamp(
+    .9375rem,
+    calc(.875rem + .6vw),
+    1.0625rem
+  );
+}
+@media (max-width:43.75rem){
+  html{
+    font-size:clamp(
+      .9375rem,
+      calc(.9rem + .4vw),
+      1rem
+    );
+  }
+}
+@media (max-width:26.25rem){
+  html{
+    font-size:clamp(
+      .9375rem,
+      calc(.9rem + .2vw),
+      .96875rem
+    );
+  }
+}
+@media (max-height:32.5rem){
+  html{
+    font-size:clamp(
+      .875rem,
+      calc(.85rem + .25vw),
+      .9375rem
+    );
+  }
 }
 
 html,
@@ -182,8 +217,8 @@ svg {
 }
 
 *::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: .375rem;
+  height: .375rem;
 }
 
 *::-webkit-scrollbar-track {
@@ -191,7 +226,7 @@ svg {
 }
 
 *::-webkit-scrollbar-thumb {
-  border-radius: 999px;
+  border-radius: 62.4375rem;
   background: rgba(0, 0, 0, .09);
 }
 
@@ -207,8 +242,8 @@ svg {
 button:focus-visible,
 textarea:focus-visible,
 input:focus-visible {
-  outline: 2px solid var(--line-strong);
-  outline-offset: 3px;
+  outline: .125rem solid var(--line-strong);
+  outline-offset: .1875rem;
 }
 
 
@@ -217,10 +252,10 @@ input:focus-visible {
    ========================================================= */
 
 :root {
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-right: env(safe-area-inset-right, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
-  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-top: env(safe-area-inset-top, 0);
+  --safe-right: env(safe-area-inset-right, 0);
+  --safe-bottom: env(safe-area-inset-bottom, 0);
+  --safe-left: env(safe-area-inset-left, 0);
 }
 
 
@@ -228,17 +263,17 @@ input:focus-visible {
    Mobile
    ========================================================= */
 
-@media (max-width: 700px) {
+@media (max-width: 43.75rem) {
   :root {
-    --topbar-height: 64px;
-    --composer-height: 84px;
+    --topbar-height: 4rem;
+    --composer-height: 5.25rem;
   }
 }
 
-@media (max-height: 520px) {
+@media (max-height: 32.5rem) {
   :root {
-    --topbar-height: 54px;
-    --composer-height: 68px;
+    --topbar-height: 3.375rem;
+    --composer-height: 4.25rem;
   }
 }
 
