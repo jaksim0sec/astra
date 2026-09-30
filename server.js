@@ -1402,23 +1402,11 @@ function validateWorkflow(spec) {
 function buildUserPrompt(
   text,
   workflow,
-  memory,
-  history
+  memory
 ) {
-  const normalizedMemory =
-    normalizeMemory(memory);
-
-  const normalizedHistory =
-    normalizeConversationHistory(
-      history
-    );
-
   return [
-    '<CONVERSATION_HISTORY>',
-    JSON.stringify(normalizedHistory),
-    '</CONVERSATION_HISTORY>',
     '<MEMORY>',
-    JSON.stringify(normalizedMemory),
+    JSON.stringify(normalizeMemory(memory)),
     '</MEMORY>',
     '<CURRENT_WORKFLOW>',
     JSON.stringify(cloneWorkflow(workflow)),
@@ -1429,29 +1417,37 @@ function buildUserPrompt(
   ].join('\n');
 }
 
-function buildRetryPrompt(
+function buildPlannerMessages(
   text,
   workflow,
   memory,
-  history,
+  history
+) {
+  const normalizedHistory =
+    normalizeConversationHistory(
+      history
+    );
+
+  return [
+    { role: 'system', content: SYSTEM_PROMPT },
+    ...normalizedHistory,
+    {
+      role: 'user',
+      content:
+        buildUserPrompt(
+          text,
+          workflow,
+          memory
+        )
+    }
+  ];
+}
+
+function buildRetryPrompt(
   planner,
   error
 ) {
   return [
-    '<CONVERSATION_HISTORY>',
-    JSON.stringify(
-      normalizeConversationHistory(history)
-    ),
-    '</CONVERSATION_HISTORY>',
-    '<MEMORY>',
-    JSON.stringify(normalizeMemory(memory)),
-    '</MEMORY>',
-    '<CURRENT_WORKFLOW>',
-    JSON.stringify(cloneWorkflow(workflow)),
-    '</CURRENT_WORKFLOW>',
-    '<LATEST_USER_REQUEST>',
-    text,
-    '</LATEST_USER_REQUEST>',
     '<FAILED_PLANNER_OUTPUT>',
     planner ? JSON.stringify(planner) : '-',
     '</FAILED_PLANNER_OUTPUT>',
@@ -1470,7 +1466,7 @@ function buildRetryPrompt(
    GROQ
 ========================================================= */
 
-async function requestPlanner(prompt) {
+async function requestPlanner(messages) {
   const apiKey = process.env.GROQ_API_KEY;
   if (!apiKey) {
     const error = new Error('GROQ_API_KEY가 설정되지 않았습니다.');
@@ -1486,10 +1482,7 @@ async function requestPlanner(prompt) {
     body: JSON.stringify({
       model: process.env.GROQ_MODEL || 'openai/gpt-oss-120b',
       temperature: 0.1,
-      messages: [
-        {role: 'system', content: SYSTEM_PROMPT},
-        {role: 'user', content: prompt}
-      ],
+      messages,
       response_format: {
         type: 'json_schema',
         json_schema: {
@@ -1534,8 +1527,8 @@ async function planWorkflow(
   memory,
   history
 ) {
-  let prompt =
-    buildUserPrompt(
+  let messages =
+    buildPlannerMessages(
       text,
       workflow,
       memory,
@@ -1549,7 +1542,7 @@ async function planWorkflow(
     try {
       planner =
         await requestPlanner(
-          prompt
+          messages
         );
 
       if (
@@ -1596,15 +1589,22 @@ async function planWorkflow(
         break;
       }
 
-      prompt =
-        buildRetryPrompt(
+      messages = [
+        ...buildPlannerMessages(
           text,
           workflow,
           memory,
-          history,
-          planner,
-          error.message
-        );
+          history
+        ),
+        {
+          role: 'user',
+          content:
+            buildRetryPrompt(
+              planner,
+              error.message
+            )
+        }
+      ];
     }
   }
 

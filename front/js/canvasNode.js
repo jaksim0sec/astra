@@ -1457,261 +1457,428 @@
   if (
     nodesNeedingPosition.length
   ) {
-    const indegree =
-      new Map();
-
-    for (const node of state.nodes) {
-      indegree.set(
-        node.id,
-        (
-          incoming.get(node.id) ||
-          []
-        ).length
-      );
-    }
-
-    const queue = [];
-
-    const queued =
-      new Set();
-
-    const initiallyReady =
-      state.nodes
-        .filter(
-          node =>
-            (
-              indegree.get(node.id) ||
-              0
-            ) === 0
-        )
-        .sort(
-          (a, b) =>
-            (
-              nodeOrder.get(a.id) ||
-              0
-            ) -
-            (
-              nodeOrder.get(b.id) ||
-              0
-            )
+    if (isNewWorkflow) {
+      const GAP_X = 80;
+      const GAP_Y = 36;
+      const nodeOrder =
+        new Map(
+          state.nodes.map(
+            (node, index) => [
+              node.id,
+              index
+            ]
+          )
         );
 
-    for (
-      const node of initiallyReady
-    ) {
-      queue.push(node.id);
-      queued.add(node.id);
-    }
+      function buildLayoutGraph(edges) {
+        const incoming = new Map();
+        const outgoing = new Map();
 
-    const topologicalOrder = [];
+        for (const node of state.nodes) {
+          incoming.set(node.id, []);
+          outgoing.set(node.id, []);
+        }
 
-    while (queue.length) {
-      const currentId =
-        queue.shift();
+        for (const connection of edges) {
+          const from = connection.from.node;
+          const to = connection.to.node;
 
-      topologicalOrder.push(
-        currentId
-      );
+          if (
+            from === to ||
+            !incoming.has(from) ||
+            !incoming.has(to)
+          ) {
+            continue;
+          }
 
-      const children =
-        (
-          outgoing.get(
-            currentId
-          ) || []
-        ).slice().sort(
-          (a, b) =>
-            (
-              nodeOrder.get(a) ||
-              0
-            ) -
-            (
-              nodeOrder.get(b) ||
-              0
+          if (
+            !outgoing.get(from).includes(to)
+          ) {
+            outgoing.get(from).push(to);
+          }
+
+          if (
+            !incoming.get(to).includes(from)
+          ) {
+            incoming.get(to).push(from);
+          }
+        }
+
+        return {
+          incoming,
+          outgoing
+        };
+      }
+
+      function topologicalSort(graph) {
+        const indegree = new Map();
+
+        for (const node of state.nodes) {
+          indegree.set(
+            node.id,
+            graph.incoming.get(node.id)?.length || 0
+          );
+        }
+
+        const queue =
+          state.nodes
+            .filter(
+              node =>
+                (indegree.get(node.id) || 0) === 0
             )
+            .sort(
+              (a, b) =>
+                nodeOrder.get(a.id) -
+                nodeOrder.get(b.id)
+            )
+            .map(node => node.id);
+
+        const order = [];
+
+        while (queue.length) {
+          const currentId = queue.shift();
+          order.push(currentId);
+
+          const children =
+            (graph.outgoing.get(currentId) || [])
+              .slice()
+              .sort(
+                (a, b) =>
+                  nodeOrder.get(a) -
+                  nodeOrder.get(b)
+              );
+
+          for (const childId of children) {
+            const next =
+              (indegree.get(childId) || 0) - 1;
+
+            indegree.set(childId, next);
+
+            if (next === 0) {
+              queue.push(childId);
+              queue.sort(
+                (a, b) =>
+                  nodeOrder.get(a) -
+                  nodeOrder.get(b)
+              );
+            }
+          }
+        }
+
+        return order;
+      }
+
+      let layoutGraph =
+        buildLayoutGraph(
+          state.connections
         );
 
-      for (
-        const childId of children
+      let topologicalOrder =
+        topologicalSort(
+          layoutGraph
+        );
+
+      /*
+       * data 관계까지 합친 그래프에서 순환이 생기면
+       * 실행 순서인 links만 사용해 안전하게 배치한다.
+       */
+      if (
+        topologicalOrder.length !==
+        state.nodes.length
       ) {
-        const next =
-          (
-            indegree.get(
-              childId
-            ) || 0
-          ) - 1;
+        layoutGraph =
+          buildLayoutGraph(
+            flowConnections
+          );
 
-        indegree.set(
-          childId,
-          next
-        );
+        topologicalOrder =
+          topologicalSort(
+            layoutGraph
+          );
+      }
 
-        if (
-          next === 0 &&
-          !queued.has(childId)
-        ) {
-          queued.add(childId);
-          queue.push(childId);
+      const orderedIds =
+        new Set(topologicalOrder);
+
+      for (const node of state.nodes) {
+        if (!orderedIds.has(node.id)) {
+          topologicalOrder.push(node.id);
         }
       }
-    }
 
-    for (const node of state.nodes) {
-      if (
-        !topologicalOrder.includes(
-          node.id
-        )
-      ) {
-        topologicalOrder.push(
-          node.id
+      const layers =
+        new Map();
+
+      for (const nodeId of topologicalOrder) {
+        let layer = 0;
+
+        for (
+          const parentId
+            of layoutGraph.incoming.get(nodeId) || []
+        ) {
+          layer =
+            Math.max(
+              layer,
+              (layers.get(parentId) || 0) + 1
+            );
+        }
+
+        layers.set(
+          nodeId,
+          layer
         );
       }
-    }
 
-    const positioned =
-      new Set(
-        state.nodes
-          .filter(
-            node =>
-              previousNodes.has(
-                node.id
-              ) ||
-              !nodesNeedingPosition.some(
-                target =>
-                  target.id === node.id
-              )
-          )
-          .map(
-            node =>
-              node.id
-          )
-      );
+      const layerNodes =
+        new Map();
 
-    let maxX =
-      0;
+      for (const nodeId of topologicalOrder) {
+        const layer =
+          layers.get(nodeId) || 0;
 
-    let baseY =
-      DEFAULT_Y;
+        if (!layerNodes.has(layer)) {
+          layerNodes.set(layer, []);
+        }
 
-    for (
-      const node of state.nodes
-    ) {
-      if (
-        !positioned.has(node.id)
-      ) {
-        continue;
+        layerNodes
+          .get(layer)
+          .push(nodeId);
       }
 
-      const info =
-        nodeInfo.get(
-          node.id
-        );
-
-      maxX =
+      const maxLayer =
         Math.max(
-          maxX,
-          node.x +
-            (
-              info?.width ||
-              190
+          ...layerNodes.keys(),
+          0
+        );
+
+      const layerX =
+        new Map();
+
+      let currentX = 0;
+
+      for (
+        let layer = 0;
+        layer <= maxLayer;
+        layer++
+      ) {
+        const ids =
+          layerNodes.get(layer) || [];
+
+        const maxWidth =
+          Math.max(
+            190,
+            ...ids.map(
+              id =>
+                nodeInfo.get(id)?.width || 190
+            )
+          );
+
+        layerX.set(
+          layer,
+          currentX
+        );
+
+        currentX +=
+          maxWidth +
+          GAP_X;
+      }
+
+      const centerY =
+        new Map();
+
+      for (
+        let layer = 0;
+        layer <= maxLayer;
+        layer++
+      ) {
+        const ids =
+          layerNodes.get(layer) || [];
+
+        ids.sort(
+          (a, b) => {
+            if (layer === 0) {
+              return (
+                nodeOrder.get(a) -
+                nodeOrder.get(b)
+              );
+            }
+
+            const parentsA =
+              layoutGraph.incoming.get(a) || [];
+
+            const parentsB =
+              layoutGraph.incoming.get(b) || [];
+
+            const averageA =
+              parentsA.length
+                ? parentsA.reduce(
+                    (sum, parentId) =>
+                      sum +
+                      (centerY.get(parentId) || 0),
+                    0
+                  ) / parentsA.length
+                : Number.POSITIVE_INFINITY;
+
+            const averageB =
+              parentsB.length
+                ? parentsB.reduce(
+                    (sum, parentId) =>
+                      sum +
+                      (centerY.get(parentId) || 0),
+                    0
+                  ) / parentsB.length
+                : Number.POSITIVE_INFINITY;
+
+            if (averageA !== averageB) {
+              return averageA - averageB;
+            }
+
+            return (
+              nodeOrder.get(a) -
+              nodeOrder.get(b)
+            );
+          }
+        );
+
+        const totalHeight =
+          ids.reduce(
+            (sum, nodeId) =>
+              sum +
+              (nodeInfo.get(nodeId)?.height || 74),
+            0
+          ) +
+          Math.max(
+            0,
+            ids.length - 1
+          ) * GAP_Y;
+
+        let y =
+          baseY -
+          totalHeight / 2;
+
+        for (const nodeId of ids) {
+          const node =
+            nextNodeMap.get(nodeId);
+
+          if (!node) {
+            continue;
+          }
+
+          const height =
+            nodeInfo.get(nodeId)?.height || 74;
+
+          node.x =
+            layerX.get(layer) || 0;
+
+          node.y =
+            y;
+
+          centerY.set(
+            nodeId,
+            y + height / 2
+          );
+
+          y +=
+            height +
+            GAP_Y;
+        }
+      }
+    } else {
+      const nodeOrder =
+        new Map(
+          state.nodes.map(
+            (node, index) => [
+              node.id,
+              index
+            ]
+          )
+        );
+
+      const positioned =
+        new Set(
+          state.nodes
+            .filter(
+              node =>
+                previousNodes.has(node.id) ||
+                !nodesNeedingPosition.some(
+                  target =>
+                    target.id === node.id
+                )
+            )
+            .map(
+              node =>
+                node.id
             )
         );
 
-      if (
-        Number.isFinite(node.y)
-      ) {
-        baseY =
-          node.y;
-      }
-    }
+      let maxX = 0;
+      let baseY = DEFAULT_Y;
 
-    if (
-      isNewWorkflow
-    ) {
-      maxX = 0;
-
-      baseY =
-        state.nodes.length
-          ? state.nodes[0].y
-          : DEFAULT_Y;
-    } else if (
-      positioned.size
-    ) {
-      maxX += GAP_X;
-    }
-
-    for (
-      const nodeId of topologicalOrder
-    ) {
-      const node =
-        nextNodeMap.get(
-          nodeId
-        );
-
-      if (!node) {
-        continue;
-      }
-
-      if (
-        !nodesNeedingPosition.some(
-          target =>
-            target.id === nodeId
-        )
-      ) {
-        continue;
-      }
-
-      const info =
-        nodeInfo.get(
-          nodeId
-        );
-
-      const width =
-        info?.width || 190;
-
-      node.x =
-        maxX;
-
-      node.y =
-        baseY;
-
-      maxX +=
-        width +
-        GAP_X;
-
-      positioned.add(
-        nodeId
-      );
-    }
-
-    /*
-     * 새 워크플로우에서 좌표가 명시되지 않은
-     * 모든 노드는 완전히 동일한 행에 둔다.
-     */
-    if (isNewWorkflow) {
       for (
         const node of state.nodes
       ) {
-        const source =
-          spec.nodes.find(
-            item =>
-              String(item.id) ===
-              node.id
+        if (!positioned.has(node.id)) {
+          continue;
+        }
+
+        const info =
+          nodeInfo.get(node.id);
+
+        maxX =
+          Math.max(
+            maxX,
+            node.x +
+              (
+                info?.width ||
+                190
+              )
           );
 
-        const hasExplicitPosition =
-          Number.isFinite(
-            Number(source?.x)
-          ) &&
-          Number.isFinite(
-            Number(source?.y)
-          );
+        if (Number.isFinite(node.y)) {
+          baseY = node.y;
+        }
+      }
+
+      if (positioned.size) {
+        maxX += GAP_X;
+      }
+
+      for (
+        const nodeId of topologicalOrder
+      ) {
+        const node =
+          nextNodeMap.get(nodeId);
+
+        if (!node) {
+          continue;
+        }
 
         if (
-          !hasExplicitPosition
+          !nodesNeedingPosition.some(
+            target =>
+              target.id === nodeId
+          )
         ) {
-          node.y =
-            baseY;
+          continue;
         }
+
+        const info =
+          nodeInfo.get(nodeId);
+
+        node.x =
+          maxX;
+
+        node.y =
+          baseY;
+
+        maxX +=
+          (
+            info?.width ||
+            190
+          ) +
+          GAP_X;
+
+        positioned.add(nodeId);
       }
     }
 
