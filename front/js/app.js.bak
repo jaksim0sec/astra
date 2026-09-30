@@ -138,32 +138,19 @@
      ======================================================= */
 
   function updateCanvasAIContext(text) {
-    const page =
-      document.querySelector(
-        "#canvas-page"
-      );
-
+    const page = document.querySelector("#canvas-page");
     if (!page) return;
 
     let preview =
-      page.querySelector(
-        "#canvas-ai-preview"
-      );
+      page.querySelector("#canvas-ai-preview");
 
     if (!preview) {
-      preview =
-        document.createElement("div");
-
-      preview.id =
-        "canvas-ai-preview";
-
+      preview = document.createElement("div");
+      preview.id = "canvas-ai-preview";
       preview.innerHTML = `
-        <div class="canvas-ai-preview-label">
-          Astra
-        </div>
+        <div class="canvas-ai-preview-label">Astra</div>
         <div class="canvas-ai-preview-text"></div>
       `;
-
       page.appendChild(preview);
     }
 
@@ -177,21 +164,14 @@
     body.textContent =
       String(text ?? "").trim();
 
-    preview.classList.remove(
-      "is-visible"
-    );
+    preview.classList.remove("is-visible");
 
     requestAnimationFrame(() => {
-      preview.classList.add(
-        "is-visible"
-      );
+      preview.classList.add("is-visible");
     });
   }
 
-  function createMessage(
-    role,
-    text
-  ) {
+  function createMessage(role, text) {
     const message =
       document.createElement("div");
 
@@ -202,12 +182,10 @@
       String(text ?? "");
 
     message.id = id;
-
     message.className =
       `astra-message astra-message-${role}`;
 
-    message.dataset.role =
-      role;
+    message.dataset.role = role;
 
     const body =
       document.createElement("div");
@@ -215,8 +193,7 @@
     body.className =
       "astra-message-body";
 
-    body.textContent =
-      value;
+    body.textContent = value;
 
     message.appendChild(body);
 
@@ -233,9 +210,7 @@
       const copyButton =
         document.createElement("button");
 
-      copyButton.type =
-        "button";
-
+      copyButton.type = "button";
       copyButton.className =
         "astra-message-action";
 
@@ -247,8 +222,7 @@
         "복사"
       );
 
-      copyButton.title =
-        "복사";
+      copyButton.title = "복사";
 
       copyButton.innerHTML = `
         <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -258,21 +232,13 @@
         <span>복사</span>
       `;
 
-      actions.appendChild(
-        copyButton
-      );
+      actions.appendChild(copyButton);
 
-      if (
-        role === "assistant"
-      ) {
+      if (role === "assistant") {
         const retryButton =
-          document.createElement(
-            "button"
-          );
+          document.createElement("button");
 
-        retryButton.type =
-          "button";
-
+        retryButton.type = "button";
         retryButton.className =
           "astra-message-action";
 
@@ -284,8 +250,7 @@
           "재시도"
         );
 
-        retryButton.title =
-          "재시도";
+        retryButton.title = "재시도";
 
         retryButton.innerHTML = `
           <svg viewBox="0 0 16 16" aria-hidden="true">
@@ -295,26 +260,16 @@
           <span>재시도</span>
         `;
 
-        actions.appendChild(
-          retryButton
-        );
+        actions.appendChild(retryButton);
       }
 
-      message.appendChild(
-        actions
-      );
+      message.appendChild(actions);
     }
 
-    chatMessages.appendChild(
-      message
-    );
+    chatMessages.appendChild(message);
 
-    if (
-      role === "assistant"
-    ) {
-      updateCanvasAIContext(
-        value
-      );
+    if (role === "assistant") {
+      updateCanvasAIContext(value);
     }
 
     scrollChatToBottom();
@@ -322,46 +277,19 @@
     return message;
   }
 
-  function addUserMessage(text) {
-    const value =
-      String(text ?? "").trim();
-
+(text) {
+    const value = String(text ?? "").trim();
     if (!value) return null;
-
-    return createMessage(
-      "user",
-      value
-    );
+    return createMessage("user", value);
   }
 
   function addAssistantMessage(text) {
-    const value =
-      String(text ?? "").trim();
-
+    const value = String(text ?? "").trim();
     if (!value) return null;
-
-    return createMessage(
-      "assistant",
-      value
-    );
+    return createMessage("assistant", value);
   }
 
-  function addSystemMessage(text) {
-    const value =
-      String(text ?? "").trim();
-
-    if (!value) return null;
-
-    return createMessage(
-      "system",
-      value
-    );
-  }
-
-  async function copyMessage(
-    message,
-    button
-  ) {
+  async function copyMessage(message, button) {
     const body =
       message.querySelector(
         ".astra-message-body"
@@ -378,29 +306,17 @@
       );
     } catch {
       const textarea =
-        document.createElement(
-          "textarea"
-        );
+        document.createElement("textarea");
 
-      textarea.value =
-        value;
+      textarea.value = value;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
 
-      textarea.style.position =
-        "fixed";
-
-      textarea.style.opacity =
-        "0";
-
-      document.body.appendChild(
-        textarea
-      );
-
+      document.body.appendChild(textarea);
       textarea.select();
 
       try {
-        document.execCommand(
-          "copy"
-        );
+        document.execCommand("copy");
       } catch {
         textarea.remove();
         return;
@@ -410,38 +326,25 @@
     }
 
     const label =
-      button.querySelector(
-        "span"
-      );
+      button.querySelector("span");
 
-    button.classList.add(
-      "is-done"
-    );
+    button.classList.add("is-done");
 
     if (label) {
-      label.textContent =
-        "복사됨";
+      label.textContent = "복사됨";
     }
 
     setTimeout(() => {
-      button.classList.remove(
-        "is-done"
-      );
+      button.classList.remove("is-done");
 
       if (label) {
-        label.textContent =
-          "복사";
+        label.textContent = "복사";
       }
     }, 1200);
   }
 
-  async function retryMessage(
-    message
-  ) {
-    if (
-      state.destroyed ||
-      state.busy
-    ) {
+  async function retryMessage(message) {
+    if (state.destroyed || state.busy) {
       return;
     }
 
@@ -449,10 +352,7 @@
       message.previousElementSibling;
 
     while (previous) {
-      if (
-        previous.dataset.role ===
-        "user"
-      ) {
+      if (previous.dataset.role === "user") {
         break;
       }
 
@@ -475,13 +375,9 @@
     );
 
     try {
-      await runPrompt(
-        value,
-        {
-          addUserMessage:
-            false
-        }
-      );
+      await runPrompt(value, {
+        addUserMessage: false
+      });
     } finally {
       message.classList.remove(
         "is-retrying"
@@ -489,9 +385,7 @@
     }
   }
 
-  function handleMessageClick(
-    event
-  ) {
+  function handleMessageClick(event) {
     const action =
       event.target.closest(
         ".astra-message-action"
@@ -515,15 +409,11 @@
           message,
           action
         );
-      }
-
-      if (
+      } else if (
         action.dataset.action ===
         "retry"
       ) {
-        retryMessage(
-          message
-        );
+        retryMessage(message);
       }
 
       return;
@@ -534,31 +424,36 @@
         ".astra-message-user"
       );
 
+    if (
+      !userMessage ||
+      !chatMessages.contains(
+        userMessage
+      )
+    ) {
+      return;
+    }
+
     chatMessages
       .querySelectorAll(
         ".astra-message-user.is-actions-visible"
       )
-      .forEach(item => {
-        if (
-          item !== userMessage
-        ) {
-          item.classList.remove(
-            "is-actions-visible"
-          );
-        }
-      });
-
-    if (
-      userMessage &&
-      chatMessages.contains(
-        userMessage
-      )
-    ) {
-      userMessage.classList.add(
-        "is-actions-visible"
+      .forEach(item =>
+        item.classList.remove(
+          "is-actions-visible"
+        )
       );
-    }
+
+    userMessage.classList.add(
+      "is-actions-visible"
+    );
   }
+
+  function addSystemMessage(text) {
+    const value = String(text ?? "").trim();
+    if (!value) return null;
+    return createMessage("system", value);
+  }
+
   /* =======================================================
      Composer
      ======================================================= */
@@ -879,8 +774,9 @@
 
     listen(composerForm, "submit", handleSubmit);
     listen(chatMessages, "click", handleMessageClick);
-listen(composerInput, "input", handleComposerInput);
-listen(composerInput, "keydown", handleComposerKeydown);
+    listen(composerInput, "input", handleComposerInput);
+    listen(chatMessages, "click", handleMessageAction);
+    listen(composerInput, "keydown", handleComposerKeydown);
     listen(global, "resize", resizeComposer);
 
     if (global.visualViewport) {
