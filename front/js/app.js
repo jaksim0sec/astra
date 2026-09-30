@@ -300,6 +300,52 @@
 
     message.appendChild(body);
 
+    const question =
+      String(
+        options.question ?? ""
+      ).trim();
+
+    if (
+      role === "assistant" &&
+      question
+    ) {
+      const questionBox =
+        document.createElement("div");
+
+      questionBox.className =
+        "astra-message-question";
+
+      const questionLabel =
+        document.createElement("div");
+
+      questionLabel.className =
+        "astra-message-question-label";
+
+      questionLabel.textContent =
+        "질문";
+
+      const questionBody =
+        document.createElement("div");
+
+      questionBody.className =
+        "astra-message-question-body";
+
+      questionBody.textContent =
+        question;
+
+      questionBox.appendChild(
+        questionLabel
+      );
+
+      questionBox.appendChild(
+        questionBody
+      );
+
+      message.appendChild(
+        questionBox
+      );
+    }
+
     if (
       role === "assistant" &&
       options.showCanvasView
@@ -487,9 +533,16 @@
         options
       );
 
+    const question =
+      String(
+        options.question ?? ""
+      ).trim();
+
     recordConversationMessage(
       "assistant",
-      value
+      question
+        ? `${value}\n${question}`
+        : value
     );
 
     return message;
@@ -732,18 +785,13 @@
 
   function setBusy(busy) {
     state.busy = !!busy;
-    composerInput.disabled = state.busy;
+    composerInput.disabled = false;
     composerSubmit.disabled = state.busy;
-
     composerForm.classList.toggle("is-busy", state.busy);
-
-    if (state.busy) {
-      composerInput.dataset.previousPlaceholder = composerInput.placeholder;
-      composerInput.placeholder = "Astra가 워크플로우를 구성하고 있습니다...";
-    } else {
-      composerInput.placeholder = composerInput.dataset.previousPlaceholder || "무엇을 할까요?";
-      delete composerInput.dataset.previousPlaceholder;
-    }
+    composerForm.setAttribute(
+      "aria-busy",
+      state.busy ? "true" : "false"
+    );
   }
 
   /* =======================================================
@@ -848,11 +896,17 @@
           }
         );
 
-      if (result.message) {
+      if (
+        result.message ||
+        result.question
+      ) {
         const message =
           addAssistantMessage(
-            result.message,
+            result.message ||
+            "",
             {
+              question:
+                result.question,
               showCanvasView:
                 result.mode ===
                 "workflow"
@@ -860,20 +914,8 @@
           );
 
         if (message) {
-          }
-
         }
-
-      if (result.question) {
-        const message =
-          addAssistantMessage(
-            result.question
-          );
-
-        if (message) {
-          }
-
-        }
+      }
 
       syncWorkflow();
     } catch (error) {
