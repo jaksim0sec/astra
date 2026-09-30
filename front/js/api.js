@@ -105,7 +105,11 @@
           workflow:
             workflow ?? null,
           memory:
-            memory ?? null
+            memory ?? null,
+          history:
+            Array.isArray(options.history)
+              ? options.history
+              : []
         },
         signal:
           options.signal

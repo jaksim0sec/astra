@@ -442,6 +442,19 @@ const NODE_DEFINITION_PROMPT =
 ========================================================= */
 
 const SYSTEM_PROMPT = `
+CONVERSATION AND WORKFLOW:
+- mode="conversation" for greetings, questions, explanations, casual conversation, follow-up questions, and anything that does not require changing the workflow.
+- mode="workflow" only when the user asks to create, modify, delete, connect, disconnect, configure, rebuild, or otherwise change the workflow.
+- In conversation mode, ops MUST be [].
+- In conversation mode, answer naturally. Never say "No workflow changes were made." or similar unless the user specifically asks whether the workflow changed.
+- Use CONVERSATION_HISTORY to understand references such as "방금", "그거", "아까 말한 것", and follow-up questions.
+- MEMORY.flow is the overall conversation direction.
+- MEMORY.recent is the immediately relevant recent context.
+- MEMORY.detail contains durable facts, decisions, constraints, and useful details.
+- Keep MEMORY useful and factual. Do not invent information.
+- question must always be a string. Use "" when no clarification is needed.
+
+
 You are Astra's deterministic workflow planner.
 Your only job is to turn the latest user request into a valid Patch over CURRENT WORKFLOW and a concise user-facing message.
 Do not execute tools, research, create files, or claim that anything was executed.
@@ -576,6 +589,10 @@ const PLANNER_SCHEMA = {
   type: 'object',
   additionalProperties: false,
   properties: {
+    mode: {
+      type: 'string',
+      enum: ['conversation', 'workflow']
+    },
     ops: {
       type: 'array',
       maxItems: 32,
@@ -625,7 +642,7 @@ const PLANNER_SCHEMA = {
       required: ['flow', 'recent', 'detail']
     }
   },
-  required: ['ops', 'message', 'question', 'memory']
+  required: ['mode', 'ops', 'message', 'question', 'memory']
 };
 
 /* =========================================================
@@ -808,6 +825,29 @@ function normalizeMemory(memory) {
     recent: clip(source.recent, 800),
     detail: clip(source.detail, 600)
   };
+}
+
+function normalizeConversationHistory(history) {
+  if (!Array.isArray(history)) {
+    return [];
+  }
+
+  return history
+    .filter(item =>
+      item &&
+      typeof item === 'object' &&
+      !Array.isArray(item) &&
+      (item.role === 'user' || item.role === 'assistant') &&
+      typeof item.content === 'string'
+    )
+    .map(item => ({
+      role: item.role,
+      content: item.content
+        .trim()
+        .slice(0, 1600)
+    }))
+    .filter(item => item.content)
+    .slice(-20);
 }
 
 /* =========================================================
@@ -1359,9 +1399,24 @@ function validateWorkflow(spec) {
    PROMPT BUILD
 ========================================================= */
 
-function buildUserPrompt(text, workflow, memory) {
-  const normalizedMemory = normalizeMemory(memory);
+function buildUserPrompt(
+  text,
+  workflow,
+  memory,
+  history
+) {
+  const normalizedMemory =
+    normalizeMemory(memory);
+
+  const normalizedHistory =
+    normalizeConversationHistory(
+      history
+    );
+
   return [
+    '<CONVERSATION_HISTORY>',
+    JSON.stringify(normalizedHistory),
+    '</CONVERSATION_HISTORY>',
     '<MEMORY>',
     JSON.stringify(normalizedMemory),
     '</MEMORY>',
@@ -1374,11 +1429,22 @@ function buildUserPrompt(text, workflow, memory) {
   ].join('\n');
 }
 
-function buildRetryPrompt(text, workflow, memory, planner, error) {
-  const normalizedMemory = normalizeMemory(memory);
+function buildRetryPrompt(
+  text,
+  workflow,
+  memory,
+  history,
+  planner,
+  error
+) {
   return [
+    '<CONVERSATION_HISTORY>',
+    JSON.stringify(
+      normalizeConversationHistory(history)
+    ),
+    '</CONVERSATION_HISTORY>',
     '<MEMORY>',
-    JSON.stringify(normalizedMemory),
+    JSON.stringify(normalizeMemory(memory)),
     '</MEMORY>',
     '<CURRENT_WORKFLOW>',
     JSON.stringify(cloneWorkflow(workflow)),
@@ -1394,9 +1460,8 @@ function buildRetryPrompt(text, workflow, memory, planner, error) {
     '</VALIDATION_ERROR>',
     '<RETRY_INSTRUCTION>',
     'The previous attempt was not applied.',
-    'Recompute the intended final graph from CURRENT WORKFLOW and LATEST USER REQUEST.',
-    'Treat FAILED_PLANNER_OUTPUT only as a diagnostic example, not as authoritative workflow state.',
-    'Return a completely new Patch.',
+    'Recompute the result using the supplied conversation and workflow context.',
+    'Return a completely new valid response.',
     '</RETRY_INSTRUCTION>'
   ].join('\n');
 }
@@ -1446,12 +1511,15 @@ async function requestPlanner(prompt) {
   if (typeof content !== 'string' || !content.trim()) throw new Error('AI 응답이 비어 있습니다.');
   const parsed = parseJson(content);
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Planner 응답이 객체가 아닙니다.');
+  if (parsed.mode !== 'conversation' && parsed.mode !== 'workflow') {
+    throw new Error('Planner mode가 올바르지 않습니다.');
+  }
   if (!Array.isArray(parsed.ops)) throw new Error('Planner ops가 배열이 아닙니다.');
   if (typeof parsed.message !== 'string' || !parsed.message.trim()) throw new Error('Planner message가 비어 있습니다.');
   if (typeof parsed.question !== 'string') throw new Error('Planner question이 문자열이 아닙니다.');
   parsed.ops = normalizePlannerOps(parsed.ops);
   parsed.message = parsed.message.trim();
-  parsed.question = parsed.question.trim() || null;
+  parsed.question = parsed.question.trim() || '';
   parsed.memory = normalizeMemory(parsed.memory);
   return parsed;
 }
@@ -1460,25 +1528,92 @@ async function requestPlanner(prompt) {
    PLANNER + ATOMIC VALIDATION
 ========================================================= */
 
-async function planWorkflow(text, workflow, memory) {
-  let prompt = buildUserPrompt(text, workflow, memory);
+async function planWorkflow(
+  text,
+  workflow,
+  memory,
+  history
+) {
+  let prompt =
+    buildUserPrompt(
+      text,
+      workflow,
+      memory,
+      history
+    );
+
   let planner = null;
   let lastError = null;
+
   for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      planner = await requestPlanner(prompt);
-      const materializedOps = materializePlannerOps(workflow, planner.ops);
-      const result = applyPatch(workflow, materializedOps);
-      validateWorkflow(result);
-      return {planner, workflow: result};
+      planner =
+        await requestPlanner(
+          prompt
+        );
+
+      if (
+        planner.mode === 'conversation' &&
+        planner.ops.length > 0
+      ) {
+        throw new Error(
+          'conversation mode에서는 workflow operation을 사용할 수 없습니다.'
+        );
+      }
+
+      const materializedOps =
+        materializePlannerOps(
+          workflow,
+          planner.ops
+        );
+
+      const result =
+        applyPatch(
+          workflow,
+          materializedOps
+        );
+
+      validateWorkflow(
+        result
+      );
+
+      return {
+        planner,
+        workflow: result
+      };
     } catch (error) {
       lastError = error;
-      console.warn('Planner attempt failed:', error.message);
-      if (attempt === 1 || error.retryable === false) break;
-      prompt = buildRetryPrompt(text, workflow, memory, planner, error.message);
+
+      console.warn(
+        'Planner attempt failed:',
+        error.message
+      );
+
+      if (
+        attempt === 1 ||
+        error.retryable === false
+      ) {
+        break;
+      }
+
+      prompt =
+        buildRetryPrompt(
+          text,
+          workflow,
+          memory,
+          history,
+          planner,
+          error.message
+        );
     }
   }
-  throw lastError || new Error('워크플로우를 처리하지 못했습니다.');
+
+  throw (
+    lastError ||
+    new Error(
+      '워크플로우를 처리하지 못했습니다.'
+    )
+  );
 }
 
 /* =========================================================
@@ -1505,6 +1640,11 @@ app.post(
           req.body?.memory
         );
 
+      const history =
+        normalizeConversationHistory(
+          req.body?.history
+        );
+
       if (!text) {
         return res.status(400).json({
           ok: false,
@@ -1517,11 +1657,14 @@ app.post(
         await planWorkflow(
           text,
           currentWorkflow,
-          memory
+          memory,
+          history
         );
 
       return res.json({
         ok: true,
+        mode:
+          result.planner.mode,
         workflow:
           result.workflow,
         message:

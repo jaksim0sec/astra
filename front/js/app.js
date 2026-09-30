@@ -34,6 +34,8 @@
      State
      ======================================================= */
   const memoryStore = { value: null };
+  const MAX_CONVERSATION_HISTORY = 20;
+  const MAX_CONVERSATION_MESSAGE_CHARS = 1600;
 
   const state = {
     destroyed: false,
@@ -43,6 +45,7 @@
     workflow: null,
     nodeDefinitions: null,
     conversationMemory: null,
+    conversationHistory: [],
     nodeBuilder: { root: null, open: false },
     messageCount: 0
   };
@@ -121,6 +124,58 @@
   function clearMemory() {
     state.conversationMemory = null;
     memoryStore.value = null;
+  }
+
+  function normalizeConversationHistory(history) {
+    if (!Array.isArray(history)) {
+      return [];
+    }
+
+    return history
+      .filter(item =>
+        item &&
+        typeof item === "object" &&
+        (item.role === "user" || item.role === "assistant") &&
+        typeof item.content === "string"
+      )
+      .map(item => ({
+        role: item.role,
+        content: item.content
+          .trim()
+          .slice(0, MAX_CONVERSATION_MESSAGE_CHARS)
+      }))
+      .filter(item => item.content)
+      .slice(-MAX_CONVERSATION_HISTORY);
+  }
+
+  function recordConversationMessage(role, text) {
+    if (role !== "user" && role !== "assistant") {
+      return;
+    }
+
+    const content = String(text ?? "").trim();
+
+    if (!content) {
+      return;
+    }
+
+    state.conversationHistory.push({
+      role,
+      content: content.slice(0, MAX_CONVERSATION_MESSAGE_CHARS)
+    });
+
+    state.conversationHistory =
+      normalizeConversationHistory(
+        state.conversationHistory
+      );
+  }
+
+  function getConversationHistory() {
+    return clone(
+      normalizeConversationHistory(
+        state.conversationHistory
+      )
+    );
   }
 
   function scrollChatToBottom(immediate = false) {
@@ -619,14 +674,17 @@
   /* =======================================================
      Planner
      ======================================================= */
-  async function plan(text) {
+  async function plan(text, history = []) {
     const workflow = syncWorkflow();
 
     const result =
       await API.planWorkflow(
         text,
         workflow,
-        state.conversationMemory
+        state.conversationMemory,
+        {
+          history
+        }
       );
 
     if (!result || !result.workflow) {
@@ -639,6 +697,7 @@
       clone(result.workflow);
 
     if (
+      result.mode === "workflow" &&
       state.canvas &&
       typeof state.canvas.applyWorkflowIR === "function"
     ) {
@@ -659,10 +718,23 @@
     if (state.destroyed || state.busy) return;
 
     const value = String(text ?? "").trim();
+
     if (!value) return;
+
+    const requestHistory =
+      normalizeConversationHistory(
+        options.historyOverride ??
+        state.conversationHistory
+      );
 
     if (options.addUserMessage !== false) {
       addUserMessage(value);
+
+      recordConversationMessage(
+        "user",
+        value
+      );
+
       composerInput.value = "";
       resizeComposer();
     }
@@ -670,14 +742,44 @@
     setBusy(true);
 
     try {
-      const result = await plan(value);
+      const result =
+        await plan(
+          value,
+          requestHistory
+        );
 
       if (result.message) {
-        addAssistantMessage(result.message);
+        const message =
+          addAssistantMessage(
+            result.message
+          );
+
+        if (message) {
+          message._astraRequestHistory =
+            clone(requestHistory);
+        }
+
+        recordConversationMessage(
+          "assistant",
+          result.message
+        );
       }
 
       if (result.question) {
-        addAssistantMessage(result.question);
+        const message =
+          addAssistantMessage(
+            result.question
+          );
+
+        if (message) {
+          message._astraRequestHistory =
+            clone(requestHistory);
+        }
+
+        recordConversationMessage(
+          "assistant",
+          result.question
+        );
       }
 
       syncWorkflow();
@@ -686,9 +788,10 @@
         "Astra Planner Error:",
         error
       );
+
       addAssistantMessage(
         error?.message ||
-        "워크플로우를 처리하지 못했습니다."
+        "요청을 처리하지 못했습니다."
       );
     } finally {
       setBusy(false);
@@ -950,8 +1053,16 @@ listen(composerInput, "keydown", handleComposerKeydown);
         : null;
     },
 
+    getConversationHistory() {
+      return getConversationHistory();
+    },
+
     clearConversationMemory() {
       clearMemory();
+    },
+
+    clearConversationHistory() {
+      state.conversationHistory = [];
     },
 
     addUserMessage,
@@ -991,6 +1102,7 @@ listen(composerInput, "keydown", handleComposerKeydown);
       state.workflow = null;
       state.nodeDefinitions = null;
       state.conversationMemory = null;
+      state.conversationHistory = [];
       state.ready = false;
     }
   };
