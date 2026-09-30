@@ -572,7 +572,7 @@
   height: 9.375rem !important;
   aspect-ratio: 1 / 1;
   min-height: 0;
-  overflow: hidden;
+  overflow: visible;
   position: absolute;
   background:
     var(--node);
@@ -590,6 +590,14 @@
   opacity: .42;
   z-index: 0;
   pointer-events: none;
+  clip-path:
+    inset(
+      1.5rem
+      1.5rem
+      1.5rem
+      1.5rem
+      round var(--node-radius)
+    );
 }
 .vc-image-file-node::after {
   content: "";
@@ -907,4 +915,93 @@
     width: 13.90625rem;
     height: 13.90625rem !important;
   }
+}
+
+/* =========================================================
+   FILE NODE DETAIL
+   ========================================================= */
+
+.vc-file-node .vc-node-head {
+  gap: .55rem;
+}
+
+.vc-file-node .vc-node-icon {
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  border-radius: .7rem;
+}
+
+.vc-file-node .vc-file-title-wrap {
+  gap: .2rem;
+}
+
+.vc-file-title {
+  max-width: 10.5rem;
+  font-size: .72rem;
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.vc-file-type {
+  width: fit-content;
+  max-width: 7rem;
+  padding: .16rem .34rem;
+  border: 1px solid
+    color-mix(
+      in srgb,
+      var(--node-color) 18%,
+      var(--line)
+    );
+  border-radius: 999px;
+  background:
+    color-mix(
+      in srgb,
+      var(--node-color) 8%,
+      transparent
+    );
+  color:
+    color-mix(
+      in srgb,
+      var(--node-color) 78%,
+      var(--muted)
+    );
+  font-size: .46rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: .055em;
+}
+
+.vc-file-meta {
+  margin-top: .5rem;
+  padding-top: .45rem;
+  border-top: 1px solid
+    color-mix(
+      in srgb,
+      var(--line) 72%,
+      transparent
+    );
+  gap: .3rem;
+  font-size: .52rem;
+}
+
+.vc-file-meta span {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+}
+
+.vc-file-meta span:first-child {
+  max-width: 8.5rem;
+}
+
+.vc-file-meta span:last-child {
+  flex: none;
+  padding-left: .3rem;
+  border-left: 1px solid
+    color-mix(
+      in srgb,
+      var(--line) 78%,
+      transparent
+    );
 }

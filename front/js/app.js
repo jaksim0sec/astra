@@ -20,6 +20,8 @@
   const chatMessages = document.querySelector("#chat-messages");
   const composerForm = document.querySelector("#composer-form");
   const composerInput = document.querySelector("#composer-input");
+  let composerAttach = document.querySelector("#composer-attach");
+  let composerFileInput = document.querySelector("#composer-file-input");
   const composerSubmit = document.querySelector("#composer-submit");
 
   if (!workspace || !chatContent || !chatMessages || !composerForm || !composerInput || !composerSubmit) {
@@ -261,7 +263,8 @@
 
   function createMessage(
     role,
-    text
+    text,
+    options = {}
   ) {
     const message =
       document.createElement("div");
@@ -290,6 +293,35 @@
       value;
 
     message.appendChild(body);
+
+    if (
+      role === "assistant" &&
+      options.showCanvasView
+    ) {
+      const canvasButton =
+        document.createElement("button");
+
+      canvasButton.type = "button";
+      canvasButton.className =
+        "astra-message-canvas-link";
+      canvasButton.setAttribute(
+        "aria-label",
+        "캔버스에서 보기"
+      );
+      canvasButton.innerHTML = `
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <rect x="3" y="3" width="14" height="14" rx="3"></rect>
+          <circle cx="7" cy="7" r="1.1"></circle>
+          <circle cx="13" cy="7" r="1.1"></circle>
+          <circle cx="7" cy="13" r="1.1"></circle>
+          <circle cx="13" cy="13" r="1.1"></circle>
+          <path d="M7 7h6M7 13h6M7 7v6M13 7v6"></path>
+        </svg>
+        <span>캔버스에서 보기</span>
+      `;
+
+      message.appendChild(canvasButton);
+    }
 
     if (
       role === "user" ||
@@ -405,7 +437,10 @@
     );
   }
 
-  function addAssistantMessage(text) {
+  function addAssistantMessage(
+    text,
+    options = {}
+  ) {
     const value =
       String(text ?? "").trim();
 
@@ -413,7 +448,8 @@
 
     return createMessage(
       "assistant",
-      value
+      value,
+      options
     );
   }
 
@@ -563,6 +599,25 @@
   function handleMessageClick(
     event
   ) {
+    const canvasButton =
+      event.target.closest(
+        ".astra-message-canvas-link"
+      );
+
+    if (canvasButton) {
+      event.preventDefault();
+      event.stopPropagation();
+
+      if (
+        typeof UI.setMode ===
+        "function"
+      ) {
+        UI.setMode("canvas");
+      }
+
+      return;
+    }
+
     const action =
       event.target.closest(
         ".astra-message-action"
@@ -767,7 +822,12 @@
       if (result.message) {
         const message =
           addAssistantMessage(
-            result.message
+            result.message,
+            {
+              showCanvasView:
+                result.mode ===
+                "workflow"
+            }
           );
 
         if (message) {
@@ -827,6 +887,66 @@
 
   function handleComposerInput() {
     resizeComposer();
+  }
+
+  function handleComposerFileChange(event) {
+    const file =
+      event.target.files?.[0];
+
+    event.target.value = "";
+
+    if (
+      !file ||
+      !state.canvas ||
+      typeof state.canvas.addNode !== "function"
+    ) {
+      return;
+    }
+
+    let previewUrl = "";
+
+    if (
+      String(file.type || "").startsWith("image/") &&
+      typeof URL?.createObjectURL === "function"
+    ) {
+      previewUrl =
+        URL.createObjectURL(file);
+    }
+
+    try {
+      state.canvas.addNode(
+        "file",
+        {
+          expanded: false,
+          data: {
+            name: file.name,
+            mime:
+              file.type ||
+              "application/octet-stream",
+            size: file.size || 0,
+            lastModified:
+              file.lastModified || 0,
+            previewUrl
+          }
+        }
+      );
+
+      if (
+        typeof UI.setMode ===
+        "function"
+      ) {
+        UI.setMode("canvas");
+      }
+    } catch (error) {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+
+      console.error(
+        "File Node Error:",
+        error
+      );
+    }
   }
 
   function handleComposerKeydown(event) {
@@ -939,16 +1059,44 @@
         </div>
         <div id="canvas-node-builder-list" class="canvas-node-builder-list"></div>
       </div>
-      <button id="canvas-node-builder-toggle" type="button" aria-expanded="false" aria-controls="canvas-node-builder-panel">
-        <span class="canvas-node-builder-plus" aria-hidden="true">+</span>
-        <span>노드</span>
-      </button>
+      <div class="canvas-node-builder-actions">
+        <button id="canvas-node-builder-toggle" type="button" aria-expanded="false" aria-controls="canvas-node-builder-panel">
+          <span class="canvas-node-builder-plus" aria-hidden="true">+</span>
+          <span>노드</span>
+        </button>
+        <button id="canvas-node-builder-layout" type="button" aria-label="노드 정리하기" title="노드 정리하기">
+          <span class="canvas-node-builder-layout-icon" aria-hidden="true">
+            <svg viewBox="0 0 20 20" fill="none">
+              <rect x="3" y="3" width="5" height="5" rx="1.5"></rect>
+              <rect x="12" y="3" width="5" height="5" rx="1.5"></rect>
+              <rect x="7.5" y="12" width="5" height="5" rx="1.5"></rect>
+              <path d="M8 5.5h4M5.5 8v2.25M14.5 8v2.25M8.5 12h3"></path>
+            </svg>
+          </span>
+          <span>정리하기</span>
+        </button>
+      </div>
     `;
 
     document.querySelector("#canvas-page")?.appendChild(root);
     state.nodeBuilder.root = root;
 
     listen(root, "click", event => {
+      const layout = event.target.closest("#canvas-node-builder-layout");
+
+      if (layout) {
+        event.preventDefault();
+
+        if (
+          state.canvas &&
+          typeof state.canvas.layout === "function"
+        ) {
+          state.canvas.layout();
+        }
+
+        return;
+      }
+
       const toggle = event.target.closest("#canvas-node-builder-toggle");
 
       if (toggle) {
@@ -995,6 +1143,17 @@
 
     setBusy(false);
     resizeComposer();
+
+    listen(composerAttach, "click", event => {
+      event.preventDefault();
+      composerFileInput.click();
+    });
+
+    listen(
+      composerFileInput,
+      "change",
+      handleComposerFileChange
+    );
 
     listen(composerForm, "submit", handleSubmit);
     listen(chatMessages, "click", handleMessageClick);

@@ -28,13 +28,10 @@ const defaultNodeDef = {
     llmdesc: 'workflow의 실행 흐름의 origin임',
     tag: 'START',
     color: '#10B981',
-    icon: `
-      <svg viewBox="0 0 20 20" fill="none">
-        <circle cx="10" cy="10" r="6.5" stroke="currentColor" stroke-width="1.45"/>
-        <path d="M10 13.2V7" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
-        <path d="M7.8 9.1L10 7l2.2 2.1" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    `,
+    icon: `      <svg viewBox="0 0 20 20" fill="none">
+        <circle cx="10" cy="10" r="6.1" stroke="currentColor" stroke-width="1.75"/>
+        <path d="M8.25 7.35L12.55 10L8.25 12.65V7.35Z" fill="currentColor"/>
+      </svg>`,
     inputs: [],
     outputs: [
       {
@@ -53,11 +50,13 @@ const defaultNodeDef = {
     desc: '필요한 정보를 찾아 수집합니다.',
     llmdesc: '추가적으로 필요한 "외부" 정보를 조사함. 입력 자료가 있으면 이를 참고하여 추가 조사가 가능.',
     tag: 'RESEARCH',
-    color: '#3B82F6',
+    color: '#4F8EF7',
     icon: `
       <svg viewBox="0 0 20 20" fill="none">
-        <circle cx="8" cy="8" r="5" stroke="currentColor" stroke-width="1.55"/>
-        <path d="M11.6 11.6L15.8 15.8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <circle cx="10" cy="10" r="6.8" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M3.2 10h13.6" stroke="currentColor" stroke-width="1.45" stroke-linecap="round"/>
+        <path d="M10 3.2c-1.8 1.9-2.7 4.1-2.7 6.8s.9 4.9 2.7 6.8" stroke="currentColor" stroke-width="1.45" stroke-linecap="round"/>
+        <path d="M10 3.2c1.8 1.9 2.7 4.1 2.7 6.8s-.9 4.9-2.7 6.8" stroke="currentColor" stroke-width="1.45" stroke-linecap="round"/>
       </svg>
     `,
     params: [
@@ -101,10 +100,10 @@ const defaultNodeDef = {
     desc: '자료를 기준에 따라 구조화합니다.',
     llmdesc: '입력된 자료를 기준에 따라 정리/구조화함',
     tag: 'ORGANIZE',
-    color: '#F59E0B',
+    color: '#E9A63A',
     icon: `
       <svg viewBox="0 0 20 20" fill="none">
-        <path d="M4 5h12M4 10h12M4 15h8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M4 5.2h12M4 10h12M4 14.8h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
     `,
     params: [
@@ -148,12 +147,11 @@ const defaultNodeDef = {
     desc: '조건을 판단하고 참 또는 거짓 경로로 데이터를 전달합니다.',
     llmdesc: '참자료→참출구, 거짓자료→거짓출구로 자료, 실행 흐름이 연결됨. condition가 참이면 참출구만, 아니면 거짓출구만 열리며 동시에 두개가 열리는 상황은 없음.',
     tag: 'JUDGE',
-    color: '#8B5CF6',
-    icon: `
-      <svg viewBox="0 0 20 20" fill="none">
-        <path d="M10 3L11.5 8.5L17 10L11.5 11.5L10 17L8.5 11.5L3 10L8.5 8.5Z" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    `,
+    color: '#8B6BE8',
+    icon: `      <svg viewBox="0 0 20 20" fill="none">
+        <circle cx="10" cy="10" r="6.15" stroke="currentColor" stroke-width="1.75"/>
+        <path d="M7 10.1L9 12.05L13.1 7.95" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>`,
     params: [
       {
         id: 'condition',
@@ -205,12 +203,10 @@ const defaultNodeDef = {
     desc: '주어진 정보를 글 형태로 작성합니다.',
     llmdesc: '입력된 자료를 바탕으로 문서를 작성함. 제목 분량 스타일 내용을 통해 특성을 조정함. 정리가 필요한 경우 작성후 정리 보다 정리후 작성이 바람직함.',
     tag: 'WRITE',
-    color: '#EF4444',
+    color: '#D96F83',
     icon: `
       <svg viewBox="0 0 20 20" fill="none">
-        <path d="M5.1 14.9L6.2 11.8L13.1 4.9C13.7 4.3 14.7 4.3 15.3 4.9L16 5.6C16.6 6.2 16.6 7.2 16 7.8L9.1 14.7L5.1 14.9Z" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/>
-        <path d="M12.4 5.6L15.1 8.3" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
-        <path d="M5.1 14.9L7.9 14.2" stroke="currentColor" stroke-width="1.45" stroke-linecap="round"/>
+        <path d="M4.6 15.4 5.8 11l6.8-6.8a2 2 0 0 1 2.8 0l.4.4a2 2 0 0 1 0 2.8L9 14.2l-4.4 1.2Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `,
     params: [
@@ -261,59 +257,16 @@ const defaultNodeDef = {
     ]
   },
 
-  convert: {
-    name: '변형하기',
-    desc: '자료의 형식이나 스타일을 변형합니다.',
-    llmdesc: '입력된 자료를 필요한 형식이나 스타일로 변환함.',
-    tag: 'CONVERT',
-    color: '#EC4899',
-    icon: `
-      <svg viewBox="0 0 20 20" fill="none">
-        <path d="M4 6.5H14.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <path d="M11.8 3.9L14.5 6.5L11.8 9.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M16 13.5H5.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-        <path d="M8.2 10.9L5.5 13.5L8.2 16.1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    `,
-    params: [
-      {
-        id: 'instruction',
-        name: '변형 방식',
-        placeholder: '어떻게 변형할까요?',
-        default: '표로 바꿔줘'
-      }
-    ],
-    inputs: [
-      {
-        id: 'in',
-        name: '자료',
-        type: 'any',
-        required: false,
-        multiple: true,
-        accepts: ['any']
-      }
-    ],
-    outputs: [
-      {
-        id: 'result',
-        name: '결과',
-        type: 'any',
-        required: false,
-        multiple: true,
-        accepts: ['any']
-      }
-    ]
-  },
 
   file: {
-    name: '파일추가하기',
+    name: '파일 추가하기',
     desc: '작업에 사용할 파일을 추가합니다.',
     llmdesc: '사용자가 제공한 파일을 워크플로우에 입력함. 파일 자체를 생성하거나 변환하는 노드가 아님. 연결이 있어야만 실제로 참조가 가능.',
     tag: 'INPUT',
-    color: '#64748B',
+    color: '#718096',
     icon: `
       <svg viewBox="0 0 20 20" fill="none">
-        <path d="M7.2 10.8l4.7-4.7a2.55 2.55 0 0 1 3.6 3.6l-5.9 5.9a4.05 4.05 0 0 1-5.7-5.7l6-6" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M14.4 5.4 8 11.8a2.4 2.4 0 1 0 3.4 3.4l4.8-4.8a3.8 3.8 0 0 0-5.4-5.4L4.9 10.9a4.9 4.9 0 1 0 6.9 6.9l3.8-3.8" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `,
     inputs: [],
@@ -330,16 +283,14 @@ const defaultNodeDef = {
   },
 
   createFile: {
-    name: '내보내기',
+    name: '생성하기',
     desc: '완성된 결과물을 파일로 생성합니다.',
     llmdesc: '입력된 결과물을 지정한 파일 형식으로 내보내는 최종 출력 노드임. 파일 형식과 파일명을 지정하여 결과 파일을 생성함. 질문에 대한 답변과 같은 단순 자연어 결과는 굳이 필요없음.',
     tag: 'OUTPUT',
-    color: '#F97316',
+    color: '#0EA5A4',
     icon: `
       <svg viewBox="0 0 20 20" fill="none">
-        <path d="M10 13V3.5" stroke="currentColor" stroke-width="1.65" stroke-linecap="round"/>
-        <path d="M6.8 6.7L10 3.5L13.2 6.7" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M5 16H15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M10 2.9c.45 4.45 2.65 6.65 7.1 7.1-4.45.45-6.65 2.65-7.1 7.1-.45-4.45-2.65-6.65-7.1-7.1 4.45-.45 6.65-2.65 7.1-7.1Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `,
     params: [

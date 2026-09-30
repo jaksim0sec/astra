@@ -616,19 +616,27 @@
 #canvas-node-builder {
   position: absolute;
   z-index: 40;
-  left: max(max(10px, var(--safe-left)), calc((100% - 720px) / 2));
-  bottom: 14px;
+  left: max(max(.625rem, var(--safe-left)), calc((100% - 45rem) / 2));
+  bottom: .875rem;
   pointer-events: none;
 }
 
+.canvas-node-builder-actions {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  pointer-events: none;
+}
+
+#canvas-node-builder-layout,
 #canvas-node-builder-toggle {
-  min-width: 82px;
-  height: 40px;
-  padding: 0 14px;
+  min-width: 0;
+  height: 2.5rem;
+  padding: 0 .875rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: .4rem;
   border: 1px solid var(--line);
   border-radius: 999px;
   background: var(--panel-soft);
@@ -638,28 +646,56 @@
   box-shadow: var(--shadow-soft);
   pointer-events: auto;
   cursor: pointer;
-  font-size: 12px;
+  font-size: .75rem;
   font-weight: 750;
   letter-spacing: -.01em;
   transition: background .18s ease, border-color .18s ease, transform .16s ease;
 }
 
+#canvas-node-builder-layout:hover,
 #canvas-node-builder-toggle:hover {
   border-color: var(--line-strong);
   background: var(--panel-strong);
 }
 
+#canvas-node-builder-layout:active,
 #canvas-node-builder-toggle:active {
   transform: scale(.95);
 }
 
-.canvas-node-builder-plus {
+.canvas-node-builder-layout-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
   display: inline-flex;
-  width: 16px;
-  height: 16px;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+}
+
+.canvas-node-builder-layout-icon svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+.canvas-node-builder-layout-icon rect {
+  stroke: currentColor;
+  stroke-width: 1.35;
+}
+
+.canvas-node-builder-layout-icon path {
+  stroke: currentColor;
+  stroke-width: 1.25;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.canvas-node-builder-plus {
+  display: inline-flex;
+  width: 1rem;
+  height: 1rem;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
   font-weight: 500;
   line-height: 1;
 }
@@ -776,8 +812,8 @@
 
 @media (max-width: 420px) {
   #canvas-node-builder {
-    left: max(10px, var(--safe-left));
-    bottom: 10px;
+    left: max(.625rem, var(--safe-left));
+    bottom: .625rem;
   }
 
   #canvas-node-builder-panel {
@@ -868,5 +904,141 @@
   #canvas-ai-preview,
   .canvas-ai-preview-close {
     transition: none;
+  }
+}
+
+
+/* =========================================================
+   COMPOSER ATTACH FIX
+   ========================================================= */
+
+#composer-form {
+  position: relative;
+}
+
+#composer-attach {
+  display: grid !important;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  flex: 0 0 2.25rem;
+  min-width: 2.25rem;
+  min-height: 2.25rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  opacity: 1;
+  visibility: visible;
+  overflow: visible;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  transition:
+    color .15s ease,
+    background-color .15s ease,
+    transform .12s ease;
+}
+
+#composer-attach:hover {
+  color: var(--text);
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 4%,
+      transparent
+    );
+}
+
+#composer-attach:active {
+  transform: scale(.97);
+}
+
+#composer-attach svg {
+  display: block;
+  width: 1.125rem;
+  height: 1.125rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.55;
+  stroke-linecap: round;
+}
+
+#composer-file-input {
+  display: none !important;
+}
+
+@media (max-width: 700px) {
+  #composer-attach {
+    width: 2.125rem;
+    height: 2.125rem;
+    flex-basis: 2.125rem;
+    min-width: 2.125rem;
+    min-height: 2.125rem;
+  }
+}
+
+@media (max-width: 420px) {
+  #composer-attach {
+    width: 2rem;
+    height: 2rem;
+    flex-basis: 2rem;
+    min-width: 2rem;
+    min-height: 2rem;
+  }
+}
+
+
+/* =========================================================
+   COMPOSER ATTACH DETAIL
+   ========================================================= */
+
+#composer-form {
+  gap: .25rem;
+  padding-left: .5rem;
+}
+
+#composer-attach {
+  width: 2rem;
+  height: 2rem;
+  flex-basis: 2rem;
+  min-width: 2rem;
+  min-height: 2rem;
+}
+
+#composer-input {
+  padding-left: .125rem;
+  padding-right: .125rem;
+}
+
+@media (max-width: 700px) {
+  #composer-form {
+    gap: .2rem;
+    padding-left: .4375rem;
+  }
+
+  #composer-attach {
+    width: 1.9375rem;
+    height: 1.9375rem;
+    flex-basis: 1.9375rem;
+    min-width: 1.9375rem;
+    min-height: 1.9375rem;
+  }
+}
+
+@media (max-width: 420px) {
+  #composer-form {
+    gap: .15rem;
+    padding-left: .375rem;
+  }
+
+  #composer-attach {
+    width: 1.875rem;
+    height: 1.875rem;
+    flex-basis: 1.875rem;
+    min-width: 1.875rem;
+    min-height: 1.875rem;
   }
 }

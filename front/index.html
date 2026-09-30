@@ -101,6 +101,23 @@
     <footer id="composer">
       <form id="composer-form">
 
+        <input
+          id="composer-file-input"
+          type="file"
+          hidden
+        />
+
+        <button
+          id="composer-attach"
+          type="button"
+          aria-label="파일 추가"
+          title="파일 추가"
+        >
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M10 4v12M4 10h12"></path>
+          </svg>
+        </button>
+
         <textarea
           id="composer-input"
           name="message"

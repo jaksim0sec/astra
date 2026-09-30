@@ -1457,7 +1457,10 @@
   if (
     nodesNeedingPosition.length
   ) {
-    if (isNewWorkflow) {
+    if (
+      isNewWorkflow ||
+      options.layout === true
+    ) {
       const GAP_X = 80;
       const GAP_Y = 36;
       const nodeOrder =
@@ -1909,7 +1912,10 @@
    */
   if (
     options.center !== false &&
-    isNewWorkflow
+    (
+      isNewWorkflow ||
+      options.layout === true
+    )
   ) {
     centerWorkflow();
   }
@@ -2006,16 +2012,14 @@
       return node;
     }
     function layoutWorkflow() {
-      let x = 0;
-      const gap = 80;
-      for (const node of state.nodes) {
-        const element = getNodeElement(node.id);
-        node.x = x;
-        node.y = 0;
-        x += Math.max(190, element?.offsetWidth || 190) + gap;
-      }
-      render();
-      emit('change', getWorkflow());
+      const workflow = getWorkflowIR();
+      applyWorkflowIR(
+        workflow,
+        {
+          layout: true,
+          center: true
+        }
+      );
       return api;
     }
     function removeNode(id) {
