@@ -457,10 +457,18 @@
 
     if (!value) return null;
 
-    return createMessage(
+    const message =
+      createMessage(
+        "user",
+        value
+      );
+
+    recordConversationMessage(
       "user",
       value
     );
+
+    return message;
   }
 
   function addAssistantMessage(
@@ -472,11 +480,19 @@
 
     if (!value) return null;
 
-    return createMessage(
+    const message =
+      createMessage(
+        "assistant",
+        value,
+        options
+      );
+
+    recordConversationMessage(
       "assistant",
-      value,
-      options
+      value
     );
+
+    return message;
   }
 
   function addSystemMessage(text) {
@@ -752,14 +768,21 @@
   /* =======================================================
      Planner
      ======================================================= */
-  async function plan(text) {
+  async function plan(
+    text,
+    options = {}
+  ) {
     const workflow = syncWorkflow();
 
     const result =
       await API.planWorkflow(
         text,
         workflow,
-        state.conversationMemory
+        state.conversationMemory,
+        {
+          history:
+            options.history
+        }
       );
 
     if (!result || !result.workflow) {
@@ -792,12 +815,22 @@
   async function runPrompt(text, options = {}) {
     if (state.destroyed || state.busy) return;
 
-    const value = String(text ?? "").trim();
+    const value =
+      String(text ?? "").trim();
 
     if (!value) return;
 
-    if (options.addUserMessage !== false) {
+    let requestHistory =
+      state.conversationHistory;
+
+    if (
+      options.addUserMessage !== false
+    ) {
       addUserMessage(value);
+
+      requestHistory =
+        state.conversationHistory
+          .slice(0, -1);
 
       composerInput.value = "";
       resizeComposer();
@@ -807,7 +840,13 @@
 
     try {
       const result =
-        await plan(value);
+        await plan(
+          value,
+          {
+            history:
+              requestHistory
+          }
+        );
 
       if (result.message) {
         const message =
