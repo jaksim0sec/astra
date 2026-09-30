@@ -136,26 +136,148 @@
   /* =======================================================
      Chat
      ======================================================= */
+
+  function updateCanvasAIContext(text) {
+    const page = document.querySelector("#canvas-page");
+    if (!page) return;
+
+    let preview =
+      page.querySelector("#canvas-ai-preview");
+
+    if (!preview) {
+      preview = document.createElement("div");
+      preview.id = "canvas-ai-preview";
+      preview.innerHTML = `
+        <div class="canvas-ai-preview-label">Astra</div>
+        <div class="canvas-ai-preview-text"></div>
+      `;
+      page.appendChild(preview);
+    }
+
+    const body =
+      preview.querySelector(
+        ".canvas-ai-preview-text"
+      );
+
+    if (!body) return;
+
+    body.textContent =
+      String(text ?? "").trim();
+
+    preview.classList.remove("is-visible");
+
+    requestAnimationFrame(() => {
+      preview.classList.add("is-visible");
+    });
+  }
+
   function createMessage(role, text) {
-    const message = document.createElement("div");
-    const id = `message-${++state.messageCount}`;
+    const message =
+      document.createElement("div");
+
+    const id =
+      `message-${++state.messageCount}`;
+
+    const value =
+      String(text ?? "");
 
     message.id = id;
-    message.className = `astra-message astra-message-${role}`;
+    message.className =
+      `astra-message astra-message-${role}`;
+
     message.dataset.role = role;
 
-    const body = document.createElement("div");
-    body.className = "astra-message-body";
-    body.textContent = String(text ?? "");
+    const body =
+      document.createElement("div");
+
+    body.className =
+      "astra-message-body";
+
+    body.textContent = value;
 
     message.appendChild(body);
+
+    if (
+      role === "user" ||
+      role === "assistant"
+    ) {
+      const actions =
+        document.createElement("div");
+
+      actions.className =
+        "astra-message-actions";
+
+      const copyButton =
+        document.createElement("button");
+
+      copyButton.type = "button";
+      copyButton.className =
+        "astra-message-action";
+
+      copyButton.dataset.action =
+        "copy";
+
+      copyButton.setAttribute(
+        "aria-label",
+        "복사"
+      );
+
+      copyButton.title = "복사";
+
+      copyButton.innerHTML = `
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <rect x="5" y="4" width="7" height="8" rx="1.5"></rect>
+          <path d="M4 10.5H3.5A1.5 1.5 0 0 1 2 9V3.5A1.5 1.5 0 0 1 3.5 2H9A1.5 1.5 0 0 1 10.5 3.5V4"></path>
+        </svg>
+        <span>복사</span>
+      `;
+
+      actions.appendChild(copyButton);
+
+      if (role === "assistant") {
+        const retryButton =
+          document.createElement("button");
+
+        retryButton.type = "button";
+        retryButton.className =
+          "astra-message-action";
+
+        retryButton.dataset.action =
+          "retry";
+
+        retryButton.setAttribute(
+          "aria-label",
+          "재시도"
+        );
+
+        retryButton.title = "재시도";
+
+        retryButton.innerHTML = `
+          <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M13 5.5V2.5M13 2.5H10"></path>
+            <path d="M12.4 6.3A5 5 0 1 0 13 9"></path>
+          </svg>
+          <span>재시도</span>
+        `;
+
+        actions.appendChild(retryButton);
+      }
+
+      message.appendChild(actions);
+    }
+
     chatMessages.appendChild(message);
+
+    if (role === "assistant") {
+      updateCanvasAIContext(value);
+    }
+
     scrollChatToBottom();
 
     return message;
   }
 
-  function addUserMessage(text) {
+(text) {
     const value = String(text ?? "").trim();
     if (!value) return null;
     return createMessage("user", value);
@@ -165,6 +287,165 @@
     const value = String(text ?? "").trim();
     if (!value) return null;
     return createMessage("assistant", value);
+  }
+
+  async function copyMessage(message, button) {
+    const body =
+      message.querySelector(
+        ".astra-message-body"
+      );
+
+    const value =
+      body?.textContent?.trim();
+
+    if (!value) return;
+
+    try {
+      await navigator.clipboard.writeText(
+        value
+      );
+    } catch {
+      const textarea =
+        document.createElement("textarea");
+
+      textarea.value = value;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+
+      document.body.appendChild(textarea);
+      textarea.select();
+
+      try {
+        document.execCommand("copy");
+      } catch {
+        textarea.remove();
+        return;
+      }
+
+      textarea.remove();
+    }
+
+    const label =
+      button.querySelector("span");
+
+    button.classList.add("is-done");
+
+    if (label) {
+      label.textContent = "복사됨";
+    }
+
+    setTimeout(() => {
+      button.classList.remove("is-done");
+
+      if (label) {
+        label.textContent = "복사";
+      }
+    }, 1200);
+  }
+
+  async function retryMessage(message) {
+    if (state.destroyed || state.busy) {
+      return;
+    }
+
+    let previous =
+      message.previousElementSibling;
+
+    while (previous) {
+      if (previous.dataset.role === "user") {
+        break;
+      }
+
+      previous =
+        previous.previousElementSibling;
+    }
+
+    const body =
+      previous?.querySelector(
+        ".astra-message-body"
+      );
+
+    const value =
+      body?.textContent?.trim();
+
+    if (!value) return;
+
+    message.classList.add(
+      "is-retrying"
+    );
+
+    try {
+      await runPrompt(value, {
+        addUserMessage: false
+      });
+    } finally {
+      message.classList.remove(
+        "is-retrying"
+      );
+    }
+  }
+
+  function handleMessageClick(event) {
+    const action =
+      event.target.closest(
+        ".astra-message-action"
+      );
+
+    if (action) {
+      const message =
+        action.closest(
+          ".astra-message"
+        );
+
+      if (!message) return;
+
+      event.preventDefault();
+
+      if (
+        action.dataset.action ===
+        "copy"
+      ) {
+        copyMessage(
+          message,
+          action
+        );
+      } else if (
+        action.dataset.action ===
+        "retry"
+      ) {
+        retryMessage(message);
+      }
+
+      return;
+    }
+
+    const userMessage =
+      event.target.closest(
+        ".astra-message-user"
+      );
+
+    if (
+      !userMessage ||
+      !chatMessages.contains(
+        userMessage
+      )
+    ) {
+      return;
+    }
+
+    chatMessages
+      .querySelectorAll(
+        ".astra-message-user.is-actions-visible"
+      )
+      .forEach(item =>
+        item.classList.remove(
+          "is-actions-visible"
+        )
+      );
+
+    userMessage.classList.add(
+      "is-actions-visible"
+    );
   }
 
   function addSystemMessage(text) {
@@ -269,21 +550,22 @@
     return result;
   }
 
-  async function handleSubmit(event) {
-    event.preventDefault();
-
+  async function runPrompt(text, options = {}) {
     if (state.destroyed || state.busy) return;
 
-    const text = composerInput.value.trim();
-    if (!text) return;
+    const value = String(text ?? "").trim();
+    if (!value) return;
 
-    addUserMessage(text);
-    composerInput.value = "";
-    resizeComposer();
+    if (options.addUserMessage !== false) {
+      addUserMessage(value);
+      composerInput.value = "";
+      resizeComposer();
+    }
+
     setBusy(true);
 
     try {
-      const result = await plan(text);
+      const result = await plan(value);
 
       if (result.message) {
         addAssistantMessage(result.message);
@@ -308,6 +590,15 @@
       composerInput.focus();
       resizeComposer();
     }
+  }
+
+  async function handleSubmit(event) {
+    event.preventDefault();
+
+    const text = composerInput.value.trim();
+    if (!text) return;
+
+    await runPrompt(text);
   }
 
   function handleComposerInput() {
@@ -482,7 +773,9 @@
     resizeComposer();
 
     listen(composerForm, "submit", handleSubmit);
+    listen(chatMessages, "click", handleMessageClick);
     listen(composerInput, "input", handleComposerInput);
+    listen(chatMessages, "click", handleMessageAction);
     listen(composerInput, "keydown", handleComposerKeydown);
     listen(global, "resize", resizeComposer);
 

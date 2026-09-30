@@ -206,11 +206,7 @@
 #chat-page {
   display: flex;
   flex-direction: column;
-  background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, .34), transparent 42%), var(--bg);
-}
-
-:root.dark #chat-page {
-  background: radial-gradient(circle at 50% 0%, rgba(255, 255, 255, .025), transparent 42%), var(--bg);
+  background: var(--bg);
 }
 
 #chat-content {
@@ -243,7 +239,7 @@
    ========================================================= */
 
 #canvas-page {
-  background: radial-gradient(circle at 50% 28%, rgba(120, 120, 120, .035), transparent 44%), var(--bg);
+  background: var(--bg);
 }
 
 #canvas-viewport {

@@ -71,7 +71,7 @@
       ) {
         throw new Error('서버 노드 정의 응답이 올바르지 않습니다.');
       }
-      definitions = freshDefinitions;
+      definitions = freshDefinitions.nodes || freshDefinitions;
     }
     const viewport = target.matches('#canvas-viewport')
       ? target
@@ -1240,18 +1240,12 @@
       }
 
       const output =
-        portDef(
-          from.node,
-          from.port,
-          'output'
-        );
+        (getDefinition(fromNode.type)?.outputs || [])
+          .find(port => String(port.id) === String(from.port));
 
       const input =
-        portDef(
-          to.node,
-          to.port,
-          'input'
-        );
+        (getDefinition(toNode.type)?.inputs || [])
+          .find(port => String(port.id) === String(to.port));
 
       if (!output) {
         throw new Error(
