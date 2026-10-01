@@ -394,34 +394,23 @@ const NODE_DEFINITION_PROMPT =
 
 const SYSTEM_PROMPT = `
 CONVERSATION AND WORKFLOW:
-- mode="conversation" for greetings, questions, explanations, casual conversation, follow-up requests, and anything that does not require changing the workflow.
+- mode="conversation" for greetings, questions, explanations, casual conversation, follow-up questions, and anything that does not require changing the workflow.
 - mode="workflow" only when the user asks to create, modify, delete, connect, disconnect, configure, rebuild, or otherwise change the workflow.
 - In conversation mode, ops MUST be [].
-- MEMORY is persistent conversation state. The MEMORY supplied in the current request is the PREVIOUS MEMORY STATE.
-- The memory returned in the response is the NEXT MEMORY STATE, not a summary of only the latest request.
-- Build NEXT MEMORY from PREVIOUS MEMORY + LATEST_USER_REQUEST.
-- Start from the previous memory and change only information supported by the latest user request.
-- If the latest request does not change a field, preserve that field exactly in meaning.
-- Never clear or replace a non-empty field merely because the latest request does not mention it.
-- An empty value means the information is genuinely unknown or has been explicitly invalidated. It does not mean "not mentioned this turn".
-- memory.flow = a dense sentence capturing the persistent subject, purpose, and direction of the conversation as a whole. Preserve the broader thread across turns and include meaningful context and keywords; never collapse it into a generic category or single word such as "인사".
-- memory.recent = a dense sentence capturing the latest request together with the immediately relevant preceding context and the important content of the assistant response from this turn. Keep the context needed to understand references such as "그거", "그 사람", "방금", and "아까". Do not reduce recent to only the user’s latest sentence.
-- memory.detail = durable facts, decisions, requirements, constraints, preferences, and other established information that may matter later.
-- Each non-empty memory field must be an information-dense complete sentence containing the core facts and keywords needed to reconstruct context. Do not reduce flow, recent, or detail to labels, categories, isolated words, or shallow descriptions.
-- During ordinary conversation, flow and detail normally remain unchanged while recent is updated with the new local context.
-- When new information is added, incorporate it without deleting unrelated existing information.
-- When the user explicitly corrects previous information, update only the affected information and preserve everything else.
-- Never guess missing information. When uncertain, preserve the previous memory.
-- Never turn MEMORY into a transcript or append the whole conversation to it.
-- Update MEMORY only after determining the complete user-facing message for the turn, and preserve the important context introduced or clarified by that response as part of the next memory state.
-- MEMORY is the persistent state. Other context may help interpret the latest request, but it must not replace or reset MEMORY.
-- Before returning memory, verify:
-  1. Unchanged fields were preserved.
-  2. Changed fields reflect only information supported by the latest request.
-  3. recent still contains enough local context to resolve references.
+- In conversation mode, answer naturally. Never say "No workflow changes were made." or similar unless the user specifically asks whether the workflow changed.
+- MEMORY.flow is the overall persistent purpose of the entire conversation.
+- MEMORY.recent is the concrete key context from the immediately preceding few turns.
+- MEMORY.detail contains durable requirements, decisions, constraints, preferences, and technical facts that must be preserved.
+- MEMORY is a rewritten state snapshot, not an append-only log.
+- Use MEMORY.flow, MEMORY.recent, and MEMORY.detail to resolve references such as "그거", "방금", "아까", and follow-up requests.
+- Do not expect or reconstruct context from conversation history.
+- Preserve relevant prior requirements even when the latest request does not repeat them.
+- When a newer explicit request conflicts with an older requirement, update only the conflicting part and preserve the rest.
+- Never copy the entire conversation into MEMORY or turn MEMORY into a transcript.
+- Reconstruct the intended result from MEMORY, CURRENT WORKFLOW, and LATEST_USER_REQUEST together.
 - User-facing message and question must use the language of the latest user request.
-- Keep MEMORY factual. Do not invent information.
-- question must always be a string. Use "" when no clarification is needed. Use "" when no clarification is needed.
+- Keep MEMORY useful and factual. Do not invent information.
+- question must always be a string. Use "" when no clarification is needed.
 
 
 You are Astra's deterministic workflow planner.
@@ -811,18 +800,6 @@ function normalizeMemory(memory) {
     detail: clip(source.detail, 1600)
   };
 }
-
-function mergeMemory(previous, next) {
-  const before = normalizeMemory(previous);
-  const after = normalizeMemory(next);
-
-  return {
-    flow: after.flow || before.flow,
-    recent: after.recent || before.recent,
-    detail: after.detail || before.detail
-  };
-}
-
 
 /* =========================================================
    LLM OPS -> INTERNAL ARRAY FORMAT
@@ -1764,12 +1741,6 @@ async function planWorkflow(
       planner =
         await requestPlanner(
           messages
-        );
-
-      planner.memory =
-        mergeMemory(
-          memory,
-          planner.memory
         );
 
       if (
