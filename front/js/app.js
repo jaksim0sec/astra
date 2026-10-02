@@ -58,6 +58,8 @@
   };
 
   const listeners = [];
+  let viewportFrame = 0;
+
 
   /* =======================================================
      Utilities
@@ -141,6 +143,114 @@
     requestAnimationFrame(() => {
       chatContent.scrollTop = chatContent.scrollHeight;
     });
+  }
+
+  function hasEditableFocus() {
+    const active = document.activeElement;
+
+    return !!(
+      active &&
+      (
+        active.matches?.("input, textarea, select") ||
+        active.isContentEditable
+      )
+    );
+  }
+
+  function resetDocumentScroll() {
+    if (hasEditableFocus()) return;
+
+    const scrollingElement =
+      document.scrollingElement;
+
+    if (
+      global.scrollX !== 0 ||
+      global.scrollY !== 0 ||
+      scrollingElement?.scrollLeft ||
+      scrollingElement?.scrollTop
+    ) {
+      global.scrollTo(0, 0);
+
+      if (scrollingElement) {
+        scrollingElement.scrollLeft = 0;
+        scrollingElement.scrollTop = 0;
+      }
+    }
+  }
+
+  function syncAppViewport() {
+    const viewport =
+      global.visualViewport;
+
+    const rawHeight =
+      viewport?.height ||
+      global.innerHeight ||
+      document.documentElement.clientHeight;
+
+    const rawTop =
+      viewport?.offsetTop ||
+      0;
+
+    const height =
+      Math.max(1, Math.round(rawHeight));
+
+    const top =
+      Math.max(0, Math.round(rawTop));
+
+    const rootStyle =
+      document.documentElement.style;
+
+    rootStyle.setProperty(
+      "--app-frame-top",
+      `${top}px`
+    );
+
+    rootStyle.setProperty(
+      "--app-frame-height",
+      `${height}px`
+    );
+
+    rootStyle.setProperty(
+      "--app-stage-height",
+      `${height}px`
+    );
+
+    rootStyle.setProperty(
+      "--real-vh",
+      `${height}px`
+    );
+
+    rootStyle.setProperty(
+      "--viewport-height",
+      `${height}px`
+    );
+
+    rootStyle.setProperty(
+      "--real-vh-unit",
+      `${height * 0.01}px`
+    );
+
+    resetDocumentScroll();
+  }
+
+  function requestAppViewportSync() {
+    if (viewportFrame) return;
+
+    viewportFrame =
+      requestAnimationFrame(() => {
+        viewportFrame = 0;
+        syncAppViewport();
+      });
+  }
+
+  function focusComposerWithoutScroll() {
+    try {
+      composerInput.focus({
+        preventScroll: true
+      });
+    } catch {
+      composerInput.focus();
+    }
   }
 
   /* =======================================================
@@ -829,7 +939,8 @@
       );
     } finally {
       setBusy(false);
-      composerInput.focus();
+      focusComposerWithoutScroll();
+      requestAppViewportSync();
       resizeComposer();
     }
   }
@@ -1099,6 +1210,7 @@
     state.conversationMemory =
       loadMemory();
 
+    syncAppViewport();
     setBusy(false);
     resizeComposer();
 
@@ -1117,10 +1229,30 @@
     listen(chatMessages, "click", handleMessageClick);
 listen(composerInput, "input", handleComposerInput);
 listen(composerInput, "keydown", handleComposerKeydown);
-    listen(global, "resize", resizeComposer);
+    listen(global, "resize", () => {
+      requestAppViewportSync();
+      resizeComposer();
+    });
+
+    listen(global, "orientationchange", requestAppViewportSync);
+    listen(global, "pageshow", requestAppViewportSync);
+    listen(global, "scroll", requestAppViewportSync, { passive: true });
+    listen(document, "focusin", requestAppViewportSync, { passive: true });
+    listen(document, "focusout", () => {
+      requestAppViewportSync();
+
+      setTimeout(() => {
+        resetDocumentScroll();
+        requestAppViewportSync();
+      }, 180);
+    }, { passive: true });
 
     if (global.visualViewport) {
-      listen(global.visualViewport, "resize", resizeComposer);
+      listen(global.visualViewport, "resize", () => {
+        requestAppViewportSync();
+        resizeComposer();
+      });
+      listen(global.visualViewport, "scroll", requestAppViewportSync, { passive: true });
     }
 
     UI.on("modechange", ({ mode }) => {
@@ -1209,6 +1341,11 @@ listen(composerInput, "keydown", handleComposerKeydown);
       if (state.destroyed) return;
 
       state.destroyed = true;
+
+      if (viewportFrame) {
+        cancelAnimationFrame(viewportFrame);
+        viewportFrame = 0;
+      }
 
       listeners.splice(0).forEach(cleanup => {
         try {
