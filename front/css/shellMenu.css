@@ -136,8 +136,8 @@
 
   width:
     min(
-      24rem,
-      calc(100% - 2.25rem)
+      22.5rem,
+      calc(100% - 2.65rem)
     );
 
   padding: 0;
@@ -230,21 +230,14 @@
 
   padding:
     calc(var(--safe-top) + .65rem)
-    .7rem
+    .85rem
     .55rem
-    max(.8rem,var(--safe-left));
+    max(.9rem,var(--safe-left));
 
   display: flex;
   align-items: center;
   gap: .625rem;
 
-  border-bottom:
-    .0625rem solid
-    color-mix(
-      in srgb,
-      var(--line) 68%,
-      transparent
-    );
 }
 
 .ovll-shell-menu-header
@@ -337,7 +330,7 @@
 
   padding:
     .55rem
-    .5rem
+    .65rem
     .75rem;
 
   overflow-x: hidden;
@@ -354,17 +347,9 @@
 .ovll-shell-menu-footer {
   padding:
     .6rem
-    .6rem
+    .75rem
     calc(var(--safe-bottom) + .6rem)
-    max(.6rem,var(--safe-left));
-
-  border-top:
-    .0625rem solid
-    color-mix(
-      in srgb,
-      var(--line) 68%,
-      transparent
-    );
+    max(.8rem,var(--safe-left));
 }
 
 /* generic reusable section primitives */
@@ -531,7 +516,7 @@ html.shell-menu-open body {
 
 @media (max-width: 30rem) {
   #ovll-shell-menu-panel {
-    width: calc(100% - 2rem);
+    width: calc(100% - 2.5rem);
   }
 }
 
