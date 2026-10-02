@@ -91,7 +91,7 @@ html{
     );
   }
 }
-@media (max-height:32.5rem){
+@media (orientation: landscape) and (max-height:32.5rem){
   html{
     font-size:clamp(
       .875rem,
@@ -270,7 +270,7 @@ input:focus-visible {
   }
 }
 
-@media (max-height: 32.5rem) {
+@media (orientation: landscape) and (max-height: 32.5rem) {
   :root {
     --topbar-height: 3.375rem;
     --composer-height: 4.25rem;
