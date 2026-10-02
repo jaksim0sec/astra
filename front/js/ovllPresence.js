@@ -11,8 +11,8 @@ if(!chatPage||!chatMessages||!canvasPage){
 }
 
 const PHASES=new Set([
+  "start",
   "idle",
-  "welcome",
   "thinking",
   "speaking"
 ]);
@@ -21,9 +21,11 @@ const state={
   phase:"idle",
   mode:UI?.getMode?.()||"chat",
   previousMode:null,
+  started:false,
+  startView:null,
+  startOrb:null,
   chatRow:null,
   chatOrb:null,
-  welcomeMessage:null,
   canvasMascot:null,
   canvasSpeech:null,
   speechText:null,
@@ -105,29 +107,104 @@ function ensureChatPresence(){
   return row;
 }
 
-function ensureWelcomeMessage(text){
-  if(state.welcomeMessage?.isConnected){
-    const body=
-      state.welcomeMessage.querySelector(".astra-message-body");
-    if(body) body.textContent=text;
-    return state.welcomeMessage;
+function ensureStartView(){
+  if(state.startView?.isConnected){
+    return state.startView;
   }
 
-  const message=document.createElement("div");
-  message.className=
-    "astra-message astra-message-assistant astra-message-welcome";
-  message.dataset.role="assistant";
-  message.dataset.ovllWelcome="true";
+  const view=document.createElement("div");
+  view.id="ovll-chat-start";
+  view.className="ovll-chat-start";
+  view.setAttribute("aria-label","새 대화");
 
-  const body=document.createElement("div");
-  body.className="astra-message-body";
-  body.textContent=text;
+  const orb=document.createElement("button");
+  orb.type="button";
+  orb.className="ovll-chat-start-orb";
+  orb.setAttribute("aria-label","오블");
+  orb.innerHTML=
+    '<span class="ovll-chat-start-eye" aria-hidden="true"></span>';
 
-  message.appendChild(body);
-  chatMessages.appendChild(message);
-  state.welcomeMessage=message;
+  const title=document.createElement("div");
+  title.className="ovll-chat-start-title";
 
-  return message;
+  view.appendChild(orb);
+  view.appendChild(title);
+  chatPage.appendChild(view);
+
+  state.startView=view;
+  state.startOrb=orb;
+
+  listen(orb,"click",event=>{
+    event.preventDefault();
+
+    orb.classList.remove(
+      "is-reacting"
+    );
+
+    void orb.offsetWidth;
+
+    orb.classList.add(
+      "is-reacting"
+    );
+
+    setTimeout(()=>{
+      orb.classList.remove(
+        "is-reacting"
+      );
+    },280);
+  });
+
+  return view;
+}
+
+function showStart(options={}){
+  if(state.started){
+    return null;
+  }
+
+  const view=ensureStartView();
+  const title=view.querySelector(
+    ".ovll-chat-start-title"
+  );
+
+  const headline=
+    typeof options==="string"
+      ?options
+      :options.headline;
+
+  if(title){
+    title.textContent=
+      String(headline||"ovll").trim()||
+      "ovll";
+  }
+
+  view.classList.remove(
+    "is-leaving",
+    "is-hidden"
+  );
+
+  setPhase("start");
+
+  return view;
+}
+
+function hideStart(){
+  const view=state.startView;
+
+  if(!view?.isConnected) return;
+
+  view.classList.add(
+    "is-leaving"
+  );
+
+  setTimeout(()=>{
+    if(
+      state.started&&
+      view.isConnected
+    ){
+      view.remove();
+    }
+  },220);
 }
 
 function moveToEnd(){
@@ -136,25 +213,13 @@ function moveToEnd(){
   return row;
 }
 
-function welcome(text="안녕. 뭘 만들어볼까?"){
-  const row=ensureChatPresence();
-  const message=ensureWelcomeMessage(
-    String(text||"").trim()||"안녕. 뭘 만들어볼까?"
-  );
-
-  chatMessages.appendChild(row);
-  chatMessages.appendChild(message);
-  chatMessages.classList.add("is-welcome");
-
-  setPhase("welcome");
-  return message;
-}
-
 function beginConversation(){
-  chatMessages.classList.remove("is-welcome");
-  moveToEnd();
+  if(!state.started){
+    state.started=true;
+    hideStart();
+  }
 
-  if(state.phase==="welcome"){
+  if(state.phase==="start"){
     setPhase("idle");
   }
 }
@@ -190,6 +255,8 @@ function settleChat(){
 }
 
 function enterChatFromEdge(){
+  if(!state.started) return;
+
   const row=moveToEnd();
   const orb=state.chatOrb;
 
@@ -394,6 +461,8 @@ function hideCanvasSpeech(){
 }
 
 function thinking(){
+  beginConversation();
+
   const row=moveToEnd();
   const orb=
     state.chatOrb||
@@ -432,6 +501,8 @@ function settle(){
 }
 
 function speak(text,options={}){
+  beginConversation();
+
   const value=
     String(text??"").trim();
 
@@ -484,7 +555,11 @@ function handleModeChange({
     state.previousMode==="canvas"&&
     state.mode==="chat"
   ){
-    enterChatFromEdge();
+    if(state.started){
+      enterChatFromEdge();
+    }else{
+      showStart();
+    }
   }
 
   if(state.mode==="canvas"){
@@ -511,7 +586,7 @@ if(typeof offModeChange==="function"){
 }
 
 const api={
-  welcome,
+  showStart,
   beginConversation,
   moveToEnd,
   thinking,
@@ -520,6 +595,14 @@ const api={
   hideCanvasSpeech,
   attachCanvasMascot,
   react(){
+    if(
+      state.mode==="chat"&&
+      !state.started
+    ){
+      state.startOrb?.click();
+      return;
+    }
+
     reactChat();
     state.canvasMascot?.react?.();
   },
@@ -528,6 +611,7 @@ const api={
       phase:state.phase,
       mode:state.mode,
       previousMode:state.previousMode,
+      started:state.started,
       speechText:state.speechText
     };
   },
@@ -549,7 +633,7 @@ const api={
     events.clear();
     state.canvasSpeech?.remove();
     state.chatRow?.remove();
-    state.welcomeMessage?.remove();
+    state.startView?.remove();
   }
 };
 
