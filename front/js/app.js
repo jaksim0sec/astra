@@ -145,21 +145,7 @@
     });
   }
 
-  function hasEditableFocus() {
-    const active = document.activeElement;
-
-    return !!(
-      active &&
-      (
-        active.matches?.("input, textarea, select") ||
-        active.isContentEditable
-      )
-    );
-  }
-
   function resetDocumentScroll() {
-    if (hasEditableFocus()) return;
-
     const scrollingElement =
       document.scrollingElement;
 
@@ -179,30 +165,19 @@
   }
 
   function syncAppViewport() {
-    const viewport =
-      global.visualViewport;
-
     const rawHeight =
-      viewport?.height ||
       global.innerHeight ||
       document.documentElement.clientHeight;
 
-    const rawTop =
-      viewport?.offsetTop ||
-      0;
-
     const height =
       Math.max(1, Math.round(rawHeight));
-
-    const top =
-      Math.max(0, Math.round(rawTop));
 
     const rootStyle =
       document.documentElement.style;
 
     rootStyle.setProperty(
       "--app-frame-top",
-      `${top}px`
+      "0px"
     );
 
     rootStyle.setProperty(
@@ -1236,9 +1211,18 @@ listen(composerInput, "keydown", handleComposerKeydown);
 
     listen(global, "orientationchange", requestAppViewportSync);
     listen(global, "pageshow", requestAppViewportSync);
-    listen(global, "scroll", requestAppViewportSync, { passive: true });
-    listen(document, "focusin", requestAppViewportSync, { passive: true });
+    listen(global, "scroll", () => {
+      resetDocumentScroll();
+      requestAppViewportSync();
+    }, { passive: true });
+
+    listen(document, "focusin", () => {
+      resetDocumentScroll();
+      requestAppViewportSync();
+    }, { passive: true });
+
     listen(document, "focusout", () => {
+      resetDocumentScroll();
       requestAppViewportSync();
 
       setTimeout(() => {
@@ -1252,7 +1236,6 @@ listen(composerInput, "keydown", handleComposerKeydown);
         requestAppViewportSync();
         resizeComposer();
       });
-      listen(global.visualViewport, "scroll", requestAppViewportSync, { passive: true });
     }
 
     UI.on("modechange", ({ mode }) => {
