@@ -159,44 +159,8 @@
   </div>
 
 
-  <!-- Common utilities -->
-  <script src="./js/functions.js"></script>
-
-  <!-- API -->
-  <script src="./js/api.js"></script>
-
-  <!-- Canvas / Node engine -->
-  <script src="./js/canvasNode.js"></script>
-
-  <!-- UI -->
-  <script src="./js/ui.js"></script>
-
-  <!-- OVLL presentation layer -->
-  <script src="./js/ovllPresence.js"></script>
-
-  <!-- Application entry -->
-  <script src="./js/app.js"></script>
-  <script src="./js/mascot.js"></script>
-
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker
-          .register('/sw.js', { scope: '/' })
-          .catch(error => console.warn('Service worker registration failed:', error));
-      });
-    }
-
-    window.addEventListener('beforeinstallprompt', () => {
-      document.documentElement.dataset.pwaInstallable = 'true';
-      console.info('[PWA] installable');
-    });
-
-    window.addEventListener('appinstalled', () => {
-      document.documentElement.dataset.pwaInstalled = 'true';
-      console.info('[PWA] installed');
-    });
-  </script>
+  <!-- Version guard + application bootstrap -->
+  <script src="./js/boot.js"></script>
 
 </body>
 </html>
