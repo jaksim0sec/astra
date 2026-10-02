@@ -827,11 +827,13 @@ function mount(world,canvas){
       return false;
     }
 
-    const orbRect=
-      orb.getBoundingClientRect();
-
-    const nodeRect=
-      node.getBoundingClientRect();
+    /*
+      전부 screen 좌표 기준이라 Canvas zoom이 이미 반영됨.
+      작은 화면에서는 viewport 크기 자체로 최대 이동량도 제한.
+    */
+    const orbRect=orb.getBoundingClientRect();
+    const nodeRect=node.getBoundingClientRect();
+    const view=viewport.getBoundingClientRect();
 
     const oc=center(orbRect);
     const nc=center(nodeRect);
@@ -846,29 +848,79 @@ function mount(world,canvas){
       distance=1;
     }
 
+    const ux=dx/distance;
+    const uy=dy/distance;
+
+    const margin=
+      orbRect.width*.65+8;
+
     /*
-      node 반대 방향으로 고정 3 orb-size.
+      기본 push는 orb 2.6개 정도.
+      단, 작은 viewport에서는 짧은 축의 16%를 넘지 않음.
+    */
+    const wanted=Math.min(
+      orbRect.width*2.6,
+      Math.min(
+        view.width,
+        view.height
+      )*.16
+    );
+
+    /*
+      이동 방향으로 실제 화면 안에 남아있는 거리 계산.
+      edge를 뚫고 날아가는 걸 여기서 차단.
+    */
+    const roomX=
+      ux>0
+        ?view.right-margin-oc.x
+        :ux<0
+          ?oc.x-(view.left+margin)
+          :Infinity;
+
+    const roomY=
+      uy>0
+        ?view.bottom-margin-oc.y
+        :uy<0
+          ?oc.y-(view.top+margin)
+          :Infinity;
+
+    const maxX=
+      Math.abs(ux)>.001
+        ?Math.max(0,roomX/Math.abs(ux))
+        :Infinity;
+
+    const maxY=
+      Math.abs(uy)>.001
+        ?Math.max(0,roomY/Math.abs(uy))
+        :Infinity;
+
+    const travel=Math.max(
+      0,
+      Math.min(
+        wanted,
+        maxX,
+        maxY
+      )
+    );
+
+    if(travel<2)
+      return false;
+
+    /*
+      swooshToward 자체 step 제한보다
+      우리가 계산한 target까지 정확히 갈 수 있게 step 산출.
     */
     swooshToward(
-      oc.x+
-        dx/distance*
-        orbRect.width*4,
-      oc.y+
-        dy/distance*
-        orbRect.width*4,
+      oc.x+ux*travel,
+      oc.y+uy*travel,
       {
-        step:3,
+        step:travel/orbRect.width,
         duration:300
       }
     );
 
     setMood("bumped",360);
-
-    pulse(
-      "bump",
-      220
-    );
-
+    pulse("bump",220);
     blink();
 
     return true;
