@@ -277,30 +277,45 @@
 }
 
 #ovll-canvas-speech {
+  --ovll-speech-scale: 1;
+
   position: absolute;
   z-index: 45;
   left: 0;
   top: 0;
-  width: min(15.5rem, calc(100vw - 5.5rem));
-  max-width: 58vw;
-  padding: .625rem .75rem;
-  border: .0625rem solid var(--line);
-  border-radius: 1rem;
-  background: var(--panel-strong);
-  backdrop-filter: blur(1.125rem) saturate(1.06);
-  -webkit-backdrop-filter: blur(1.125rem) saturate(1.06);
-  box-shadow: var(--shadow-soft);
+
+  width: min(13rem, calc(100vw - 5.5rem));
+  max-width: 50vw;
+  padding: .48rem .62rem;
+
+  border: .0625rem solid
+    color-mix(
+      in srgb,
+      var(--line) 68%,
+      transparent
+    );
+  border-radius: .82rem;
+
+  background:
+    color-mix(
+      in srgb,
+      var(--panel-strong) 86%,
+      transparent
+    );
+
+  box-shadow:
+    0 .1rem .36rem
+    rgba(0,0,0,.045);
+
   color: var(--text);
-  font-size: .75rem;
-  font-weight: 520;
-  line-height: 1.48;
-  letter-spacing: -.01em;
+  font-size: .7rem;
+  font-weight: 500;
+  line-height: 1.42;
+  letter-spacing: -.012em;
+
   pointer-events: none;
   opacity: 0;
-  transform-origin: center;
-  transition:
-    opacity .18s ease,
-    transform .24s var(--ease);
+  transition: opacity .14s ease;
   will-change: left, top, transform;
 }
 
@@ -308,72 +323,59 @@
   content: "";
   position: absolute;
   top: 50%;
-  width: .625rem;
-  height: .625rem;
+
+  width: .46rem;
+  height: .46rem;
+
   background: inherit;
-  border: .0625rem solid var(--line);
   transform: translateY(-50%) rotate(45deg);
 }
 
 #ovll-canvas-speech.is-left {
   transform:
-    translate(calc(-100% - .875rem), -50%)
-    scale(.96);
+    translate(-100%, -50%)
+    scale(var(--ovll-speech-scale));
+  transform-origin: right center;
 }
 
 #ovll-canvas-speech.is-left::after {
-  right: -.35rem;
-  border-left: 0;
-  border-bottom: 0;
+  right: -.22rem;
 }
 
 #ovll-canvas-speech.is-right {
   transform:
-    translate(.875rem, -50%)
-    scale(.96);
+    translate(0, -50%)
+    scale(var(--ovll-speech-scale));
+  transform-origin: left center;
 }
 
 #ovll-canvas-speech.is-right::after {
-  left: -.35rem;
-  border-right: 0;
-  border-top: 0;
+  left: -.22rem;
 }
 
 #ovll-canvas-speech.is-visible {
-  opacity: .96;
-}
-
-#ovll-canvas-speech.is-visible.is-left {
-  transform:
-    translate(calc(-100% - .875rem), -50%)
-    scale(1);
-}
-
-#ovll-canvas-speech.is-visible.is-right {
-  transform:
-    translate(.875rem, -50%)
-    scale(1);
+  opacity: .93;
 }
 
 #ovll-canvas-speech.is-thinking {
   width: auto;
-  min-width: 2.65rem;
-  padding: .625rem .72rem;
+  min-width: 2.25rem;
+  padding: .48rem .56rem;
 }
 
 .ovll-canvas-speech-body {
   display: flex;
   align-items: center;
-  min-height: 1rem;
+  min-height: .9rem;
 }
 
 .ovll-speech-dot {
-  width: .22rem;
-  height: .22rem;
-  margin: 0 .095rem;
+  width: .18rem;
+  height: .18rem;
+  margin: 0 .075rem;
   border-radius: 50%;
   background: currentColor;
-  opacity: .28;
+  opacity: .26;
   animation:
     ovll-speech-thinking
     1.05s
@@ -393,12 +395,12 @@
   0%,
   100% {
     transform: translateY(0);
-    opacity: .24;
+    opacity: .22;
   }
 
   45% {
-    transform: translateY(-.16rem);
-    opacity: .78;
+    transform: translateY(-.12rem);
+    opacity: .7;
   }
 }
 
