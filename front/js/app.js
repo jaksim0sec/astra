@@ -145,6 +145,21 @@
     });
   }
 
+  function syncPhysicalOrientation() {
+    const orientationType =
+      global.screen?.orientation?.type;
+
+    const isLandscape =
+      typeof orientationType === "string"
+        ? orientationType.startsWith("landscape")
+        : Number(global.screen?.width) > Number(global.screen?.height);
+
+    document.documentElement.classList.toggle(
+      "physical-landscape",
+      !!isLandscape
+    );
+  }
+
   function resetDocumentScroll() {
     const scrollingElement =
       document.scrollingElement;
@@ -1185,6 +1200,7 @@
     state.conversationMemory =
       loadMemory();
 
+    syncPhysicalOrientation();
     syncAppViewport();
     setBusy(false);
     resizeComposer();
@@ -1209,8 +1225,17 @@ listen(composerInput, "keydown", handleComposerKeydown);
       resizeComposer();
     });
 
-    listen(global, "orientationchange", requestAppViewportSync);
+    listen(global, "orientationchange", () => {
+      syncPhysicalOrientation();
+      requestAppViewportSync();
+    });
     listen(global, "pageshow", requestAppViewportSync);
+    if (global.screen?.orientation) {
+      listen(global.screen.orientation, "change", () => {
+        syncPhysicalOrientation();
+        requestAppViewportSync();
+      });
+    }
     listen(global, "scroll", () => {
       resetDocumentScroll();
       requestAppViewportSync();
