@@ -17,7 +17,7 @@ function installStyle(){
 }
 
 .ovll-mascot{
-  --size:2.6rem;
+  --size:2.25rem;
   --ex:0rem;
   --ey:0rem;
   --blink:1;
@@ -471,7 +471,7 @@ function mount(world,canvas){
     clientY,
     {
       step=2.35,
-      duration=240
+      duration=320
     }={}
   ){
     if(drag)
@@ -636,7 +636,7 @@ function mount(world,canvas){
       가까운 action은 눈으로만 반응.
       orb 지름 6.5개 이상 떨어진 경우에만 몸을 움직임.
     */
-    if(distance<=orbRect.width*6.5)
+    if(distance<=orbRect.width*8)
       return false;
 
     /*
@@ -647,7 +647,7 @@ function mount(world,canvas){
 
     if(
       motion||
-      now-lastIntentMove<700
+      now-lastIntentMove<1400
     ){
       return false;
     }
@@ -658,7 +658,7 @@ function mount(world,canvas){
       target.x,
       target.y,
       {
-        duration:240
+        duration:320
       }
     );
   }
@@ -770,7 +770,7 @@ function mount(world,canvas){
         orbRect.width*4,
       {
         step:3,
-        duration:220
+        duration:300
       }
     );
 
@@ -823,7 +823,7 @@ function mount(world,canvas){
       sy,
       {
         step:4,
-        duration:165
+        duration:380
       }
     );
   }
@@ -1108,8 +1108,7 @@ function mount(world,canvas){
     "nodeEdit",
     event=>
       focusNode(
-        event.id,
-        {approach:true}
+        event.id
       )
   );
 
@@ -1117,8 +1116,7 @@ function mount(world,canvas){
     "nodeExpand",
     event=>{
       focusNode(
-        event.id,
-        {approach:true}
+        event.id
       );
 
       const node=
@@ -1168,8 +1166,7 @@ function mount(world,canvas){
     "nodeDragEnd",
     event=>{
       focusNode(
-        event.id,
-        {approach:true}
+        event.id
       );
 
       scheduleVisible();
@@ -1225,7 +1222,6 @@ function mount(world,canvas){
       focusNode(
         connection.to.node,
         {
-          approach:true,
           pop:true
         }
       )
