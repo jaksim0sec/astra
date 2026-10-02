@@ -500,13 +500,15 @@
       "astra-message-body";
 
     body.innerHTML = `
-      <div class="astra-thinking">
-        <span class="astra-thinking-label">Astra</span>
-        <span class="astra-thinking-dots" aria-hidden="true">
-          <i></i>
-          <i></i>
-          <i></i>
-        </span>
+      <div
+        class="astra-thinking-ovll"
+        role="status"
+        aria-label="오블이 생각 중"
+      >
+        <span
+          class="astra-thinking-ovll-eye"
+          aria-hidden="true"
+        ></span>
       </div>
     `;
 
