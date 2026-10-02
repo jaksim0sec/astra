@@ -2023,8 +2023,44 @@
       );
       return node;
     }
+    let layoutAnimationFrame = null;
+
     function layoutWorkflow() {
       const workflow = getWorkflowIR();
+
+      if (
+        global.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+      ) {
+        applyWorkflowIR(
+          workflow,
+          {
+            layout: true,
+            center: true
+          }
+        );
+        return api;
+      }
+
+      if (layoutAnimationFrame !== null) {
+        cancelAnimationFrame(layoutAnimationFrame);
+        layoutAnimationFrame = null;
+      }
+
+      const startPositions = new Map(
+        state.nodes.map(node => [
+          node.id,
+          {
+            x: node.x,
+            y: node.y
+          }
+        ])
+      );
+
+      const startOffset = {
+        x: state.offset.x,
+        y: state.offset.y
+      };
+
       applyWorkflowIR(
         workflow,
         {
@@ -2032,6 +2068,141 @@
           center: true
         }
       );
+
+      const targetPositions = new Map(
+        state.nodes.map(node => [
+          node.id,
+          {
+            x: node.x,
+            y: node.y
+          }
+        ])
+      );
+
+      const targetOffset = {
+        x: state.offset.x,
+        y: state.offset.y
+      };
+
+      for (const node of state.nodes) {
+        const start =
+          startPositions.get(node.id);
+
+        if (!start) continue;
+
+        node.x = start.x;
+        node.y = start.y;
+      }
+
+      state.offset.x = startOffset.x;
+      state.offset.y = startOffset.y;
+
+      render();
+
+      const started = performance.now();
+      const duration = 520;
+
+      const spring = progress => {
+        if (progress >= 1) return 1;
+
+        const raw =
+          1 -
+          (1 + 6 * progress) *
+          Math.exp(-6 * progress);
+
+        const end =
+          1 -
+          7 *
+          Math.exp(-6);
+
+        return Math.min(
+          1,
+          raw / end
+        );
+      };
+
+      function frame(now) {
+        const progress =
+          Math.min(
+            1,
+            (now - started) / duration
+          );
+
+        const eased =
+          spring(progress);
+
+        for (const node of state.nodes) {
+          const start =
+            startPositions.get(node.id);
+
+          const target =
+            targetPositions.get(node.id);
+
+          if (!start || !target) continue;
+
+          node.x =
+            start.x +
+            (target.x - start.x) *
+            eased;
+
+          node.y =
+            start.y +
+            (target.y - start.y) *
+            eased;
+
+          const element =
+            getNodeElement(node.id);
+
+          if (element) {
+            element.style.left =
+              `${node.x}px`;
+
+            element.style.top =
+              `${node.y}px`;
+          }
+        }
+
+        state.offset.x =
+          startOffset.x +
+          (targetOffset.x - startOffset.x) *
+          eased;
+
+        state.offset.y =
+          startOffset.y +
+          (targetOffset.y - startOffset.y) *
+          eased;
+
+        renderTransform();
+        renderConnections();
+
+        if (progress < 1) {
+          layoutAnimationFrame =
+            requestAnimationFrame(frame);
+          return;
+        }
+
+        layoutAnimationFrame = null;
+
+        for (const node of state.nodes) {
+          const target =
+            targetPositions.get(node.id);
+
+          if (!target) continue;
+
+          node.x = target.x;
+          node.y = target.y;
+        }
+
+        state.offset.x = targetOffset.x;
+        state.offset.y = targetOffset.y;
+
+        render();
+        emit('change', getWorkflow());
+      }
+
+      layoutAnimationFrame =
+        requestAnimationFrame(frame);
+
       return api;
     }
     function removeNode(id) {
