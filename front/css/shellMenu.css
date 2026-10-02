@@ -315,8 +315,9 @@
   height: 1rem;
 
   stroke: currentColor;
-  stroke-width: 1.6;
+  stroke-width: 1.7;
   stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 /* slots */
