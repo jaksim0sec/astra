@@ -443,6 +443,15 @@
     );
 
     if (
+      role === "assistant" &&
+      state.chatOvll?.isConnected
+    ) {
+      chatMessages.appendChild(
+        state.chatOvll
+      );
+    }
+
+    if (
       role === "assistant"
     ) {
       updateCanvasAIContext(
@@ -497,11 +506,23 @@
       return state.chatOvll;
     }
 
-    const orb =
+    const row =
       document.createElement("div");
 
-    orb.id =
+    row.id =
       "chat-ovll-presence";
+
+    row.className =
+      "astra-message astra-message-assistant astra-message-ovll-presence";
+
+    const body =
+      document.createElement("div");
+
+    body.className =
+      "astra-message-body astra-message-ovll-body";
+
+    const orb =
+      document.createElement("div");
 
     orb.className =
       "chat-ovll-presence";
@@ -519,17 +540,42 @@
     orb.innerHTML =
       '<span class="chat-ovll-presence-eye" aria-hidden="true"></span>';
 
-    chatPage.appendChild(orb);
+    body.appendChild(orb);
+    row.appendChild(body);
+    chatMessages.appendChild(row);
 
     state.chatOvll =
-      orb;
+      row;
 
-    return orb;
+    return row;
+  }
+
+  function getChatOvllOrb(row) {
+    return (
+      row ||
+      ensureChatOvll()
+    ).querySelector(
+      ".chat-ovll-presence"
+    );
+  }
+
+  function moveChatOvllToEnd() {
+    const row =
+      ensureChatOvll();
+
+    chatMessages.appendChild(
+      row
+    );
+
+    return row;
   }
 
   function addThinkingMessage() {
+    const row =
+      moveChatOvllToEnd();
+
     const orb =
-      ensureChatOvll();
+      getChatOvllOrb(row);
 
     clearTimeout(
       state.chatOvllSettleTimer
@@ -548,17 +594,22 @@
       "오블이 생각 중"
     );
 
-    return orb;
+    scrollChatToBottom();
+
+    return row;
   }
 
   function removeThinkingMessage(message) {
-    const orb =
+    const row =
       message &&
       message.classList?.contains(
-        "chat-ovll-presence"
+        "astra-message-ovll-presence"
       )
         ?message
         :ensureChatOvll();
+
+    const orb =
+      getChatOvllOrb(row);
 
     orb.classList.remove(
       "is-thinking"
@@ -1279,8 +1330,6 @@
     state.conversationMemory =
       loadMemory();
 
-    ensureChatOvll();
-
     setBusy(false);
     resizeComposer();
 
@@ -1333,6 +1382,8 @@ listen(composerInput, "keydown", handleComposerKeydown);
     addSystemMessage(
       "무엇을 만들지 입력하면 오블이 워크플로우를 구성합니다."
     );
+
+    ensureChatOvll();
 
     resizeComposer();
     scrollChatToBottom(true);
