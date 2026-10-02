@@ -46,22 +46,8 @@
   --ui-radius-item: .875rem;
   --ui-glass: var(--panel-soft);
   --ui-glass-strong: var(--panel-strong);
-  --ui-glass-texture:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, #fff 5.5%, transparent) 0%,
-      color-mix(in srgb, #fff 1.75%, transparent) 38%,
-      transparent 68%
-    ),
-    var(--ui-glass);
-  --ui-glass-texture-strong:
-    linear-gradient(
-      180deg,
-      color-mix(in srgb, #fff 6.5%, transparent) 0%,
-      color-mix(in srgb, #fff 2%, transparent) 40%,
-      transparent 70%
-    ),
-    var(--ui-glass-strong);
+  --ui-glass-texture: var(--ui-glass);
+  --ui-glass-texture-strong: var(--ui-glass-strong);
   --ui-control-shadow:
     var(--shadow-soft),
     inset 0 .0625rem 0 color-mix(in srgb, #fff 5%, transparent),
