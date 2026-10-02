@@ -5,6 +5,7 @@ const UI=global.AstraUI;
 const chatPage=document.querySelector("#chat-page");
 const chatMessages=document.querySelector("#chat-messages");
 const canvasPage=document.querySelector("#canvas-page");
+const canvasWorld=document.querySelector("#canvas-world");
 
 if(!chatPage||!chatMessages||!canvasPage){
   throw new Error("OvllPresence DOM 구조가 올바르지 않습니다.");
@@ -124,11 +125,7 @@ function ensureStartView(){
   orb.innerHTML=
     '<span class="ovll-chat-start-eye" aria-hidden="true"></span>';
 
-  const title=document.createElement("div");
-  title.className="ovll-chat-start-title";
-
   view.appendChild(orb);
-  view.appendChild(title);
   chatPage.appendChild(view);
 
   state.startView=view;
@@ -157,26 +154,12 @@ function ensureStartView(){
   return view;
 }
 
-function showStart(options={}){
+function showStart(){
   if(state.started){
     return null;
   }
 
   const view=ensureStartView();
-  const title=view.querySelector(
-    ".ovll-chat-start-title"
-  );
-
-  const headline=
-    typeof options==="string"
-      ?options
-      :options.headline;
-
-  if(title){
-    title.textContent=
-      String(headline||"ovll").trim()||
-      "ovll";
-  }
 
   view.classList.remove(
     "is-leaving",
@@ -254,52 +237,6 @@ function settleChat(){
   },520);
 }
 
-function enterChatFromEdge(){
-  if(!state.started) return;
-
-  const row=moveToEnd();
-  const orb=state.chatOrb;
-
-  requestAnimationFrame(()=>{
-    const pageRect=chatPage.getBoundingClientRect();
-    const rowRect=row.getBoundingClientRect();
-    const orbWidth=
-      orb?.getBoundingClientRect().width||36;
-
-    const localLeft=
-      Math.max(
-        0,
-        rowRect.left-pageRect.left
-      );
-
-    const distance=
-      localLeft+
-      orbWidth+
-      18;
-
-    row.style.setProperty(
-      "--ovll-entry-x",
-      `${-distance}px`
-    );
-
-    row.classList.remove(
-      "is-entering-from-edge"
-    );
-
-    void row.offsetWidth;
-
-    row.classList.add(
-      "is-entering-from-edge"
-    );
-
-    setTimeout(()=>{
-      row.classList.remove(
-        "is-entering-from-edge"
-      );
-    },640);
-  });
-}
-
 function ensureCanvasSpeech(){
   if(state.canvasSpeech?.isConnected){
     return state.canvasSpeech;
@@ -326,6 +263,38 @@ function canvasMascotElement(){
   );
 }
 
+function getCanvasScale(){
+  if(!canvasWorld){
+    return 1;
+  }
+
+  const transform=
+    getComputedStyle(
+      canvasWorld
+    ).transform;
+
+  if(
+    !transform||
+    transform==="none"
+  ){
+    return 1;
+  }
+
+  try{
+    return Math.max(
+      .12,
+      Math.min(
+        3,
+        new DOMMatrixReadOnly(
+          transform
+        ).a||1
+      )
+    );
+  }catch{
+    return 1;
+  }
+}
+
 function positionCanvasSpeech(){
   state.speechFrame=null;
 
@@ -346,30 +315,68 @@ function positionCanvasSpeech(){
   const mascotRect=
     mascot.getBoundingClientRect();
 
-  const x=
+  const centerX=
     mascotRect.left-
     pageRect.left+
     mascotRect.width/2;
 
-  const y=
+  const centerY=
     mascotRect.top-
     pageRect.top+
     mascotRect.height/2;
 
-  bubble.style.left=`${x}px`;
-  bubble.style.top=`${y}px`;
+  const roomLeft=centerX;
+  const roomRight=
+    pageRect.width-centerX;
 
-  const roomLeft=x;
-  const roomRight=pageRect.width-x;
+  const side=
+    roomLeft>roomRight
+      ?"left"
+      :"right";
+
+  const gap=
+    Math.max(
+      8,
+      mascotRect.width*.28
+    );
+
+  const anchorX=
+    side==="left"
+      ?mascotRect.left-
+        pageRect.left-
+        gap
+      :mascotRect.right-
+        pageRect.left+
+        gap;
+
+  const speechScale=
+    Math.max(
+      .72,
+      Math.min(
+        1.22,
+        getCanvasScale()
+      )
+    );
+
+  bubble.style.left=
+    `${anchorX}px`;
+
+  bubble.style.top=
+    `${centerY}px`;
+
+  bubble.style.setProperty(
+    "--ovll-speech-scale",
+    String(speechScale)
+  );
 
   bubble.classList.toggle(
     "is-left",
-    roomLeft>roomRight
+    side==="left"
   );
 
   bubble.classList.toggle(
     "is-right",
-    roomLeft<=roomRight
+    side==="right"
   );
 
   state.speechFrame=
@@ -553,13 +560,10 @@ function handleModeChange({
 
   if(
     state.previousMode==="canvas"&&
-    state.mode==="chat"
+    state.mode==="chat"&&
+    !state.started
   ){
-    if(state.started){
-      enterChatFromEdge();
-    }else{
-      showStart();
-    }
+    showStart();
   }
 
   if(state.mode==="canvas"){
