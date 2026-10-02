@@ -1474,7 +1474,8 @@ function mount(world,canvas,options={}){
     }
 
     const wasClick=
-      !drag.moved;
+      !drag.moved&&
+      event.type==="pointerup";
 
     drag=null;
 
