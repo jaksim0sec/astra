@@ -23,7 +23,7 @@ const PORT = process.env.PORT || 3000;
  * The frontend compares this server value with its locally stored version
  * before loading application assets.
  */
-const APP_VERSION = '2026.10.03.3';
+const APP_VERSION = '2026.10.03.4';
 
 /* =========================================================
    CANONICAL NODE DEFINITION
@@ -36,10 +36,12 @@ const defaultNodeDef = {
     llmdesc: 'workflow의 실행 흐름의 origin임',
     tag: 'START',
     color: '#10B981',
-    icon: `      <svg viewBox="0 0 20 20" fill="none">
-        <circle cx="10" cy="10" r="6.1" stroke="currentColor" stroke-width="1.75"/>
-        <path d="M8.25 7.35L12.55 10L8.25 12.65V7.35Z" fill="currentColor"/>
-      </svg>`,
+    icon: `
+      <svg viewBox="0 0 20 20" fill="none">
+        <circle cx="10" cy="10" r="6.1" stroke="currentColor" stroke-width="1.6"/>
+        <path d="M8.35 7.45 12.45 10l-4.1 2.55v-5.1Z" fill="currentColor"/>
+      </svg>
+    `,
     inputs: [],
     outputs: [
       {
@@ -61,10 +63,8 @@ const defaultNodeDef = {
     color: '#4F8EF7',
     icon: `
       <svg viewBox="0 0 20 20" fill="none">
-        <circle cx="10" cy="10" r="6.8" stroke="currentColor" stroke-width="1.5"/>
-        <path d="M3.2 10h13.6" stroke="currentColor" stroke-width="1.45" stroke-linecap="round"/>
-        <path d="M10 3.2c-1.8 1.9-2.7 4.1-2.7 6.8s.9 4.9 2.7 6.8" stroke="currentColor" stroke-width="1.45" stroke-linecap="round"/>
-        <path d="M10 3.2c1.8 1.9 2.7 4.1 2.7 6.8s-.9 4.9-2.7 6.8" stroke="currentColor" stroke-width="1.45" stroke-linecap="round"/>
+        <circle cx="10" cy="10" r="6.7" stroke="currentColor" stroke-width="1.55"/>
+        <path d="M3.3 10h13.4M10 3.3c-1.75 1.9-2.65 4.1-2.65 6.7s.9 4.8 2.65 6.7M10 3.3c1.75 1.9 2.65 4.1 2.65 6.7s-.9 4.8-2.65 6.7" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `,
     params: [
@@ -111,7 +111,7 @@ const defaultNodeDef = {
     color: '#E9A63A',
     icon: `
       <svg viewBox="0 0 20 20" fill="none">
-        <path d="M4 5.2h12M4 10h12M4 14.8h8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M4 5.25h12M4 10h12M4 14.75h8.25" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `,
     params: [
@@ -156,10 +156,12 @@ const defaultNodeDef = {
     llmdesc: '참자료→참출구, 거짓자료→거짓출구로 자료, 실행 흐름이 연결됨. condition가 참이면 참출구만, 아니면 거짓출구만 열리며 동시에 두개가 열리는 상황은 없음.',
     tag: 'JUDGE',
     color: '#8B6BE8',
-    icon: `      <svg viewBox="0 0 20 20" fill="none">
-        <circle cx="10" cy="10" r="6.15" stroke="currentColor" stroke-width="1.75"/>
-        <path d="M7 10.1L9 12.05L13.1 7.95" stroke="currentColor" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>`,
+    icon: `
+      <svg viewBox="0 0 20 20" fill="none">
+        <circle cx="10" cy="10" r="6.15" stroke="currentColor" stroke-width="1.6"/>
+        <path d="M7 10.1 9 12.05 13.1 7.95" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `,
     params: [
       {
         id: 'condition',
@@ -214,7 +216,7 @@ const defaultNodeDef = {
     color: '#D96F83',
     icon: `
       <svg viewBox="0 0 20 20" fill="none">
-        <path d="M4.6 15.4 5.8 11l6.8-6.8a2 2 0 0 1 2.8 0l.4.4a2 2 0 0 1 0 2.8L9 14.2l-4.4 1.2Z" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="m4.65 15.35 1.15-4.2 6.75-6.75a2 2 0 0 1 2.82 0l.23.23a2 2 0 0 1 0 2.82L8.85 14.2l-4.2 1.15Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `,
     params: [
@@ -274,7 +276,7 @@ const defaultNodeDef = {
     color: '#718096',
     icon: `
       <svg viewBox="0 0 20 20" fill="none">
-        <path d="M14.4 5.4 8 11.8a2.4 2.4 0 1 0 3.4 3.4l4.8-4.8a3.8 3.8 0 0 0-5.4-5.4L4.9 10.9a4.9 4.9 0 1 0 6.9 6.9l3.8-3.8" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M16.4 9.2 9.15 16.45a4.5 4.5 0 0 1-6.36-6.36l7.85-7.85a3.25 3.25 0 0 1 4.6 4.6l-7.85 7.85a2 2 0 0 1-2.83-2.83l7.15-7.15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `,
     inputs: [],
@@ -298,7 +300,7 @@ const defaultNodeDef = {
     color: '#0EA5A4',
     icon: `
       <svg viewBox="0 0 20 20" fill="none">
-        <path d="M10 2.9c.45 4.45 2.65 6.65 7.1 7.1-4.45.45-6.65 2.65-7.1 7.1-.45-4.45-2.65-6.65-7.1-7.1 4.45-.45 6.65-2.65 7.1-7.1Z" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M10 2.9c.45 4.45 2.65 6.65 7.1 7.1-4.45.45-6.65 2.65-7.1 7.1-.45-4.45-2.65-6.65-7.1-7.1 4.45-.45 6.65-2.65 7.1-7.1Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `,
     params: [
