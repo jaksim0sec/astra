@@ -49,7 +49,7 @@
   --ui-control-shadow: var(--shadow-soft);
   --ui-backdrop: blur(1.375rem) saturate(1.08);
 
-  --app-resize-duration: .46s;
+  --app-resize-duration: .345s;
   --app-resize-ease: cubic-bezier(.22,.61,.36,1);
 
   --page-progress: 0;
@@ -107,8 +107,8 @@ html{
   }
 }
 
-@media (orientation:landscape) and (max-width:60rem){
-  html{
+@media (max-width:60rem){
+  html.physical-landscape{
     font-size:15px;
   }
 }
@@ -219,12 +219,12 @@ svg {
 }
 
 html.viewport-shrinking {
-  --app-resize-duration: .64s;
+  --app-resize-duration: .48s;
   --app-resize-ease: cubic-bezier(.4, 0, .2, 1);
 }
 
 html.viewport-growing {
-  --app-resize-duration: .46s;
+  --app-resize-duration: .345s;
   --app-resize-ease: cubic-bezier(.22,.61,.36,1);
 }
 
@@ -317,8 +317,8 @@ input:focus-visible {
   }
 }
 
-@media (orientation: landscape) and (max-height: 32.5rem) {
-  :root {
+@media (max-height: 32.5rem) {
+  html.physical-landscape {
     --topbar-height: 3.375rem;
     --composer-height: 4.25rem;
   }
