@@ -22,6 +22,9 @@
   --composer-height: 5.5rem;
   --bottom-dock-lift: .625rem;
   --bottom-dock-gap: .625rem;
+  --app-frame-top: 0px;
+  --app-frame-height: 100dvh;
+  --app-stage-height: 100dvh;
   --real-vh: 100dvh;
   --viewport-height: 100dvh;
   --real-vh-unit: 1vh;
@@ -167,19 +170,41 @@ svg {
 
 #app {
   position: fixed;
-  top: 0;
+  top: var(--app-frame-top);
   right: 0;
   left: 0;
 
   width: 100%;
-  height: var(--real-vh);
+  height: var(--app-frame-height);
 
   overflow: hidden;
 
   background: var(--bg);
+}
+
+#app-stage {
+  position: relative;
+
+  width: 100%;
+  height: var(--app-stage-height);
+
+  overflow: visible;
+
+  background: var(--bg);
 
   transition:
+    height .24s
+    cubic-bezier(.2,.82,.2,1),
     background-color .2s ease;
+
+  will-change: height;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #app-stage {
+    transition:
+      background-color .2s ease;
+  }
 }
 
 
