@@ -30,10 +30,10 @@
 #topbar-left,
 #topbar-right {
   position: absolute;
-  top: calc(var(--safe-top) + .6875rem);
+  top: calc(var(--safe-top) + var(--top-control-top));
   bottom: auto;
-  width: 2.625rem;
-  height: 2.625rem;
+  width: var(--top-control-height);
+  height: var(--top-control-height);
   display: flex;
   align-items: center;
   pointer-events: none;
@@ -41,8 +41,8 @@
 
 #topbar-left > button,
 #topbar-right > button {
-  width: 2.625rem;
-  height: 2.625rem;
+  width: var(--top-control-height);
+  height: var(--top-control-height);
   display: grid;
   place-items: center;
   border: .0625rem solid var(--line);
@@ -73,11 +73,11 @@
 #mode-switch {
   position: absolute;
   z-index: 2;
-  top: calc(var(--safe-top) + .75rem);
+  top: calc(var(--safe-top) + var(--top-control-top));
   left: 50%;
   transform: translateX(-50%);
   width: 9.375rem;
-  height: 2.5rem;
+  height: var(--top-control-height);
   padding: .25rem;
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -101,7 +101,7 @@
   top: .25rem;
   left: .25rem;
   width: calc(50% - .25rem);
-  height: 1.875rem;
+  height: var(--top-control-inner-height);
   border: .0625rem solid var(--line);
   border-radius: 62.4375rem;
   background: var(--panel-strong);
@@ -123,7 +123,7 @@
   position: relative;
   z-index: 2;
   pointer-events: auto;
-  height: 1.875rem;
+  height: var(--top-control-inner-height);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -620,15 +620,15 @@
 
   #mode-switch {
     width: 9rem;
-    height: 2.5rem;
+    height: var(--top-control-height);
   }
 
   #mode-switch::before {
-    height: 1.875rem;
+    height: var(--top-control-inner-height);
   }
 
   #mode-switch button {
-    height: 1.875rem;
+    height: var(--top-control-inner-height);
   }
 
   #chat-content {

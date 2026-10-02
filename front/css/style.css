@@ -19,6 +19,9 @@
   --shadow-soft:
     0 .1875rem .75rem rgba(0, 0, 0, 0.035);
   --topbar-height: 4.25rem;
+  --top-control-height: 2.75rem;
+  --top-control-top: .6875rem;
+  --top-control-inner-height: calc(var(--top-control-height) - .625rem);
   --composer-height: 5.5rem;
   --bottom-dock-lift: .625rem;
   --bottom-dock-gap: .625rem;

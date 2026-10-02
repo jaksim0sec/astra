@@ -18,7 +18,7 @@
 
   top: calc(
     var(--safe-top) +
-    .75rem
+    var(--top-control-top)
   );
 
   left: max(
@@ -26,8 +26,8 @@
     var(--safe-left)
   );
 
-  width: 2.5rem;
-  height: 2.5rem;
+  width: var(--top-control-height);
+  height: var(--top-control-height);
 
   display: grid;
   place-items: center;
