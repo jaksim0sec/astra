@@ -1341,7 +1341,7 @@
 
   render();
 
-  const GAP_X = 80;
+  const GAP_X = 60;
   const DEFAULT_Y = 0;
 
   const nodeInfo = new Map();
@@ -1473,7 +1473,7 @@
       isNewWorkflow ||
       options.layout === true
     ) {
-      const GAP_X = 80;
+      const GAP_X = 60;
       const GAP_Y = 36;
       const nodeOrder =
         new Map(
