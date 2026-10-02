@@ -153,6 +153,15 @@ async function syncVersion(){
     return true;
   }
 
+  if(localVersion===null){
+    localStorage.setItem(
+      VERSION_KEY,
+      serverVersion
+    );
+
+    return true;
+  }
+
   localStorage.setItem(
     VERSION_KEY,
     serverVersion
