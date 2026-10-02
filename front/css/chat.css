@@ -223,20 +223,34 @@
   }
 }
 
+.astra-message-ovll-presence {
+  justify-content:flex-start;
+  align-items:flex-start;
+  padding:0 .1875rem;
+  margin:-.28rem 0;
+  pointer-events:none;
+}
+
+.astra-message-ovll-body {
+  display:flex;
+  align-items:center;
+  min-height:2.25rem;
+  padding:0 !important;
+}
+
 .chat-ovll-presence {
   --chat-ovll-body:#000;
   --chat-ovll-eye:#fff;
 
-  position:absolute;
-  z-index:34;
-  left:max(.875rem,var(--safe-left));
-  bottom:.875rem;
+  position:relative;
 
   width:2.25rem;
   height:2.25rem;
 
   display:grid;
   place-items:center;
+
+  flex:0 0 2.25rem;
 
   border-radius:50%;
   background:var(--chat-ovll-body);
