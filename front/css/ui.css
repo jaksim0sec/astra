@@ -810,12 +810,12 @@
 
 .canvas-node-builder-layout-icon rect {
   stroke: currentColor;
-  stroke-width: 1.35;
+  stroke-width: 1.45;
 }
 
 .canvas-node-builder-layout-icon path {
   stroke: currentColor;
-  stroke-width: 1.25;
+  stroke-width: 1.35;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -1098,11 +1098,11 @@
 
 #composer-attach svg {
   display: block;
-  width: 1.1875rem;
-  height: 1.1875rem;
+  width: 1.125rem;
+  height: 1.125rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.78;
+  stroke-width: 1.7;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -1227,11 +1227,11 @@
    ========================================================= */
 
 #composer-submit svg {
-  width: 1.0625rem;
-  height: 1.0625rem;
+  width: 1.125rem;
+  height: 1.125rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.9;
+  stroke-width: 1.75;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
