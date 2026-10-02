@@ -816,9 +816,7 @@
 
       syncWorkflow();
     } catch (error) {
-      removeThinkingMessage(
-        thinkingMessage
-      );
+      Presence.settle();
 
       console.error(
         "ovll Planner Error:",
