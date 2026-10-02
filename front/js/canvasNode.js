@@ -15,14 +15,14 @@
   ));
   const icons = {
     toggle: `
-      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <path d="M6 8l4 4 4-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+      <svg viewBox="0 0 20 20" fill="none" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <path d="M6.25 8.25 10 12l3.75-3.75" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `,
     delete: `
-      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <path d="M5.5 6.5h9 M8 6.5V5h4v1.5 M7 8.5v6.5h6V8.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M9 9.5v3.5 M11 9.5v3.5" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
+      <svg viewBox="0 0 20 20" fill="none" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <path d="M5.5 6.5h9M8.1 6.5V5.2h3.8v1.3M7.2 8.4l.45 6.15h4.7l.45-6.15" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9.2 9.6v3.2M10.8 9.6v3.2" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
       </svg>
     `
   };
