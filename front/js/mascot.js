@@ -18,6 +18,12 @@ function installStyle(){
 
 .ovll-mascot{
   --size:2.25rem;
+  --eye-w:.38rem;
+  --eye-h:.39rem;
+  --eye-sx:1;
+  --eye-sy:1;
+  --eye-tilt-l:0deg;
+  --eye-tilt-r:0deg;
   --ex:0rem;
   --ey:0rem;
   --blink:1;
@@ -37,17 +43,30 @@ function installStyle(){
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:.42rem;
+  gap:.34rem;
 
   padding:0;
   border:.0625rem solid rgba(0,0,0,.16);
-  border-radius:50%;
+  border-radius:42% 38% 44% 40% / 40% 44% 38% 42%;
 
-  background:rgba(0,0,0,.31);
+  background:
+    radial-gradient(
+      circle at 24% 72%,
+      color-mix(in srgb,var(--react-color) 34%,transparent),
+      transparent 47%
+    ),
+    radial-gradient(
+      circle at 80% 22%,
+      rgba(66,126,255,.27),
+      transparent 45%
+    ),
+    rgba(0,0,0,.31);
 
   box-shadow:
-    inset 0 .05rem .22rem rgba(255,255,255,.05),
-    0 .3rem 1rem rgba(0,0,0,.12);
+    -.1rem .08rem .72rem
+      color-mix(in srgb,var(--react-color) 20%,transparent),
+    .12rem -.08rem .7rem rgba(66,126,255,.14),
+    0 .3rem 1rem rgba(0,0,0,.15);
 
   backdrop-filter:blur(1rem) saturate(1.08);
   -webkit-backdrop-filter:blur(1rem) saturate(1.08);
@@ -92,31 +111,96 @@ function installStyle(){
 .ovll-mascot-eye{
   position:relative;
   z-index:1;
-
-  width:.28rem;
-  height:.68rem;
+  width:var(--eye-w);
+  height:var(--eye-h);
   border-radius:99rem;
-
   background:rgba(0,0,0,.8);
 
   transform:
     translate(var(--ex),var(--ey))
-    scaleY(var(--blink));
+    rotate(var(--eye-tilt,0deg))
+    scale(
+      var(--eye-sx),
+      calc(var(--blink) * var(--eye-sy))
+    );
 
   transition:
-    transform .15s cubic-bezier(.2,.8,.2,1),
-    width .16s ease,
-    height .16s ease;
+    transform .17s cubic-bezier(.2,.8,.2,1),
+    width .18s cubic-bezier(.2,.8,.2,1),
+    height .18s cubic-bezier(.2,.8,.2,1);
 
   pointer-events:none;
 }
 
+.ovll-mascot-eye:first-child{
+  --eye-tilt:var(--eye-tilt-l);
+}
+
+.ovll-mascot-eye:last-child{
+  --eye-tilt:var(--eye-tilt-r);
+}
+
+.ovll-mascot[data-mood="idle"]{
+  --eye-sx:1;
+  --eye-sy:1;
+  --eye-tilt-l:0deg;
+  --eye-tilt-r:0deg;
+}
+
+.ovll-mascot[data-mood="attention"]{
+  --eye-sx:1.04;
+  --eye-sy:.95;
+  --eye-tilt-l:-1.5deg;
+  --eye-tilt-r:1.5deg;
+}
+
+.ovll-mascot[data-mood="curious"]{
+  --eye-sx:1.07;
+  --eye-sy:1.05;
+  --eye-tilt-l:2deg;
+  --eye-tilt-r:-2deg;
+}
+
+.ovll-mascot[data-mood="happy"]{
+  --eye-sx:1.08;
+  --eye-sy:.84;
+  --eye-tilt-l:-2.5deg;
+  --eye-tilt-r:2.5deg;
+}
+
+.ovll-mascot[data-mood="working"]{
+  --eye-sx:.96;
+  --eye-sy:1.08;
+  --eye-tilt-l:-1deg;
+  --eye-tilt-r:1deg;
+}
+
+.ovll-mascot[data-mood="bumped"]{
+  --eye-sx:1.1;
+  --eye-sy:.77;
+  --eye-tilt-l:3deg;
+  --eye-tilt-r:-3deg;
+}
+
 :root.dark .ovll-mascot{
   border-color:rgba(255,255,255,.16);
-  background:rgba(255,255,255,.31);
+  background:
+    radial-gradient(
+      circle at 24% 72%,
+      color-mix(in srgb,var(--react-color) 30%,transparent),
+      transparent 47%
+    ),
+    radial-gradient(
+      circle at 80% 22%,
+      rgba(66,126,255,.23),
+      transparent 45%
+    ),
+    rgba(255,255,255,.31);
 
   box-shadow:
-    inset 0 .05rem .22rem rgba(255,255,255,.06),
+    -.1rem .08rem .72rem
+      color-mix(in srgb,var(--react-color) 18%,transparent),
+    .12rem -.08rem .7rem rgba(66,126,255,.12),
     0 .3rem 1rem rgba(0,0,0,.22);
 }
 
@@ -247,6 +331,7 @@ function mount(world,canvas){
     '<span class="ovll-mascot-eye"></span>';
 
   world.appendChild(orb);
+  orb.dataset.mood="idle";
 
   let x=0;
   let y=0;
@@ -257,6 +342,8 @@ function mount(world,canvas){
   let attentionUntil=0;
   let connectionClose=false;
   let lastIntentMove=0;
+  let moodTimer=null;
+  let connectionColor=false;
 
   let blinkTimer=null;
   let viewportTimer=null;
@@ -679,6 +766,7 @@ function mount(world,canvas){
     attentionUntil=performance.now()+850;
 
     orb.classList.add("attention");
+    setMood("attention",850);
 
     if(nodeVisible(node)){
       const c=
@@ -774,6 +862,8 @@ function mount(world,canvas){
       }
     );
 
+    setMood("bumped",360);
+
     pulse(
       "bump",
       220
@@ -840,7 +930,48 @@ function mount(world,canvas){
       );
   }
 
+  const MOODS={
+    idle:"#378cff",
+    attention:"#4aa8ff",
+    curious:"#39c6e8",
+    happy:"#6878ff",
+    working:"#7665e8",
+    bumped:"#44b6d9"
+  };
+
+  function setMood(name,duration=0){
+    clearTimeout(moodTimer);
+
+    const mood=MOODS[name]
+      ?name
+      :"idle";
+
+    orb.dataset.mood=mood;
+
+    if(!connectionColor){
+      orb.style.setProperty(
+        "--react-color",
+        MOODS[mood]
+      );
+    }
+
+    if(duration){
+      moodTimer=setTimeout(()=>{
+        orb.dataset.mood="idle";
+
+        if(!connectionColor){
+          orb.style.setProperty(
+            "--react-color",
+            MOODS.idle
+          );
+        }
+      },duration);
+    }
+  }
+
   function setReactColor(id){
+    connectionColor=true;
+
     orb.style.setProperty(
       "--react-color",
       nodeColor(id)
@@ -848,9 +979,12 @@ function mount(world,canvas){
   }
 
   function resetReactColor(){
+    connectionColor=false;
+
     orb.style.setProperty(
       "--react-color",
-      DEFAULT_COLOR
+      MOODS[orb.dataset.mood]||
+      MOODS.idle
     );
   }
 
@@ -874,6 +1008,8 @@ function mount(world,canvas){
     orb.classList.add(
       "curious"
     );
+
+    setMood("curious");
 
     lookAt(
       data.x,
@@ -901,6 +1037,15 @@ function mount(world,canvas){
     orb.classList.remove(
       "curious",
       "close"
+    );
+
+    setMood(
+      boop
+        ?"happy"
+        :"idle",
+      boop
+        ?480
+        :0
     );
 
     if(boop){
@@ -1094,13 +1239,17 @@ function mount(world,canvas){
     "nodeAdd",
     node=>
       requestAnimationFrame(
-        ()=>focusNode(
-          node.id,
-          {
-            approach:true,
-            pop:true
-          }
-        )
+        ()=>{
+          setMood("happy",620);
+
+          focusNode(
+            node.id,
+            {
+              approach:true,
+              pop:true
+            }
+          );
+        }
       )
   );
 
@@ -1261,11 +1410,26 @@ function mount(world,canvas){
 
   scheduleBlink();
 
+  let wasBusy=false;
+
   function watchBusy(){
-    orb.classList.toggle(
-      "working",
-      !!global.AstraApp?.isBusy?.()
-    );
+    const busy=
+      !!global.AstraApp?.isBusy?.();
+
+    if(busy!==wasBusy){
+      wasBusy=busy;
+
+      orb.classList.toggle(
+        "working",
+        busy
+      );
+
+      setMood(
+        busy
+          ?"working"
+          :"idle"
+      );
+    }
 
     busyFrame=
       requestAnimationFrame(
@@ -1312,6 +1476,10 @@ function mount(world,canvas){
 
       clearTimeout(
         viewportTimer
+      );
+
+      clearTimeout(
+        moodTimer
       );
 
       cleanup
