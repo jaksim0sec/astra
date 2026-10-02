@@ -10,6 +10,7 @@
      ======================================================= */
   const UI = global.AstraUI;
   const API = global.AstraAPI;
+  const Presence = global.OvllPresence;
   const mountCanvasNode = global.mountCanvasNode;
 
   /* =======================================================
@@ -29,7 +30,7 @@
     throw new Error("ovll Application DOM 구조가 올바르지 않습니다.");
   }
 
-  if (!UI || !API || typeof mountCanvasNode !== "function") {
+  if (!UI || !API || !Presence || typeof mountCanvasNode !== "function") {
     throw new Error("ovll Application dependency가 준비되지 않았습니다.");
   }
 
@@ -53,8 +54,6 @@
     nodeDefinitions: null,
     conversationMemory: null,
     nodeBuilder: { root: null, open: false },
-    chatOvll: null,
-    chatOvllSettleTimer: null,
     messageCount: 0
   };
 
@@ -147,83 +146,6 @@
   /* =======================================================
      Chat
      ======================================================= */
-
-  function updateCanvasAIContext(text, thinking = false) {
-    const page =
-      document.querySelector(
-        "#canvas-page"
-      );
-
-    if (!page) return;
-
-    let preview =
-      page.querySelector(
-        "#canvas-ai-preview"
-      );
-
-    if (!preview) {
-      preview =
-        document.createElement("div");
-
-      preview.id =
-        "canvas-ai-preview";
-
-      preview.innerHTML = `
-        <div class="canvas-ai-preview-label">ovll</div>
-        <div class="canvas-ai-preview-text"></div>
-        <button
-          class="canvas-ai-preview-close"
-          type="button"
-          aria-label="미리보기 닫기"
-          title="닫기"
-        >×</button>
-      `;
-
-      page.appendChild(preview);
-
-      preview
-        .querySelector(".canvas-ai-preview-close")
-        ?.addEventListener("click", event => {
-          event.preventDefault();
-          event.stopPropagation();
-          preview.classList.add("is-hidden");
-          preview.classList.remove(
-      "is-hidden",
-      "is-visible"
-    );
-        });
-    }
-
-    const body =
-      preview.querySelector(
-        ".canvas-ai-preview-text"
-      );
-
-    if (!body) return;
-
-    if (thinking) {
-      body.innerHTML = `
-        <div class="canvas-ai-thinking">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-      `;
-    } else {
-      body.textContent =
-        String(text ?? "").trim();
-    }
-
-    preview.classList.remove(
-      "is-visible"
-    );
-
-    requestAnimationFrame(() => {
-      preview.classList.add(
-        "is-visible"
-      );
-    });
-  }
 
   function createMessage(
     role,
@@ -443,20 +365,10 @@
     );
 
     if (
-      role === "assistant" &&
-      state.chatOvll?.isConnected
-    ) {
-      chatMessages.appendChild(
-        state.chatOvll
-      );
-    }
-
-    if (
       role === "assistant"
     ) {
-      updateCanvasAIContext(
-        value
-      );
+      Presence.moveToEnd();
+      Presence.speak(value);
     }
 
     scrollChatToBottom();
@@ -470,9 +382,7 @@
 
     if (!value) return null;
 
-    chatMessages.classList.remove(
-      "is-welcome"
-    );
+    Presence.beginConversation();
 
     const message =
       createMessage(
@@ -500,144 +410,6 @@
       );
 
     return message;
-  }
-
-  function ensureChatOvll() {
-    if (
-      state.chatOvll &&
-      state.chatOvll.isConnected
-    ) {
-      return state.chatOvll;
-    }
-
-    const row =
-      document.createElement("div");
-
-    row.id =
-      "chat-ovll-presence";
-
-    row.className =
-      "astra-message astra-message-assistant astra-message-ovll-presence";
-
-    const body =
-      document.createElement("div");
-
-    body.className =
-      "astra-message-body astra-message-ovll-body";
-
-    const orb =
-      document.createElement("div");
-
-    orb.className =
-      "chat-ovll-presence";
-
-    orb.setAttribute(
-      "role",
-      "status"
-    );
-
-    orb.setAttribute(
-      "aria-label",
-      "오블"
-    );
-
-    orb.innerHTML =
-      '<span class="chat-ovll-presence-eye" aria-hidden="true"></span>';
-
-    body.appendChild(orb);
-    row.appendChild(body);
-    chatMessages.appendChild(row);
-
-    state.chatOvll =
-      row;
-
-    return row;
-  }
-
-  function getChatOvllOrb(row) {
-    return (
-      row ||
-      ensureChatOvll()
-    ).querySelector(
-      ".chat-ovll-presence"
-    );
-  }
-
-  function moveChatOvllToEnd() {
-    const row =
-      ensureChatOvll();
-
-    chatMessages.appendChild(
-      row
-    );
-
-    return row;
-  }
-
-  function addThinkingMessage() {
-    const row =
-      moveChatOvllToEnd();
-
-    const orb =
-      getChatOvllOrb(row);
-
-    clearTimeout(
-      state.chatOvllSettleTimer
-    );
-
-    orb.classList.remove(
-      "is-settling"
-    );
-
-    orb.classList.add(
-      "is-thinking"
-    );
-
-    orb.setAttribute(
-      "aria-label",
-      "오블이 생각 중"
-    );
-
-    scrollChatToBottom();
-
-    return row;
-  }
-
-  function removeThinkingMessage(message) {
-    const row =
-      message &&
-      message.classList?.contains(
-        "astra-message-ovll-presence"
-      )
-        ?message
-        :ensureChatOvll();
-
-    const orb =
-      getChatOvllOrb(row);
-
-    orb.classList.remove(
-      "is-thinking"
-    );
-
-    orb.classList.add(
-      "is-settling"
-    );
-
-    orb.setAttribute(
-      "aria-label",
-      "오블"
-    );
-
-    clearTimeout(
-      state.chatOvllSettleTimer
-    );
-
-    state.chatOvllSettleTimer=
-      setTimeout(()=>{
-        orb.classList.remove(
-          "is-settling"
-        );
-      },520);
   }
 
   function revealAssistantMessage(message, text) {
@@ -982,10 +754,7 @@
 
     setBusy(true);
 
-    updateCanvasAIContext("", true);
-
-    const thinkingMessage =
-      addThinkingMessage();
+    Presence.thinking();
 
     const thinkingStartedAt =
       performance.now();
@@ -1013,9 +782,7 @@
         );
       }
 
-      removeThinkingMessage(
-        thinkingMessage
-      );
+      Presence.settle();
 
       if (
         result.message ||
@@ -1383,30 +1150,8 @@ listen(composerInput, "keydown", handleComposerKeydown);
 
     state.ready = true;
 
-    const welcomeOvll =
-      ensureChatOvll();
-
-    const welcomeMessage =
-      addAssistantMessage(
-        "안녕. 뭘 만들어볼까?"
-      );
-
-    welcomeMessage?.classList.add(
-      "astra-message-welcome"
-    );
-
-    if (
-      welcomeOvll &&
-      welcomeMessage
-    ) {
-      chatMessages.insertBefore(
-        welcomeOvll,
-        welcomeMessage
-      );
-    }
-
-    chatMessages.classList.add(
-      "is-welcome"
+    Presence.welcome(
+      "안녕. 뭘 만들어볼까?"
     );
 
     resizeComposer();
@@ -1478,17 +1223,11 @@ listen(composerInput, "keydown", handleComposerKeydown);
       state.canvas?.destroy?.();
       state.nodeBuilder.root?.remove();
 
-      clearTimeout(
-        state.chatOvllSettleTimer
-      );
-
-      state.chatOvll?.remove();
+      Presence.destroy?.();
 
       state.canvas = null;
       state.nodeBuilder.root = null;
       state.nodeBuilder.open = false;
-      state.chatOvll = null;
-      state.chatOvllSettleTimer = null;
       state.workflow = null;
       state.nodeDefinitions = null;
       state.conversationMemory = null;
