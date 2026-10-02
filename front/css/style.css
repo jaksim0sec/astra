@@ -180,6 +180,12 @@ svg {
   overflow: hidden;
 
   background: var(--bg);
+
+  transition:
+    height .46s cubic-bezier(.22,.61,.36,1),
+    background-color .2s ease;
+
+  will-change: height;
 }
 
 #app-stage {
@@ -193,14 +199,15 @@ svg {
   background: var(--bg);
 
   transition:
-    height .24s
-    cubic-bezier(.2,.82,.2,1),
+    height .46s
+    cubic-bezier(.22,.61,.36,1),
     background-color .2s ease;
 
   will-change: height;
 }
 
 @media (prefers-reduced-motion: reduce) {
+  #app,
   #app-stage {
     transition:
       background-color .2s ease;
