@@ -9,80 +9,64 @@ function installStyle(){
 
   const style=document.createElement("style");
   style.id=STYLE_ID;
-  style.textContent=`
-@property --react-color{
-  syntax:"<color>";
-  inherits:true;
-  initial-value:#4b94ff;
-}
-
+  style.textContent=\`
 .ovll-mascot{
-  --size:2.25rem;
-  --eye-w:.38rem;
-  --eye-h:.39rem;
-  --eye-sx:1;
-  --eye-sy:1;
-  --eye-tilt-l:0deg;
-  --eye-tilt-r:0deg;
+  --agent-color:#4b94ff;
+  --react-color:var(--agent-color);
+  --agent-size:2.25rem;
+
+  --body-color:#000;
+  --eye-color:#fff;
+
+  --eye-w:.42rem;
+  --eye-h:.46rem;
+
   --ex:0rem;
   --ey:0rem;
+  --gaze-sx:1;
+  --gaze-sy:1;
+  --eye-tilt:0deg;
+
   --blink:1;
   --lean:0deg;
   --sx:1;
   --sy:1;
-  --react-color:#4b94ff;
 
   position:absolute;
   z-index:1000;
   left:0;
   top:0;
-  width:var(--size);
+
+  width:var(--agent-size);
   aspect-ratio:1;
-  overflow:hidden;
 
   display:flex;
   align-items:center;
   justify-content:center;
-  gap:.34rem;
 
   padding:0;
-  border:.0625rem solid rgba(0,0,0,.16);
-  border-radius:42% 38% 44% 40% / 40% 44% 38% 42%;
+  overflow:hidden;
 
-  background:
-    radial-gradient(
-      circle at 24% 72%,
-      color-mix(in srgb,var(--react-color) 34%,transparent),
-      transparent 47%
-    ),
-    radial-gradient(
-      circle at 80% 22%,
-      rgba(66,126,255,.27),
-      transparent 45%
-    ),
-    rgba(0,0,0,.31);
+  border:0;
+  border-radius:50%;
+
+  background:var(--body-color);
 
   box-shadow:
-    -.1rem .08rem .72rem
-      color-mix(in srgb,var(--react-color) 20%,transparent),
-    .12rem -.08rem .7rem rgba(66,126,255,.14),
-    0 .3rem 1rem rgba(0,0,0,.15);
-
-  backdrop-filter:blur(1rem) saturate(1.08);
-  -webkit-backdrop-filter:blur(1rem) saturate(1.08);
+    0 .22rem .65rem rgba(0,0,0,.18);
 
   transform:translate(-50%,-50%);
   rotate:var(--lean);
   scale:var(--sx) var(--sy);
 
   transition:
-    rotate .22s cubic-bezier(.2,.82,.2,1),
-    scale .22s cubic-bezier(.2,.82,.2,1),
-    filter .18s ease,
-    border-color .18s ease,
-    --react-color .2s ease;
+    rotate .3s cubic-bezier(.16,.84,.22,1),
+    scale .28s cubic-bezier(.16,.84,.22,1),
+    background .2s ease,
+    box-shadow .2s ease,
+    filter .18s ease;
 
-  animation:ovll-idle 4s ease-in-out infinite;
+  animation:ovll-idle 6.5s ease-in-out infinite;
 
   cursor:grab;
   touch-action:none;
@@ -90,182 +74,131 @@ function installStyle(){
   -webkit-user-select:none;
 }
 
-.ovll-mascot::before{
-  content:"";
-  position:absolute;
-  inset:0;
-  border-radius:inherit;
-
-  background:
-    radial-gradient(
-      circle at 30% 24%,
-      var(--react-color),
-      transparent 58%
-    );
-
-  opacity:.12;
-  transition:opacity .18s ease;
-  pointer-events:none;
-}
-
 .ovll-mascot-eye{
   position:relative;
   z-index:1;
+
   width:var(--eye-w);
   height:var(--eye-h);
-  border-radius:99rem;
-  background:rgba(0,0,0,.8);
+
+  border-radius:999rem;
+  background:var(--eye-color);
 
   transform:
     translate(var(--ex),var(--ey))
-    rotate(var(--eye-tilt,0deg))
+    rotate(var(--eye-tilt))
     scale(
-      var(--eye-sx),
-      calc(var(--blink) * var(--eye-sy))
+      var(--gaze-sx),
+      calc(var(--blink) * var(--gaze-sy))
     );
 
   transition:
-    transform .17s cubic-bezier(.2,.8,.2,1),
-    width .18s cubic-bezier(.2,.8,.2,1),
-    height .18s cubic-bezier(.2,.8,.2,1);
+    transform .24s cubic-bezier(.16,.84,.22,1),
+    width .24s cubic-bezier(.16,.84,.22,1),
+    height .24s cubic-bezier(.16,.84,.22,1),
+    border-radius .24s cubic-bezier(.16,.84,.22,1),
+    background .2s ease;
 
   pointer-events:none;
 }
 
-.ovll-mascot-eye:first-child{
-  --eye-tilt:var(--eye-tilt-l);
-}
-
-.ovll-mascot-eye:last-child{
-  --eye-tilt:var(--eye-tilt-r);
-}
-
 .ovll-mascot[data-mood="idle"]{
-  --eye-sx:1;
-  --eye-sy:1;
-  --eye-tilt-l:0deg;
-  --eye-tilt-r:0deg;
+  --eye-w:.42rem;
+  --eye-h:.46rem;
 }
 
+.ovll-mascot[data-mood="focus"],
 .ovll-mascot[data-mood="attention"]{
-  --eye-sx:1.04;
-  --eye-sy:.95;
-  --eye-tilt-l:-1.5deg;
-  --eye-tilt-r:1.5deg;
+  --eye-w:.43rem;
+  --eye-h:.48rem;
 }
 
 .ovll-mascot[data-mood="curious"]{
-  --eye-sx:1.07;
-  --eye-sy:1.05;
-  --eye-tilt-l:2deg;
-  --eye-tilt-r:-2deg;
+  --eye-w:.47rem;
+  --eye-h:.47rem;
 }
 
-.ovll-mascot[data-mood="happy"]{
-  --eye-sx:1.08;
-  --eye-sy:.84;
-  --eye-tilt-l:-2.5deg;
-  --eye-tilt-r:2.5deg;
+.ovll-mascot[data-mood="surprised"]{
+  --eye-w:.54rem;
+  --eye-h:.54rem;
+}
+
+.ovll-mascot[data-mood="annoyed"]{
+  --eye-w:.55rem;
+  --eye-h:.12rem;
+}
+
+.ovll-mascot[data-mood="success"]{
+  --eye-w:.48rem;
+  --eye-h:.34rem;
 }
 
 .ovll-mascot[data-mood="working"]{
-  --eye-sx:.96;
-  --eye-sy:1.08;
-  --eye-tilt-l:-1deg;
-  --eye-tilt-r:1deg;
+  --eye-w:.36rem;
+  --eye-h:.51rem;
 }
 
 .ovll-mascot[data-mood="bumped"]{
-  --eye-sx:1.1;
-  --eye-sy:.77;
-  --eye-tilt-l:3deg;
-  --eye-tilt-r:-3deg;
+  --eye-w:.5rem;
+  --eye-h:.18rem;
 }
 
 :root.dark .ovll-mascot{
-  border-color:rgba(255,255,255,.16);
-  background:
-    radial-gradient(
-      circle at 24% 72%,
-      color-mix(in srgb,var(--react-color) 30%,transparent),
-      transparent 47%
-    ),
-    radial-gradient(
-      circle at 80% 22%,
-      rgba(66,126,255,.23),
-      transparent 45%
-    ),
-    rgba(255,255,255,.31);
+  --body-color:#fff;
+  --eye-color:#000;
 
   box-shadow:
-    -.1rem .08rem .72rem
-      color-mix(in srgb,var(--react-color) 18%,transparent),
-    .12rem -.08rem .7rem rgba(66,126,255,.12),
-    0 .3rem 1rem rgba(0,0,0,.22);
+    0 .22rem .72rem rgba(0,0,0,.3);
 }
 
-:root.dark .ovll-mascot-eye{
-  background:rgba(255,255,255,.8);
+.ovll-mascot.connecting{
+  background:
+    radial-gradient(
+      circle at 27% 74%,
+      color-mix(
+        in srgb,
+        var(--react-color) 78%,
+        transparent
+      ),
+      transparent 60%
+    ),
+    radial-gradient(
+      circle at 78% 20%,
+      color-mix(
+        in srgb,
+        var(--react-color) 34%,
+        transparent
+      ),
+      transparent 52%
+    ),
+    var(--body-color);
+
+  box-shadow:
+    0 .22rem .7rem rgba(0,0,0,.2),
+    0 0 .75rem
+      color-mix(
+        in srgb,
+        var(--react-color) 25%,
+        transparent
+      );
 }
 
-.ovll-mascot.moving{
-  animation:none;
-}
-
-.ovll-mascot.pushed{
-  animation:none;
-}
-
-.ovll-mascot.returning{
+.ovll-mascot.moving,
+.ovll-mascot.pushed,
+.ovll-mascot.returning,
+.ovll-mascot.curious{
   animation:none;
 }
 
 .ovll-mascot.grabbed{
   animation:none;
-  --sx:1.08;
-  --sy:.92;
+  --sx:1.07;
+  --sy:.93;
   cursor:grabbing;
 }
 
-.ovll-mascot.attention{
-  filter:brightness(1.045);
-}
-
-.ovll-mascot.curious{
-  animation:none;
-
-  border-color:
-    color-mix(
-      in srgb,
-      var(--react-color) 72%,
-      transparent
-    );
-
-  filter:brightness(1.06);
-}
-
-.ovll-mascot.curious::before{
-  opacity:.3;
-}
-
-.ovll-mascot.curious.close{
-  --sx:1.045;
-  --sy:.97;
-
-  border-color:
-    color-mix(
-      in srgb,
-      var(--react-color) 90%,
-      transparent
-    );
-}
-
-.ovll-mascot.curious.close::before{
-  opacity:.42;
-}
-
 .ovll-mascot.working{
-  animation:ovll-working 1.1s ease-in-out infinite;
+  animation:ovll-working 1.25s ease-in-out infinite;
 }
 
 .ovll-mascot.pop{
@@ -282,28 +215,28 @@ function installStyle(){
 
 @keyframes ovll-idle{
   0%,100%{translate:0 0}
-  50%{translate:0 -.09rem}
+  50%{translate:0 -.03rem}
 }
 
 @keyframes ovll-working{
   0%,100%{filter:brightness(1)}
-  50%{filter:brightness(1.055)}
+  50%{filter:brightness(.86)}
 }
 
 @keyframes ovll-pop{
   0%,100%{scale:var(--sx) var(--sy)}
-  48%{scale:1.12 .88}
+  48%{scale:1.1 .9}
 }
 
 @keyframes ovll-boop{
   0%,100%{scale:var(--sx) var(--sy)}
-  30%{scale:1.12 .88}
-  58%{scale:.96 1.08}
+  30%{scale:1.1 .9}
+  58%{scale:.97 1.05}
 }
 
 @keyframes ovll-bump{
   0%,100%{scale:var(--sx) var(--sy)}
-  45%{scale:1.06 .94}
+  45%{scale:1.05 .95}
 }
 
 @media(prefers-reduced-motion:reduce){
@@ -311,12 +244,12 @@ function installStyle(){
     animation:none!important;
   }
 }
-`;
+\`;
 
   document.head.appendChild(style);
 }
 
-function mount(world,canvas){
+function mount(world,canvas,options={}){
   installStyle();
 
   const viewport=canvas.root;
@@ -327,11 +260,31 @@ function mount(world,canvas){
   orb.tabIndex=-1;
   orb.setAttribute("aria-label","OVLL");
   orb.innerHTML=
-    '<span class="ovll-mascot-eye"></span>'+
     '<span class="ovll-mascot-eye"></span>';
 
   world.appendChild(orb);
   orb.dataset.mood="idle";
+
+  const agentColor=
+    options.color||
+    DEFAULT_COLOR;
+
+  orb.style.setProperty(
+    "--agent-color",
+    agentColor
+  );
+
+  orb.style.setProperty(
+    "--react-color",
+    agentColor
+  );
+
+  if(options.size){
+    orb.style.setProperty(
+      "--agent-size",
+      String(options.size)
+    );
+  }
 
   let x=0;
   let y=0;
@@ -342,6 +295,9 @@ function mount(world,canvas){
   let attentionUntil=0;
   let connectionClose=false;
   let lastIntentMove=0;
+  let lastWorkflowId=null;
+  let gazePriority=0;
+  let gazeUntil=0;
   let moodTimer=null;
   let connectionColor=false;
 
@@ -431,6 +387,24 @@ function mount(world,canvas){
   }
 
   function eyes(dx=0,dy=0){
+    const max=.17;
+
+    const nx=Math.max(
+      -1,
+      Math.min(
+        1,
+        dx/max
+      )
+    );
+
+    const ny=Math.max(
+      -1,
+      Math.min(
+        1,
+        dy/max
+      )
+    );
+
     orb.style.setProperty(
       "--ex",
       `${dx}rem`
@@ -440,9 +414,28 @@ function mount(world,canvas){
       "--ey",
       `${dy}rem`
     );
+
+    orb.style.setProperty(
+      "--gaze-sx",
+      String(
+        1-Math.abs(nx)*.34
+      )
+    );
+
+    orb.style.setProperty(
+      "--gaze-sy",
+      String(
+        1-Math.abs(ny)*.12
+      )
+    );
+
+    orb.style.setProperty(
+      "--eye-tilt",
+      `${nx*ny*-9}deg`
+    );
   }
 
-  function lookAt(clientX,clientY,amount=.065){
+  function lookAt(clientX,clientY,amount=.15){
     const c=
       center(
         orb.getBoundingClientRect()
@@ -455,7 +448,7 @@ function mount(world,canvas){
 
     eyes(
       dx/d*amount,
-      dy/d*amount
+      dy/d*amount*.82
     );
   }
 
@@ -501,25 +494,50 @@ function mount(world,canvas){
   }
 
   function restoreGaze(){
-    const node=
+    const now=performance.now();
+
+    const active=
       focusId&&
-      performance.now()<attentionUntil
+      now<attentionUntil
         ?nodeEl(focusId)
         :null;
 
     if(
-      node&&
-      nodeVisible(node)
+      active&&
+      nodeVisible(active)
     ){
       const c=
         center(
-          node.getBoundingClientRect()
+          active.getBoundingClientRect()
         );
 
       lookAt(
         c.x,
         c.y,
-        .08
+        .17
+      );
+
+      return;
+    }
+
+    const recent=
+      lastWorkflowId
+        ?nodeEl(lastWorkflowId)
+        :null;
+
+    if(
+      recent&&
+      nodeVisible(recent)
+    ){
+      const c=
+        center(
+          recent.getBoundingClientRect()
+        );
+
+      lookAt(
+        c.x,
+        c.y,
+        .105
       );
 
       return;
@@ -550,26 +568,35 @@ function mount(world,canvas){
   }
 
   /*
-    한 번의 반응 = 한 번의 swoosh.
-    거리는 항상 orb 크기에 비례한 고정값.
+    이동은 직선이 아니라 quadratic bezier.
+    경로 근처 node가 있으면 반대쪽으로 control point를 밀어
+    자연스럽게 피해 간다.
   */
   function swooshToward(
     clientX,
     clientY,
     {
       step=2.35,
-      duration=320
+      duration=380
     }={}
   ){
     if(drag)
       return false;
 
-    const rect=orb.getBoundingClientRect();
-    const current=center(rect);
+    const rect=
+      orb.getBoundingClientRect();
 
-    const dx=clientX-current.x;
-    const dy=clientY-current.y;
-    const distance=Math.hypot(dx,dy);
+    const current=
+      center(rect);
+
+    const dx=
+      clientX-current.x;
+
+    const dy=
+      clientY-current.y;
+
+    const distance=
+      Math.hypot(dx,dy);
 
     if(distance<rect.width*.8)
       return false;
@@ -578,7 +605,10 @@ function mount(world,canvas){
       cancelAnimationFrame(motionFrame);
 
     const moveDistance=
-      rect.width*step;
+      Math.min(
+        distance,
+        rect.width*step
+      );
 
     const ux=dx/distance;
     const uy=dy/distance;
@@ -588,17 +618,139 @@ function mount(world,canvas){
       y:current.y+uy*moveDistance
     };
 
+    const lineX=
+      endClient.x-current.x;
+
+    const lineY=
+      endClient.y-current.y;
+
+    const lineLength=
+      Math.hypot(lineX,lineY)||1;
+
+    const normal={
+      x:-lineY/lineLength,
+      y:lineX/lineLength
+    };
+
+    let bend=
+      Math.min(
+        rect.width*.72,
+        lineLength*.14
+      );
+
+    let bendSign=
+      lineX>=0
+        ?-1
+        :1;
+
+    let closest=
+      Infinity;
+
+    viewport
+      .querySelectorAll(".vc-node")
+      .forEach(node=>{
+        if(!nodeVisible(node))
+          return;
+
+        const r=
+          node.getBoundingClientRect();
+
+        const nc=
+          center(r);
+
+        const projection=
+          Math.max(
+            0,
+            Math.min(
+              1,
+              (
+                (nc.x-current.x)*lineX+
+                (nc.y-current.y)*lineY
+              )/
+              (lineLength*lineLength)
+            )
+          );
+
+        if(
+          projection<.08||
+          projection>.92
+        ){
+          return;
+        }
+
+        const px=
+          current.x+
+          lineX*projection;
+
+        const py=
+          current.y+
+          lineY*projection;
+
+        const signed=
+          (nc.x-px)*normal.x+
+          (nc.y-py)*normal.y;
+
+        const clearance=
+          Math.abs(signed)-
+          Math.max(
+            r.width,
+            r.height
+          )*.56-
+          rect.width*.78;
+
+        if(clearance<closest){
+          closest=clearance;
+
+          if(clearance<0){
+            bendSign=
+              signed>=0
+                ?-1
+                :1;
+
+            bend=Math.max(
+              bend,
+              Math.min(
+                lineLength*.42,
+                Math.abs(signed)+
+                Math.max(
+                  r.width,
+                  r.height
+                )*.62+
+                rect.width*1.15
+              )
+            );
+          }
+        }
+      });
+
+    const controlClient={
+      x:
+        (current.x+endClient.x)/2+
+        normal.x*bend*bendSign,
+      y:
+        (current.y+endClient.y)/2+
+        normal.y*bend*bendSign
+    };
+
+    const startWorld={
+      x,
+      y
+    };
+
+    const controlWorld=
+      worldPoint(
+        controlClient.x,
+        controlClient.y
+      );
+
     const endWorld=
       worldPoint(
         endClient.x,
         endClient.y
       );
 
-    const startX=x;
-    const startY=y;
-    const deltaX=endWorld.x-startX;
-    const deltaY=endWorld.y-startY;
-    const started=performance.now();
+    const started=
+      performance.now();
 
     motion={
       x:endClient.x,
@@ -618,12 +770,12 @@ function mount(world,canvas){
       )}deg`
     );
 
-    orb.style.setProperty("--sx","1.025");
-    orb.style.setProperty("--sy",".982");
+    orb.style.setProperty("--sx","1.018");
+    orb.style.setProperty("--sy",".986");
 
     eyes(
-      ux*.075,
-      uy*.075
+      ux*.15,
+      uy*.12
     );
 
     function frame(now){
@@ -632,15 +784,23 @@ function mount(world,canvas){
         (now-started)/duration
       );
 
-      /*
-        빠르게 출발하고 짧게 정착.
-        linear 느낌 없이 딱 "슥".
-      */
       const eased=
-        1-Math.pow(1-t,3);
+        t<.5
+          ?4*t*t*t
+          :1-Math.pow(-2*t+2,3)/2;
 
-      x=startX+deltaX*eased;
-      y=startY+deltaY*eased;
+      const omt=
+        1-eased;
+
+      x=
+        omt*omt*startWorld.x+
+        2*omt*eased*controlWorld.x+
+        eased*eased*endWorld.x;
+
+      y=
+        omt*omt*startWorld.y+
+        2*omt*eased*controlWorld.y+
+        eased*eased*endWorld.y;
 
       render();
 
@@ -754,7 +914,10 @@ function mount(world,canvas){
     id,
     {
       approach=false,
-      pop=false
+      pop=false,
+      mood="focus",
+      duration=1050,
+      priority=3
     }={}
   ){
     const node=nodeEl(id);
@@ -762,11 +925,29 @@ function mount(world,canvas){
     if(!node)
       return;
 
+    const now=
+      performance.now();
+
+    if(
+      now<gazeUntil&&
+      priority<gazePriority
+    ){
+      return;
+    }
+
     focusId=String(id);
-    attentionUntil=performance.now()+850;
+    lastWorkflowId=String(id);
+
+    gazePriority=priority;
+    gazeUntil=now+duration;
+    attentionUntil=gazeUntil;
 
     orb.classList.add("attention");
-    setMood("attention",850);
+
+    setMood(
+      mood,
+      duration
+    );
 
     if(nodeVisible(node)){
       const c=
@@ -777,7 +958,9 @@ function mount(world,canvas){
       lookAt(
         c.x,
         c.y,
-        .08
+        mood==="surprised"
+          ?.18
+          :.16
       );
 
       if(approach)
@@ -794,6 +977,7 @@ function mount(world,canvas){
         !motion
       ){
         focusId=null;
+        gazePriority=0;
 
         orb.classList.remove(
           "attention"
@@ -801,7 +985,7 @@ function mount(world,canvas){
 
         restoreGaze();
       }
-    },870);
+    },duration+30);
   }
 
   function overlaps(node){
@@ -982,41 +1166,32 @@ function mount(world,canvas){
       );
   }
 
-  const MOODS={
-    idle:"#378cff",
-    attention:"#4aa8ff",
-    curious:"#39c6e8",
-    happy:"#6878ff",
-    working:"#7665e8",
-    bumped:"#44b6d9"
-  };
+  const MOODS=
+    new Set([
+      "idle",
+      "focus",
+      "attention",
+      "curious",
+      "surprised",
+      "annoyed",
+      "success",
+      "working",
+      "bumped"
+    ]);
 
   function setMood(name,duration=0){
     clearTimeout(moodTimer);
 
-    const mood=MOODS[name]
-      ?name
-      :"idle";
+    const mood=
+      MOODS.has(name)
+        ?name
+        :"idle";
 
     orb.dataset.mood=mood;
-
-    if(!connectionColor){
-      orb.style.setProperty(
-        "--react-color",
-        MOODS[mood]
-      );
-    }
 
     if(duration){
       moodTimer=setTimeout(()=>{
         orb.dataset.mood="idle";
-
-        if(!connectionColor){
-          orb.style.setProperty(
-            "--react-color",
-            MOODS.idle
-          );
-        }
       },duration);
     }
   }
@@ -1035,8 +1210,7 @@ function mount(world,canvas){
 
     orb.style.setProperty(
       "--react-color",
-      MOODS[orb.dataset.mood]||
-      MOODS.idle
+      agentColor
     );
   }
 
@@ -1058,8 +1232,12 @@ function mount(world,canvas){
     }
 
     orb.classList.add(
-      "curious"
+      "curious",
+      "connecting"
     );
+
+    gazePriority=9;
+    gazeUntil=performance.now()+260;
 
     setMood("curious");
 
@@ -1067,8 +1245,8 @@ function mount(world,canvas){
       data.x,
       data.y,
       distance<62
-        ?.1
-        :.08
+        ?.2
+        :.16
     );
 
     connectionClose=
@@ -1088,15 +1266,19 @@ function mount(world,canvas){
 
     orb.classList.remove(
       "curious",
-      "close"
+      "close",
+      "connecting"
     );
+
+    gazePriority=0;
+    gazeUntil=0;
 
     setMood(
       boop
-        ?"happy"
+        ?"success"
         :"idle",
       boop
-        ?480
+        ?520
         :0
     );
 
@@ -1256,34 +1438,19 @@ function mount(world,canvas){
     pointerUp
   );
 
-  listen(
-    viewport,
-    "pointermove",
-    event=>{
-      if(
-        drag||
-        connectionClose||
-        motion||
-        performance.now()<
-          attentionUntil
-      ){
-        return;
-      }
-
-      lookAt(
-        event.clientX,
-        event.clientY,
-        .055
-      );
-    },
-    {passive:true}
-  );
 
   bind(
     "select",
     id=>{
-      if(id)
-        focusNode(id);
+      if(id){
+        focusNode(
+          id,
+          {
+            priority:1,
+            duration:700
+          }
+        );
+      }
     }
   );
 
@@ -1292,13 +1459,14 @@ function mount(world,canvas){
     node=>
       requestAnimationFrame(
         ()=>{
-          setMood("happy",620);
-
           focusNode(
             node.id,
             {
               approach:true,
-              pop:true
+              pop:true,
+              mood:"surprised",
+              duration:1250,
+              priority:6
             }
           );
         }
@@ -1309,7 +1477,12 @@ function mount(world,canvas){
     "nodeEdit",
     event=>
       focusNode(
-        event.id
+        event.id,
+        {
+          mood:"focus",
+          duration:1250,
+          priority:5
+        }
       )
   );
 
@@ -1317,7 +1490,12 @@ function mount(world,canvas){
     "nodeExpand",
     event=>{
       focusNode(
-        event.id
+        event.id,
+        {
+          mood:"focus",
+          duration:900,
+          priority:4
+        }
       );
 
       const node=
@@ -1334,7 +1512,12 @@ function mount(world,canvas){
       stopMotion();
 
       focusNode(
-        event.id
+        event.id,
+        {
+          mood:"focus",
+          duration:1200,
+          priority:7
+        }
       );
     }
   );
@@ -1353,10 +1536,17 @@ function mount(world,canvas){
           node.getBoundingClientRect()
         );
 
+      lastWorkflowId=
+        String(event.id);
+
+      gazePriority=8;
+      gazeUntil=
+        performance.now()+260;
+
       lookAt(
         c.x,
         c.y,
-        .075
+        .17
       );
 
       pushFromNode(node);
@@ -1367,7 +1557,12 @@ function mount(world,canvas){
     "nodeDragEnd",
     event=>{
       focusNode(
-        event.id
+        event.id,
+        {
+          mood:"focus",
+          duration:850,
+          priority:6
+        }
       );
 
       scheduleVisible();
@@ -1384,9 +1579,28 @@ function mount(world,canvas){
         focusId=null;
       }
 
+      setMood(
+        "annoyed",
+        720
+      );
+
+      gazePriority=5;
+      gazeUntil=
+        performance.now()+720;
+
+      eyes(
+        0,
+        -.07
+      );
+
       pulse(
-        "pop",
-        260
+        "bump",
+        240
+      );
+
+      setTimeout(
+        restoreGaze,
+        740
       );
     }
   );
@@ -1397,6 +1611,24 @@ function mount(world,canvas){
       setReactColor(
         event.anchor?.node
       );
+
+      orb.classList.add(
+        "connecting"
+      );
+
+      const anchorId=
+        event.anchor?.node;
+
+      if(anchorId!=null){
+        focusNode(
+          anchorId,
+          {
+            mood:"focus",
+            duration:1300,
+            priority:8
+          }
+        );
+      }
 
       connectionClose=false;
     }
@@ -1423,7 +1655,10 @@ function mount(world,canvas){
       focusNode(
         connection.to.node,
         {
-          pop:true
+          pop:true,
+          mood:"surprised",
+          duration:950,
+          priority:9
         }
       )
   );
@@ -1481,6 +1716,10 @@ function mount(world,canvas){
           ?"working"
           :"idle"
       );
+
+      if(!busy){
+        restoreGaze();
+      }
     }
 
     busyFrame=
@@ -1580,6 +1819,14 @@ function init(){
 
       return;
     }
+
+    global.createOvllCanvasMascot=
+      options=>
+        mount(
+          world,
+          canvas,
+          options||{}
+        );
 
     const mascot=
       global.ovllCanvasMascot=
