@@ -251,6 +251,39 @@
   padding:0 .1875rem;
   margin:-.28rem 0;
   pointer-events:none;
+  transform:translate3d(0,0,0);
+  will-change:transform,opacity;
+}
+
+.astra-message-ovll-presence.is-entering-from-edge {
+  animation:
+    ovll-chat-enter
+    .6s
+    cubic-bezier(.2,.82,.2,1)
+    both;
+}
+
+@keyframes ovll-chat-enter {
+  0% {
+    opacity:0;
+    transform:
+      translate3d(var(--ovll-entry-x,-4rem),.12rem,0)
+      scale(.95);
+  }
+
+  70% {
+    opacity:1;
+    transform:
+      translate3d(.11rem,-.02rem,0)
+      scale(1.018,.986);
+  }
+
+  100% {
+    opacity:1;
+    transform:
+      translate3d(0,0,0)
+      scale(1);
+  }
 }
 
 .astra-message-ovll-body {
@@ -281,7 +314,8 @@
     0 .16rem .5rem
     rgba(0,0,0,.15);
 
-  pointer-events:none;
+  pointer-events:auto;
+  cursor:pointer;
 
   animation:
     chat-ovll-idle-body
@@ -348,6 +382,40 @@
 .chat-ovll-presence.is-settling
 .chat-ovll-presence-eye {
   animation:none;
+}
+
+.chat-ovll-presence.is-reacting {
+  animation:
+    ovll-chat-react
+    .28s
+    cubic-bezier(.18,.88,.25,1.18)
+    both;
+}
+
+.chat-ovll-presence.is-reacting
+.chat-ovll-presence-eye {
+  width:.56rem;
+  height:.18rem;
+  border-radius:999rem;
+  animation:none;
+  transform:
+    translate(.045rem,-.01rem)
+    rotate(-3deg);
+}
+
+@keyframes ovll-chat-react {
+  0%,
+  100% {
+    transform:scale(1);
+  }
+
+  44% {
+    transform:scale(1.055,.95);
+  }
+
+  72% {
+    transform:scale(.992,1.018);
+  }
 }
 
 @keyframes chat-ovll-idle-body {
