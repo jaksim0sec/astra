@@ -473,17 +473,17 @@
   align-items: center;
   gap: .5625rem;
   border: .0625rem solid var(--line);
-  border-radius: 62.4375rem;
+  border-radius: 1.25rem;
   background: var(--panel-soft);
-  backdrop-filter: blur(1.375rem) saturate(1.08);
-  -webkit-backdrop-filter: blur(1.375rem) saturate(1.08);
+  backdrop-filter: blur(1.125rem) saturate(1.03);
+  -webkit-backdrop-filter: blur(1.125rem) saturate(1.03);
   box-shadow: var(--shadow-soft);
   pointer-events: auto;
-  transition: border-color .18s ease, background-color .18s ease, box-shadow .18s ease, border-radius .18s ease;
+  transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
 }
 
 #composer-form.is-expanded {
-  border-radius: var(--radius-lg);
+  border-radius: 1.25rem;
 }
 
 #composer-form:focus-within {
@@ -705,7 +705,7 @@
   }
 
   #composer-form.is-expanded {
-    border-radius: var(--radius-lg);
+    border-radius: 1.25rem;
   }
 }
 
@@ -736,7 +736,7 @@
   }
 
   html.physical-landscape #composer-form.is-expanded {
-    border-radius: var(--radius-lg);
+    border-radius: 1.25rem;
   }
 }
 
@@ -1254,10 +1254,13 @@
 
 #mode-switch,
 #mode-switch::before,
-#composer-form,
 #canvas-node-builder-layout,
 #canvas-node-builder-toggle {
   border-radius: var(--ui-radius-pill);
+}
+
+#composer-form {
+  border-radius: 1.25rem;
 }
 
 #mode-switch::before {
@@ -1266,7 +1269,7 @@
 }
 
 #composer-form.is-expanded {
-  border-radius: var(--ui-radius-panel);
+  border-radius: 1.25rem;
 }
 
 #mode-switch:hover,
@@ -1309,7 +1312,7 @@
 }
 
 /* =========================================================
-   OVLL MICRO GLASS TEXTURE
+   OVLL SIMPLE CONTROL SURFACES
    ========================================================= */
 
 #topbar-left > button,
@@ -1324,15 +1327,11 @@
 
 #mode-switch::before {
   background: var(--ui-glass-strong);
-  box-shadow:
-    0 .125rem .5rem rgba(0, 0, 0, .035),
-    inset 0 .0625rem 0 color-mix(in srgb, #fff 3%, transparent);
+  box-shadow: 0 .0625rem .25rem rgba(0, 0, 0, .055);
 }
 
 :root.dark #mode-switch::before {
-  box-shadow:
-    0 .125rem .5625rem rgba(0, 0, 0, .12),
-    inset 0 .0625rem 0 color-mix(in srgb, #fff 3.5%, transparent);
+  box-shadow: 0 .0625rem .3125rem rgba(0, 0, 0, .14);
 }
 
 #composer-form:focus-within,
@@ -1343,46 +1342,33 @@
 
 #canvas-node-builder-panel {
   background: var(--ui-glass);
-  box-shadow:
-    var(--shadow),
-    inset 0 .0625rem 0 color-mix(in srgb, #fff 3%, transparent);
+  box-shadow: var(--shadow-soft);
 }
 
 .canvas-node-builder-option {
-  background: color-mix(in srgb, var(--panel-strong) 56%, transparent);
-  box-shadow:
-    inset 0 .0625rem 0 color-mix(in srgb, #fff 2.5%, transparent);
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
+  box-shadow: none;
 }
 
 .canvas-node-builder-option:hover {
-  background: color-mix(in srgb, var(--panel-strong) 78%, transparent);
+  background: var(--panel-strong);
+}
+
+#composer-attach,
+#composer-attach:hover {
+  border: 0;
+  box-shadow: none;
 }
 
 #composer-attach {
-  border: 0;
   background: transparent;
-  box-shadow: none;
 }
 
 #composer-attach:hover {
-  border: 0;
   background: color-mix(in srgb, var(--text) 4%, transparent);
-  box-shadow: none;
 }
 
 #composer-submit {
-  box-shadow:
-    inset 0 .0625rem 0 color-mix(in srgb, var(--bg) 10%, transparent),
-    0 .125rem .5rem color-mix(in srgb, #000 6%, transparent);
-}
-
-/* =========================================================
-   COMPOSER RADIUS LOCK
-   Keep startup and resized states visually identical.
-   ========================================================= */
-
-#composer-form,
-#composer-form.is-expanded {
-  border-radius: 1.25rem;
+  box-shadow: 0 .0625rem .25rem color-mix(in srgb, #000 8%, transparent);
 }
 
