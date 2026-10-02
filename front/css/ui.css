@@ -1407,3 +1407,13 @@
     0 .125rem .5rem color-mix(in srgb, #000 8%, transparent);
 }
 
+/* =========================================================
+   COMPOSER RADIUS LOCK
+   Keep startup and resized states visually identical.
+   ========================================================= */
+
+#composer-form,
+#composer-form.is-expanded {
+  border-radius: 1.25rem;
+}
+
