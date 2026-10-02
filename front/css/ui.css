@@ -620,15 +620,15 @@
 
   #mode-switch {
     width: 9rem;
-    height: 2.4375rem;
+    height: 2.5rem;
   }
 
   #mode-switch::before {
-    height: 1.8125rem;
+    height: 1.875rem;
   }
 
   #mode-switch button {
-    height: 1.8125rem;
+    height: 1.875rem;
   }
 
   #chat-content {
@@ -748,7 +748,7 @@
   position: absolute;
   z-index: 40;
   left: max(max(.625rem, var(--safe-left)), calc((100% - 45rem) / 2));
-  bottom: var(--bottom-dock-gap);
+  bottom: calc(var(--safe-bottom) + var(--bottom-dock-lift) + .5rem);
   pointer-events: none;
 }
 
@@ -943,8 +943,8 @@
 
 @media (max-width: 26.25rem) {
   #canvas-node-builder {
-    left: max(.625rem, var(--safe-left));
-    bottom: 1rem;
+    left: calc(max(.5rem, var(--safe-left)) + .375rem);
+    bottom: calc(var(--safe-bottom) + var(--bottom-dock-lift) + .5rem);
   }
 
   #canvas-node-builder-panel {
@@ -1287,4 +1287,23 @@
 .canvas-node-builder-option {
   border: var(--ui-line-width) solid var(--ui-line);
   border-radius: var(--ui-radius-item);
+}
+
+
+/* =========================================================
+   CANVAS NODE BUILDER ALIGNMENT
+   Keep the builder on the same visual rails as the composer.
+   ========================================================= */
+
+@media (max-width: 43.75rem) {
+  #canvas-node-builder {
+    left: calc(max(.625rem, var(--safe-left)) + .5rem);
+  }
+}
+
+@media (max-width: 26.25rem) {
+  #canvas-node-builder {
+    left: calc(max(.5rem, var(--safe-left)) + .375rem);
+    bottom: calc(var(--safe-bottom) + var(--bottom-dock-lift) + .5rem);
+  }
 }
