@@ -14,7 +14,7 @@
    ========================================================= */
 
 #topbar {
-  position: fixed;
+  position: absolute;
   z-index: 100;
   top: 0;
   left: 0;
@@ -71,7 +71,7 @@
    ========================================================= */
 
 #mode-switch {
-  position: fixed;
+  position: absolute;
   z-index: 2;
   top: calc(var(--safe-top) + .75rem);
   left: 50%;
@@ -159,15 +159,12 @@
   bottom: calc(
     var(--composer-live-height) +
     var(--safe-bottom) +
-    var(--bottom-dock-lift) +
-    var(--keyboard-inset, 0px)
+    var(--bottom-dock-lift)
   );
   left: 0;
   overflow: hidden;
   background: var(--bg);
   touch-action: pan-y;
-  will-change: bottom;
-  transition: bottom .09s linear;
 }
 
 /* =========================================================
@@ -457,14 +454,6 @@
   justify-content: center;
   pointer-events: none;
   background: linear-gradient(to bottom, rgba(243, 243, 242, 0), rgba(243, 243, 242, .52) 34%, rgba(243, 243, 242, .90) 100%);
-  transform:
-    translate3d(
-      0,
-      calc(var(--keyboard-inset, 0px) * -1),
-      0
-    );
-  will-change: transform;
-  transition: transform .09s linear;
 }
 
 :root.dark #composer {
