@@ -1,4 +1,4 @@
-const CACHE = 'ovll-shell-v11';
+const CACHE = 'ovll-shell-v12';
 
 const SHELL = [
   '/home',
@@ -10,6 +10,7 @@ const SHELL = [
   '/css/ui.css',
   '/css/node.css',
   '/css/chat.css',
+  '/js/boot.js',
   '/js/functions.js',
   '/js/api.js',
   '/js/canvasNode.js',
