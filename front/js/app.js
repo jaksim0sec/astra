@@ -16,6 +16,7 @@
      DOM
      ======================================================= */
   const workspace = document.querySelector("#workspace");
+  const chatPage = document.querySelector("#chat-page");
   const chatContent = document.querySelector("#chat-content");
   const chatMessages = document.querySelector("#chat-messages");
   const composerForm = document.querySelector("#composer-form");
@@ -24,7 +25,7 @@
   let composerFileInput = document.querySelector("#composer-file-input");
   const composerSubmit = document.querySelector("#composer-submit");
 
-  if (!workspace || !chatContent || !chatMessages || !composerForm || !composerInput || !composerSubmit) {
+  if (!workspace || !chatPage || !chatContent || !chatMessages || !composerForm || !composerInput || !composerSubmit) {
     throw new Error("Astra Application DOM 구조가 올바르지 않습니다.");
   }
 
@@ -52,6 +53,8 @@
     nodeDefinitions: null,
     conversationMemory: null,
     nodeBuilder: { root: null, open: false },
+    chatOvll: null,
+    chatOvllSettleTimer: null,
     messageCount: 0
   };
 
@@ -166,7 +169,7 @@
         "canvas-ai-preview";
 
       preview.innerHTML = `
-        <div class="canvas-ai-preview-label">Astra</div>
+        <div class="canvas-ai-preview-label">ovll</div>
         <div class="canvas-ai-preview-text"></div>
         <button
           class="canvas-ai-preview-close"
@@ -486,42 +489,100 @@
     return message;
   }
 
+  function ensureChatOvll() {
+    if (
+      state.chatOvll &&
+      state.chatOvll.isConnected
+    ) {
+      return state.chatOvll;
+    }
+
+    const orb =
+      document.createElement("div");
+
+    orb.id =
+      "chat-ovll-presence";
+
+    orb.className =
+      "chat-ovll-presence";
+
+    orb.setAttribute(
+      "role",
+      "status"
+    );
+
+    orb.setAttribute(
+      "aria-label",
+      "오블"
+    );
+
+    orb.innerHTML =
+      '<span class="chat-ovll-presence-eye" aria-hidden="true"></span>';
+
+    chatPage.appendChild(orb);
+
+    state.chatOvll =
+      orb;
+
+    return orb;
+  }
+
   function addThinkingMessage() {
-    const message =
-      document.createElement("div");
+    const orb =
+      ensureChatOvll();
 
-    message.className =
-      "astra-message astra-message-assistant astra-message-thinking";
+    clearTimeout(
+      state.chatOvllSettleTimer
+    );
 
-    const body =
-      document.createElement("div");
+    orb.classList.remove(
+      "is-settling"
+    );
 
-    body.className =
-      "astra-message-body";
+    orb.classList.add(
+      "is-thinking"
+    );
 
-    body.innerHTML = `
-      <div
-        class="astra-thinking-ovll"
-        role="status"
-        aria-label="오블이 생각 중"
-      >
-        <span
-          class="astra-thinking-ovll-eye"
-          aria-hidden="true"
-        ></span>
-      </div>
-    `;
+    orb.setAttribute(
+      "aria-label",
+      "오블이 생각 중"
+    );
 
-    message.appendChild(body);
-    chatMessages.appendChild(message);
-    scrollChatToBottom();
-
-    return message;
+    return orb;
   }
 
   function removeThinkingMessage(message) {
-    if (!message) return;
-    message.remove();
+    const orb =
+      message &&
+      message.classList?.contains(
+        "chat-ovll-presence"
+      )
+        ?message
+        :ensureChatOvll();
+
+    orb.classList.remove(
+      "is-thinking"
+    );
+
+    orb.classList.add(
+      "is-settling"
+    );
+
+    orb.setAttribute(
+      "aria-label",
+      "오블"
+    );
+
+    clearTimeout(
+      state.chatOvllSettleTimer
+    );
+
+    state.chatOvllSettleTimer=
+      setTimeout(()=>{
+        orb.classList.remove(
+          "is-settling"
+        );
+      },520);
   }
 
   function revealAssistantMessage(message, text) {
@@ -938,7 +999,7 @@
       );
 
       console.error(
-        "Astra Planner Error:",
+        "ovll Planner Error:",
         error
       );
 
@@ -1218,6 +1279,8 @@
     state.conversationMemory =
       loadMemory();
 
+    ensureChatOvll();
+
     setBusy(false);
     resizeComposer();
 
@@ -1268,7 +1331,7 @@ listen(composerInput, "keydown", handleComposerKeydown);
     state.ready = true;
 
     addSystemMessage(
-      "무엇을 만들지 입력하면 Astra가 워크플로우를 구성합니다."
+      "무엇을 만들지 입력하면 오블이 워크플로우를 구성합니다."
     );
 
     resizeComposer();
@@ -1340,9 +1403,17 @@ listen(composerInput, "keydown", handleComposerKeydown);
       state.canvas?.destroy?.();
       state.nodeBuilder.root?.remove();
 
+      clearTimeout(
+        state.chatOvllSettleTimer
+      );
+
+      state.chatOvll?.remove();
+
       state.canvas = null;
       state.nodeBuilder.root = null;
       state.nodeBuilder.open = false;
+      state.chatOvll = null;
+      state.chatOvllSettleTimer = null;
       state.workflow = null;
       state.nodeDefinitions = null;
       state.conversationMemory = null;
@@ -1357,12 +1428,12 @@ listen(composerInput, "keydown", handleComposerKeydown);
      ======================================================= */
   initialize().catch(error => {
     console.error(
-      "Astra Initialization Error:",
+      "ovll Initialization Error:",
       error
     );
     addSystemMessage(
       error?.message ||
-      "Astra를 초기화하지 못했습니다."
+      "오블을 초기화하지 못했습니다."
     );
   });
 })(window);
