@@ -1148,9 +1148,7 @@ listen(composerInput, "keydown", handleComposerKeydown);
 
     state.ready = true;
 
-    Presence.showStart({
-      headline: "ovll"
-    });
+    Presence.showStart();
 
     resizeComposer();
     scrollChatToBottom(true);
