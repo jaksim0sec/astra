@@ -202,27 +202,121 @@
   padding-top: 0;
 }
 
-#chat-messages.is-welcome {
-  justify-content: center;
+.ovll-chat-start {
+  position:absolute;
+  z-index:6;
+  left:50%;
+  top:50%;
+  width:min(34rem,calc(100% - 2rem));
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:1rem;
+  transform:translate(-50%,-54%);
+  text-align:center;
+  pointer-events:none;
+  opacity:1;
+  transition:
+    opacity .18s ease,
+    transform .22s var(--ease);
 }
 
-#chat-messages.is-welcome
-.astra-message-ovll-presence {
-  margin-bottom: .125rem;
+.ovll-chat-start.is-leaving {
+  opacity:0;
+  transform:
+    translate(-50%,-57%)
+    scale(.985);
 }
 
-.astra-message-welcome
-.astra-message-body {
-  font-size: 1rem;
-  font-weight: 560;
-  letter-spacing: -.02em;
+.ovll-chat-start-orb {
+  width:3.15rem;
+  height:3.15rem;
+  padding:0;
+  display:grid;
+  place-items:center;
+  border:0;
+  border-radius:50%;
+  background:var(--text);
+  color:var(--bg);
+  box-shadow:
+    0 .22rem .72rem
+    rgba(0,0,0,.16);
+  pointer-events:auto;
+  cursor:pointer;
+  animation:
+    ovll-start-idle
+    6.2s
+    ease-in-out
+    infinite;
 }
 
-.astra-message-welcome
-.astra-message-actions {
-  display: none;
+.ovll-chat-start-eye {
+  width:.56rem;
+  height:.59rem;
+  display:block;
+  border-radius:50%;
+  background:currentColor;
+  transition:
+    transform .18s var(--ease),
+    width .18s var(--ease),
+    height .18s var(--ease),
+    border-radius .18s var(--ease);
 }
 
+.ovll-chat-start-title {
+  font-size:clamp(
+    1.85rem,
+    6vw,
+    2.55rem
+  );
+  font-weight:650;
+  line-height:1.05;
+  letter-spacing:-.055em;
+}
+
+.ovll-chat-start-orb.is-reacting {
+  animation:
+    ovll-start-react
+    .28s
+    cubic-bezier(.18,.88,.25,1.18)
+    both;
+}
+
+.ovll-chat-start-orb.is-reacting
+.ovll-chat-start-eye {
+  width:.72rem;
+  height:.2rem;
+  border-radius:999rem;
+  transform:
+    translate(.06rem,-.02rem)
+    rotate(-3deg);
+}
+
+@keyframes ovll-start-idle {
+  0%,
+  100% {
+    transform:translateY(0);
+  }
+
+  52% {
+    transform:translateY(-.08rem);
+  }
+}
+
+@keyframes ovll-start-react {
+  0%,
+  100% {
+    transform:scale(1);
+  }
+
+  44% {
+    transform:scale(1.055,.95);
+  }
+
+  72% {
+    transform:scale(.992,1.018);
+  }
+}
 
 
 .astra-message-reveal-char {
@@ -519,11 +613,13 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .astra-message {
+  .astra-message,
+  .ovll-chat-start-orb {
     animation: none;
   }
 
-  .astra-message-actions {
+  .astra-message-actions,
+  .ovll-chat-start {
     transition: none;
   }
 }
