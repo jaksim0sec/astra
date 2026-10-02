@@ -18,8 +18,9 @@ function installStyle(){
   --body-color:#000;
   --eye-color:#fff;
 
-  --eye-w:.42rem;
+  --eye-w:.435rem;
   --eye-h:.46rem;
+  --eye-radius:50%;
 
   --ex:0rem;
   --ey:0rem;
@@ -81,7 +82,7 @@ function installStyle(){
   width:var(--eye-w);
   height:var(--eye-h);
 
-  border-radius:999rem;
+  border-radius:var(--eye-radius);
   background:var(--eye-color);
 
   transform:
@@ -103,14 +104,22 @@ function installStyle(){
 }
 
 .ovll-mascot[data-mood="idle"]{
-  --eye-w:.42rem;
+  --eye-w:.435rem;
   --eye-h:.46rem;
+  --eye-radius:50%;
+}
+
+.ovll-mascot[data-mood="thinking"]{
+  --eye-w:.52rem;
+  --eye-h:.16rem;
+  --eye-radius:999rem;
 }
 
 .ovll-mascot[data-mood="focus"],
 .ovll-mascot[data-mood="attention"]{
-  --eye-w:.43rem;
+  --eye-w:.445rem;
   --eye-h:.48rem;
+  --eye-radius:50%;
 }
 
 .ovll-mascot[data-mood="curious"]{
@@ -299,7 +308,9 @@ function mount(world,canvas,options={}){
   let gazePriority=0;
   let gazeUntil=0;
   let moodTimer=null;
+  let thinkingTimer=null;
   let connectionColor=false;
+  let lastActivity=performance.now();
 
   let blinkTimer=null;
   let viewportTimer=null;
@@ -925,6 +936,8 @@ function mount(world,canvas,options={}){
     if(!node)
       return;
 
+    noteActivity();
+
     const now=
       performance.now();
 
@@ -1169,6 +1182,7 @@ function mount(world,canvas,options={}){
   const MOODS=
     new Set([
       "idle",
+      "thinking",
       "focus",
       "attention",
       "curious",
@@ -1194,6 +1208,70 @@ function mount(world,canvas,options={}){
         orb.dataset.mood="idle";
       },duration);
     }
+  }
+
+  function scheduleThinking(
+    delay=12000+Math.random()*7000
+  ){
+    clearTimeout(thinkingTimer);
+
+    thinkingTimer=setTimeout(()=>{
+      const now=performance.now();
+
+      if(
+        drag||
+        motion||
+        connectionClose||
+        global.AstraApp?.isBusy?.()||
+        now<attentionUntil||
+        now-lastActivity<9000
+      ){
+        scheduleThinking(2600);
+        return;
+      }
+
+      setMood(
+        "thinking",
+        2600
+      );
+
+      eyes(
+        -.055,
+        -.025
+      );
+
+      orb.style.setProperty(
+        "--eye-tilt",
+        "4deg"
+      );
+
+      setTimeout(()=>{
+        if(
+          orb.dataset.mood==="idle"&&
+          !drag&&
+          !motion&&
+          !connectionClose
+        ){
+          restoreGaze();
+        }
+
+        scheduleThinking();
+      },2660);
+    },delay);
+  }
+
+  function noteActivity(){
+    lastActivity=
+      performance.now();
+
+    if(
+      orb.dataset.mood==="thinking"
+    ){
+      setMood("idle");
+      restoreGaze();
+    }
+
+    scheduleThinking();
   }
 
   function setReactColor(id){
@@ -1304,6 +1382,8 @@ function mount(world,canvas,options={}){
   }
 
   function pointerDown(event){
+    noteActivity();
+
     if(
       event.button!==undefined&&
       event.button!==0
@@ -1608,6 +1688,8 @@ function mount(world,canvas,options={}){
   bind(
     "connectionDragStart",
     event=>{
+      noteActivity();
+
       setReactColor(
         event.anchor?.node
       );
@@ -1641,12 +1723,15 @@ function mount(world,canvas,options={}){
 
   bind(
     "connectionDragEnd",
-    event=>
+    event=>{
+      noteActivity();
+
       connectionEnd(
         !event.connected&&
         !event.cancelled&&
         connectionClose
-      )
+      );
+    }
   );
 
   bind(
@@ -1696,6 +1781,7 @@ function mount(world,canvas,options={}){
   }
 
   scheduleBlink();
+  scheduleThinking();
 
   let wasBusy=false;
 
@@ -1705,6 +1791,7 @@ function mount(world,canvas,options={}){
 
     if(busy!==wasBusy){
       wasBusy=busy;
+      noteActivity();
 
       orb.classList.toggle(
         "working",
@@ -1771,6 +1858,10 @@ function mount(world,canvas,options={}){
 
       clearTimeout(
         moodTimer
+      );
+
+      clearTimeout(
+        thinkingTimer
       );
 
       cleanup
