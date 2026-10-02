@@ -1031,6 +1031,12 @@
   }
 }
 
+@media (hover: none) and (pointer: coarse) {
+  #composer-input {
+    font-size: 16px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   #ovll-canvas-speech {
     transition: none;
