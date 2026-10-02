@@ -10,11 +10,13 @@ const SHELL = [
   '/css/ui.css',
   '/css/node.css',
   '/css/chat.css',
+  '/css/shellMenu.css',
   '/js/boot.js',
   '/js/functions.js',
   '/js/api.js',
   '/js/canvasNode.js',
   '/js/ui.js',
+  '/js/shellMenu.js',
   '/js/ovllPresence.js',
   '/js/app.js',
   '/js/mascot.js'
