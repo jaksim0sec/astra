@@ -250,18 +250,13 @@ function mount(world,canvas){
 
   let x=0;
   let y=0;
-  let vx=0;
-  let vy=0;
 
   let drag=null;
   let motion=null;
   let focusId=null;
   let attentionUntil=0;
-
   let connectionClose=false;
-  let path=[];
-  let pathIndex=0;
-  let lastPathUpdate=0;
+  let lastIntentMove=0;
 
   let blinkTimer=null;
   let viewportTimer=null;
@@ -446,36 +441,13 @@ function mount(world,canvas){
     eyes();
   }
 
-  function setMotion(next){
-    motion=next;
-    path=[];
-    pathIndex=0;
-    lastPathUpdate=0;
-
-    orb.classList.remove(
-      "moving",
-      "pushed",
-      "returning"
-    );
-
-    if(next?.type)
-      orb.classList.add(next.type);
-
-    if(
-      next&&
-      motionFrame===null
-    ){
-      motionFrame=
-        requestAnimationFrame(
-          stepMotion
-        );
-    }
-  }
-
   function stopMotion(){
+    if(motionFrame!==null){
+      cancelAnimationFrame(motionFrame);
+      motionFrame=null;
+    }
+
     motion=null;
-    path=[];
-    pathIndex=0;
 
     orb.classList.remove(
       "moving",
@@ -483,626 +455,212 @@ function mount(world,canvas){
       "returning"
     );
 
-    orb.style.setProperty(
-      "--lean",
-      "0deg"
-    );
-
-    orb.style.setProperty(
-      "--sx",
-      "1"
-    );
-
-    orb.style.setProperty(
-      "--sy",
-      "1"
-    );
+    orb.style.setProperty("--lean","0deg");
+    orb.style.setProperty("--sx","1");
+    orb.style.setProperty("--sy","1");
 
     restoreGaze();
   }
 
-  function pointBlocked(clientX,clientY,target=null){
-    const view=
-      viewport.getBoundingClientRect();
-
-    const radius=
-      orb.getBoundingClientRect()
-        .width/2;
-
-    const edge=
-      radius+10;
-
-    if(
-      clientX<view.left+edge||
-      clientX>view.right-edge||
-      clientY<view.top+edge||
-      clientY>view.bottom-edge
-    ){
-      return true;
-    }
-
-    for(
-      const node of
-      viewport.querySelectorAll(
-        ".vc-node"
-      )
-    ){
-      const rect=
-        node.getBoundingClientRect();
-
-      const padding=
-        node===target
-          ?radius+7
-          :radius+12;
-
-      if(
-        clientX>rect.left-padding&&
-        clientX<rect.right+padding&&
-        clientY>rect.top-padding&&
-        clientY<rect.bottom+padding
-      ){
-        return true;
-      }
-    }
-
-    return false;
-  }
-
-  function dockPoints(node){
-    const rect=
-      node.getBoundingClientRect();
-
-    const view=
-      viewport.getBoundingClientRect();
-
-    const radius=
-      orb.getBoundingClientRect()
-        .width/2;
-
-    const gap=
-      radius+15;
-
-    return[
-      {
-        x:rect.right+gap,
-        y:rect.top+rect.height/2
-      },
-      {
-        x:rect.left-gap,
-        y:rect.top+rect.height/2
-      },
-      {
-        x:rect.left+rect.width/2,
-        y:rect.bottom+gap
-      },
-      {
-        x:rect.left+rect.width/2,
-        y:rect.top-gap
-      }
-    ].filter(point=>
-      point.x>view.left+radius+8&&
-      point.x<view.right-radius-8&&
-      point.y>view.top+radius+8&&
-      point.y<view.bottom-radius-8&&
-      !pointBlocked(
-        point.x,
-        point.y,
-        node
-      )
-    );
-  }
-
-  function findPath(start,goal,target){
-    const view=
-      viewport.getBoundingClientRect();
-
-    const cell=30;
-
-    const cols=
-      Math.max(
-        1,
-        Math.floor(
-          view.width/cell
-        )
-      );
-
-    const rows=
-      Math.max(
-        1,
-        Math.floor(
-          view.height/cell
-        )
-      );
-
-    const toGrid=p=>({
-      x:Math.max(
-        0,
-        Math.min(
-          cols-1,
-          Math.round(
-            (p.x-view.left)/cell
-          )
-        )
-      ),
-      y:Math.max(
-        0,
-        Math.min(
-          rows-1,
-          Math.round(
-            (p.y-view.top)/cell
-          )
-        )
-      )
-    });
-
-    const toClient=p=>({
-      x:view.left+p.x*cell,
-      y:view.top+p.y*cell
-    });
-
-    const key=p=>
-      `${p.x},${p.y}`;
-
-    const first=
-      toGrid(start);
-
-    const last=
-      toGrid(goal);
-
-    const open=[
-      {
-        ...first,
-        g:0,
-        f:0
-      }
-    ];
-
-    const came=
-      new Map();
-
-    const cost=
-      new Map([
-        [
-          key(first),
-          0
-        ]
-      ]);
-
-    const dirs=[
-      [1,0],[-1,0],
-      [0,1],[0,-1],
-      [1,1],[1,-1],
-      [-1,1],[-1,-1]
-    ];
-
-    while(open.length){
-      open.sort(
-        (a,b)=>a.f-b.f
-      );
-
-      const current=
-        open.shift();
-
-      if(
-        current.x===last.x&&
-        current.y===last.y
-      ){
-        const result=[];
-        let cursor={
-          x:current.x,
-          y:current.y
-        };
-
-        while(
-          key(cursor)!==
-          key(first)
-        ){
-          result.push(
-            toClient(cursor)
-          );
-
-          cursor=
-            came.get(
-              key(cursor)
-            );
-
-          if(!cursor)
-            break;
-        }
-
-        result.reverse();
-        result.push(goal);
-
-        return result;
-      }
-
-      for(const [dx,dy] of dirs){
-        const next={
-          x:current.x+dx,
-          y:current.y+dy
-        };
-
-        if(
-          next.x<0||
-          next.y<0||
-          next.x>=cols||
-          next.y>=rows
-        ){
-          continue;
-        }
-
-        const point=
-          toClient(next);
-
-        const isGoal=
-          next.x===last.x&&
-          next.y===last.y;
-
-        if(
-          !isGoal&&
-          pointBlocked(
-            point.x,
-            point.y,
-            target
-          )
-        ){
-          continue;
-        }
-
-        const nextCost=
-          current.g+
-          (
-            dx&&dy
-              ?1.414
-              :1
-          );
-
-        const k=
-          key(next);
-
-        if(
-          cost.has(k)&&
-          cost.get(k)<=nextCost
-        ){
-          continue;
-        }
-
-        cost.set(
-          k,
-          nextCost
-        );
-
-        came.set(
-          k,
-          {
-            x:current.x,
-            y:current.y
-          }
-        );
-
-        open.push({
-          ...next,
-          g:nextCost,
-          f:
-            nextCost+
-            Math.hypot(
-              last.x-next.x,
-              last.y-next.y
-            )
-        });
-      }
-    }
-
-    return null;
-  }
-
-  function bestPath(node){
-    const start=
-      center(
-        orb.getBoundingClientRect()
-      );
-
-    let best=null;
-
-    for(const goal of dockPoints(node)){
-      const candidate=
-        findPath(
-          start,
-          goal,
-          node
-        );
-
-      if(!candidate)
-        continue;
-
-      let length=0;
-      let previous=start;
-
-      for(const point of candidate){
-        length+=
-          Math.hypot(
-            point.x-previous.x,
-            point.y-previous.y
-          );
-
-        previous=point;
-      }
-
-      if(
-        !best||
-        length<best.length
-      ){
-        best={
-          path:candidate,
-          length
-        };
-      }
-    }
-
-    return best?.path||null;
-  }
-
-  function updateNodePath(now){
-    const node=
-      nodeEl(
-        motion?.nodeId
-      );
-
-    if(!node){
-      stopMotion();
+  /*
+    한 번의 반응 = 한 번의 swoosh.
+    거리는 항상 orb 크기에 비례한 고정값.
+  */
+  function swooshToward(
+    clientX,
+    clientY,
+    {
+      step=2.35,
+      duration=240
+    }={}
+  ){
+    if(drag)
       return false;
-    }
 
-    /*
-      이동 중에도 live DOM rect 기준으로
-      expand / collapse / 위치 변경을 반영한다.
-    */
-    if(
-      !path.length||
-      now-lastPathUpdate>110
-    ){
-      const next=
-        bestPath(node);
+    const rect=orb.getBoundingClientRect();
+    const current=center(rect);
 
-      if(next?.length){
-        path=next;
-        pathIndex=0;
+    const dx=clientX-current.x;
+    const dy=clientY-current.y;
+    const distance=Math.hypot(dx,dy);
+
+    if(distance<rect.width*.8)
+      return false;
+
+    if(motionFrame!==null)
+      cancelAnimationFrame(motionFrame);
+
+    const moveDistance=
+      rect.width*step;
+
+    const ux=dx/distance;
+    const uy=dy/distance;
+
+    const endClient={
+      x:current.x+ux*moveDistance,
+      y:current.y+uy*moveDistance
+    };
+
+    const endWorld=
+      worldPoint(
+        endClient.x,
+        endClient.y
+      );
+
+    const startX=x;
+    const startY=y;
+    const deltaX=endWorld.x-startX;
+    const deltaY=endWorld.y-startY;
+    const started=performance.now();
+
+    motion={
+      x:endClient.x,
+      y:endClient.y
+    };
+
+    orb.classList.add("moving");
+
+    orb.style.setProperty(
+      "--lean",
+      `${Math.max(
+        -5,
+        Math.min(
+          5,
+          ux*4.5
+        )
+      )}deg`
+    );
+
+    orb.style.setProperty("--sx","1.025");
+    orb.style.setProperty("--sy",".982");
+
+    eyes(
+      ux*.075,
+      uy*.075
+    );
+
+    function frame(now){
+      const t=Math.min(
+        1,
+        (now-started)/duration
+      );
+
+      /*
+        빠르게 출발하고 짧게 정착.
+        linear 느낌 없이 딱 "슥".
+      */
+      const eased=
+        1-Math.pow(1-t,3);
+
+      x=startX+deltaX*eased;
+      y=startY+deltaY*eased;
+
+      render();
+
+      if(t<1){
+        motionFrame=
+          requestAnimationFrame(frame);
+
+        return;
       }
 
-      lastPathUpdate=now;
+      motionFrame=null;
+      motion=null;
+
+      orb.classList.remove("moving");
+
+      orb.style.setProperty("--lean","0deg");
+      orb.style.setProperty("--sx","1");
+      orb.style.setProperty("--sy","1");
+
+      restoreGaze();
     }
+
+    motionFrame=
+      requestAnimationFrame(frame);
 
     return true;
   }
 
-  function currentTarget(now){
-    if(!motion)
-      return null;
+  /*
+    node 중심이 아니라 node 바깥의 가장 가까운 쪽을 향한다.
+    그래서 node 위로 파고드는 이상한 이동 방지.
+  */
+  function nodeTarget(node){
+    const nodeRect=node.getBoundingClientRect();
+    const orbRect=orb.getBoundingClientRect();
 
-    if(motion.kind==="node"){
-      if(!updateNodePath(now))
-        return null;
-
-      while(
-        pathIndex<path.length-1
-      ){
-        const c=
-          center(
-            orb.getBoundingClientRect()
-          );
-
-        if(
-          Math.hypot(
-            path[pathIndex].x-c.x,
-            path[pathIndex].y-c.y
-          )>22
-        ){
-          break;
-        }
-
-        pathIndex++;
-      }
-
-      return path[pathIndex]||null;
-    }
-
-    if(motion.kind==="point"){
-      return motion.client;
-    }
-
-    return null;
-  }
-
-  function stepMotion(now){
-    motionFrame=null;
-
-    if(
-      !motion||
-      drag
-    ){
-      return;
-    }
-
-    const target=
-      currentTarget(now);
-
-    if(!target){
-      stopMotion();
-      return;
-    }
-
-    const current=
-      clientPoint(
-        x,
-        y
-      );
-
-    const dx=
-      target.x-current.x;
-
-    const dy=
-      target.y-current.y;
-
-    const distance=
-      Math.hypot(dx,dy);
-
-    const finalTarget=
-      motion.kind==="point"||
-      pathIndex>=path.length-1;
-
-    if(
-      finalTarget&&
-      distance<2&&
-      Math.hypot(vx,vy)<.08
-    ){
-      stopMotion();
-      return;
-    }
-
-    const ux=
-      distance
-        ?dx/distance
-        :0;
-
-    const uy=
-      distance
-        ?dy/distance
-        :0;
-
-    const config=
-      motion.type==="pushed"
-        ?{
-            max:3.6,
-            accel:.17,
-            brake:48
-          }
-        :motion.type==="returning"
-          ?{
-              max:1.875,
-              accel:.055,
-              brake:70
-            }
-          :{
-              max:3,
-              accel:.085,
-              brake:58
-            };
-
-    const desired=
-      Math.min(
-        config.max,
-        Math.max(
-          .12,
-          distance/config.brake*
-          config.max
-        )
-      );
-
-    vx+=
-      (
-        ux*desired-vx
-      )*
-      config.accel;
-
-    vy+=
-      (
-        uy*desired-vy
-      )*
-      config.accel;
-
-    const damping=
-      distance<20
-        ?.84
-        :.965;
-
-    vx*=damping;
-    vy*=damping;
+    const current=center(orbRect);
+    const nodeCenter=center(nodeRect);
+    const gap=orbRect.width*.9;
 
     /*
-      client velocity를 world velocity로 변환.
-      Canvas zoom 상태에서도 체감 속도 일정.
+      높이는 항상 node 중앙축.
+      좌우 중 orb가 있는 쪽으로 docking.
     */
-    const here=
-      worldPoint(
-        current.x,
-        current.y
+    return{
+      x:
+        current.x<nodeCenter.x
+          ?nodeRect.left-gap
+          :nodeRect.right+gap,
+      y:nodeCenter.y
+    };
+  }
+
+  function reactMoveToNode(id){
+    const node=nodeEl(id);
+
+    if(!node||!nodeVisible(node))
+      return false;
+
+    const orbRect=
+      orb.getBoundingClientRect();
+
+    const target=
+      nodeTarget(node);
+
+    const current=
+      center(orbRect);
+
+    const distance=
+      Math.hypot(
+        target.x-current.x,
+        target.y-current.y
       );
 
-    const next=
-      worldPoint(
-        current.x+vx,
-        current.y+vy
-      );
+    /*
+      이미 충분히 가까우면 계산/이동 끝.
+      시선 반응만 유지.
+    */
+    /*
+      가까운 action은 눈으로만 반응.
+      orb 지름 6.5개 이상 떨어진 경우에만 몸을 움직임.
+    */
+    if(distance<=orbRect.width*6.5)
+      return false;
 
-    x+=next.x-here.x;
-    y+=next.y-here.y;
+    /*
+      input / expand 같은 연속 event가 들어와도
+      매번 움직이지 않도록 제한.
+    */
+    const now=performance.now();
 
-    render();
-
-    const speed=
-      Math.hypot(vx,vy);
-
-    if(speed>.02){
-      const intensity=
-        Math.min(
-          1,
-          speed/config.max
-        );
-
-      orb.style.setProperty(
-        "--lean",
-        `${vx/config.max*5}deg`
-      );
-
-      orb.style.setProperty(
-        "--sx",
-        String(
-          1+intensity*.025
-        )
-      );
-
-      orb.style.setProperty(
-        "--sy",
-        String(
-          1-intensity*.018
-        )
-      );
-
-      eyes(
-        vx/speed*.07,
-        vy/speed*.07
-      );
+    if(
+      motion||
+      now-lastIntentMove<700
+    ){
+      return false;
     }
 
-    motionFrame=
-      requestAnimationFrame(
-        stepMotion
-      );
-  }
+    lastIntentMove=now;
 
-  function moveToNode(id){
-    const node=
-      nodeEl(id);
-
-    if(!node)
-      return;
-
-    setMotion({
-      kind:"node",
-      nodeId:String(id),
-      type:"moving"
-    });
-  }
-
-  function moveToClient(
-    client,
-    type="pushed"
-  ){
-    setMotion({
-      kind:"point",
-      client,
-      type
-    });
+    return swooshToward(
+      target.x,
+      target.y,
+      {
+        duration:240
+      }
+    );
   }
 
   function focusNode(
@@ -1112,70 +670,39 @@ function mount(world,canvas){
       pop=false
     }={}
   ){
-    const node=
-      nodeEl(id);
+    const node=nodeEl(id);
 
     if(!node)
       return;
 
-    focusId=
-      String(id);
+    focusId=String(id);
+    attentionUntil=performance.now()+850;
 
-    attentionUntil=
-      performance.now()+1100;
-
-    orb.classList.add(
-      "attention"
-    );
+    orb.classList.add("attention");
 
     if(nodeVisible(node)){
-      const nc=
+      const c=
         center(
           node.getBoundingClientRect()
         );
 
-      const oc=
-        center(
-          orb.getBoundingClientRect()
-        );
-
-      const distance=
-        Math.hypot(
-          nc.x-oc.x,
-          nc.y-oc.y
-        );
-
       lookAt(
-        nc.x,
-        nc.y,
+        c.x,
+        c.y,
         .08
       );
 
-      const view=
-        viewport.getBoundingClientRect();
-
-      const closeDistance=
-        Math.min(
-          view.width,
-          view.height
-        )*.45;
-
-      if(
-        approach&&
-        distance>closeDistance
-      ){
-        moveToNode(id);
-      }
+      if(approach)
+        reactMoveToNode(id);
     }
 
     if(pop)
-      pulse("pop",320);
+      pulse("pop",300);
 
     setTimeout(()=>{
       if(
         focusId===String(id)&&
-        performance.now()>=
-          attentionUntil&&
+        performance.now()>=attentionUntil&&
         !motion
       ){
         focusId=null;
@@ -1186,7 +713,7 @@ function mount(world,canvas){
 
         restoreGaze();
       }
-    },1120);
+    },870);
   }
 
   function overlaps(node){
@@ -1212,19 +739,18 @@ function mount(world,canvas){
       return false;
     }
 
-    const a=
+    const orbRect=
       orb.getBoundingClientRect();
 
-    const b=
+    const nodeRect=
       node.getBoundingClientRect();
 
-    const ac=center(a);
-    const bc=center(b);
+    const oc=center(orbRect);
+    const nc=center(nodeRect);
 
-    let dx=ac.x-bc.x;
-    let dy=ac.y-bc.y;
-    let distance=
-      Math.hypot(dx,dy);
+    let dx=oc.x-nc.x;
+    let dy=oc.y-nc.y;
+    let distance=Math.hypot(dx,dy);
 
     if(distance<1){
       dx=1;
@@ -1232,41 +758,25 @@ function mount(world,canvas){
       distance=1;
     }
 
-    dx/=distance;
-    dy/=distance;
-
-    const overlapX=
-      Math.min(a.right,b.right)-
-      Math.max(a.left,b.left);
-
-    const overlapY=
-      Math.min(a.bottom,b.bottom)-
-      Math.max(a.top,b.top);
-
-    const push=
-      Math.max(
-        34,
-        Math.min(
-          112,
-          Math.max(
-            overlapX,
-            overlapY
-          )+
-          a.width*.9
-        )
-      );
-
-    moveToClient(
+    /*
+      node 반대 방향으로 고정 3 orb-size.
+    */
+    swooshToward(
+      oc.x+
+        dx/distance*
+        orbRect.width*4,
+      oc.y+
+        dy/distance*
+        orbRect.width*4,
       {
-        x:ac.x+dx*push,
-        y:ac.y+dy*push
-      },
-      "pushed"
+        step:3,
+        duration:220
+      }
     );
 
     pulse(
       "bump",
-      240
+      220
     );
 
     blink();
@@ -1285,23 +795,21 @@ function mount(world,canvas){
     const margin=
       rect.width/2+14;
 
-    const sx=
-      Math.max(
-        view.left+margin,
-        Math.min(
-          view.right-margin,
-          c.x
-        )
-      );
+    const sx=Math.max(
+      view.left+margin,
+      Math.min(
+        view.right-margin,
+        c.x
+      )
+    );
 
-    const sy=
-      Math.max(
-        view.top+margin,
-        Math.min(
-          view.bottom-margin,
-          c.y
-        )
-      );
+    const sy=Math.max(
+      view.top+margin,
+      Math.min(
+        view.bottom-margin,
+        c.y
+      )
+    );
 
     if(
       Math.abs(sx-c.x)<1&&
@@ -1310,12 +818,13 @@ function mount(world,canvas){
       return;
     }
 
-    moveToClient(
+    swooshToward(
+      sx,
+      sy,
       {
-        x:sx,
-        y:sy
-      },
-      "returning"
+        step:4,
+        duration:165
+      }
     );
   }
 
@@ -1576,12 +1085,8 @@ function mount(world,canvas){
   bind(
     "select",
     id=>{
-      if(id){
-        focusNode(
-          id,
-          {approach:true}
-        );
-      }
+      if(id)
+        focusNode(id);
     }
   );
 
@@ -1611,10 +1116,6 @@ function mount(world,canvas){
   bind(
     "nodeExpand",
     event=>{
-      /*
-        이동 중이어도 node DOM을 매 프레임
-        다시 읽기 때문에 별도 route reset 불필요.
-      */
       focusNode(
         event.id,
         {approach:true}
@@ -1685,13 +1186,6 @@ function mount(world,canvas){
         focusId=null;
       }
 
-      if(
-        motion?.nodeId===
-        String(node.id)
-      ){
-        stopMotion();
-      }
-
       pulse(
         "pop",
         260
@@ -1730,23 +1224,16 @@ function mount(world,canvas){
     connection=>
       focusNode(
         connection.to.node,
-        {pop:true}
+        {
+          approach:true,
+          pop:true
+        }
       )
   );
 
   bind(
     "viewport",
     ()=>{
-      if(
-        motion?.kind==="node"
-      ){
-        /*
-          viewport 이동 후에도 다음 frame에서
-          현재 실제 rect로 route 재계산.
-        */
-        lastPathUpdate=0;
-      }
-
       scheduleVisible();
     }
   );
@@ -1754,7 +1241,6 @@ function mount(world,canvas){
   bind(
     "workflowApplied",
     ()=>{
-      lastPathUpdate=0;
       scheduleVisible();
     }
   );
