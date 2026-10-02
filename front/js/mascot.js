@@ -9,7 +9,7 @@ function installStyle(){
 
   const style=document.createElement("style");
   style.id=STYLE_ID;
-  style.textContent=\`
+  style.textContent=`
 .ovll-mascot{
   --agent-color:#4b94ff;
   --react-color:var(--agent-color);
@@ -244,7 +244,7 @@ function installStyle(){
     animation:none!important;
   }
 }
-\`;
+`;
 
   document.head.appendChild(style);
 }
