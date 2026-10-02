@@ -9,6 +9,7 @@ const APP_SCRIPTS=[
   "./js/api.js",
   "./js/canvasNode.js",
   "./js/ui.js",
+  "./js/shellMenu.js",
   "./js/ovllPresence.js",
   "./js/app.js",
   "./js/mascot.js"
