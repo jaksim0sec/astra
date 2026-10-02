@@ -312,48 +312,31 @@ function positionCanvasSpeech(){
 
   const pageRect=
     canvasPage.getBoundingClientRect();
+
   const mascotRect=
     mascot.getBoundingClientRect();
-
-  const centerX=
-    mascotRect.left-
-    pageRect.left+
-    mascotRect.width/2;
 
   const centerY=
     mascotRect.top-
     pageRect.top+
     mascotRect.height/2;
 
-  const roomLeft=centerX;
-  const roomRight=
-    pageRect.width-centerX;
-
-  const side=
-    roomLeft>roomRight
-      ?"left"
-      :"right";
-
   const gap=
     Math.max(
-      8,
-      mascotRect.width*.28
+      7,
+      mascotRect.width*.22
     );
 
   const anchorX=
-    side==="left"
-      ?mascotRect.left-
-        pageRect.left-
-        gap
-      :mascotRect.right-
-        pageRect.left+
-        gap;
+    mascotRect.right-
+    pageRect.left+
+    gap;
 
   const speechScale=
     Math.max(
-      .72,
+      .68,
       Math.min(
-        1.22,
+        1.08,
         getCanvasScale()
       )
     );
@@ -367,16 +350,6 @@ function positionCanvasSpeech(){
   bubble.style.setProperty(
     "--ovll-speech-scale",
     String(speechScale)
-  );
-
-  bubble.classList.toggle(
-    "is-left",
-    side==="left"
-  );
-
-  bubble.classList.toggle(
-    "is-right",
-    side==="right"
   );
 
   state.speechFrame=
