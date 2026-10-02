@@ -124,10 +124,10 @@ body {
   color: var(--text);
 
   font-family:
-    -apple-system,
-    BlinkMacSystemFont,
     "Pretendard Variable",
     "Pretendard",
+    -apple-system,
+    BlinkMacSystemFont,
     "Noto Sans KR",
     "Segoe UI",
     sans-serif;
