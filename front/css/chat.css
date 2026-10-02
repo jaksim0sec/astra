@@ -223,92 +223,175 @@
   }
 }
 
-.astra-message-thinking {
-  pointer-events: none;
-}
+.chat-ovll-presence {
+  --chat-ovll-body:#000;
+  --chat-ovll-eye:#fff;
 
-.astra-message-thinking
-.astra-message-body {
-  padding-top: .125rem;
-}
+  position:absolute;
+  z-index:34;
+  left:max(.875rem,var(--safe-left));
+  bottom:.875rem;
 
-.astra-thinking-ovll {
-  --thinking-body: #000;
-  --thinking-eye: #fff;
+  width:2.25rem;
+  height:2.25rem;
 
-  width: 2.125rem;
-  height: 2.125rem;
+  display:grid;
+  place-items:center;
 
-  display: grid;
-  place-items: center;
-
-  border-radius: 50%;
-  background: var(--thinking-body);
+  border-radius:50%;
+  background:var(--chat-ovll-body);
 
   box-shadow:
-    0 .14rem .42rem
-    rgba(0, 0, 0, .14);
+    0 .16rem .5rem
+    rgba(0,0,0,.15);
+
+  pointer-events:none;
 
   animation:
-    astra-thinking-ovll-float
-    1.9s
-    ease-in-out
-    infinite;
-}
-
-:root.dark
-.astra-thinking-ovll {
-  --thinking-body: #fff;
-  --thinking-eye: #000;
-
-  box-shadow:
-    0 .14rem .46rem
-    rgba(0, 0, 0, .28);
-}
-
-.astra-thinking-ovll-eye {
-  width: .64rem;
-  height: .16rem;
-
-  display: block;
-
-  border-radius: 999rem;
-  background: var(--thinking-eye);
-
-  transform: rotate(-3deg);
-
-  animation:
-    astra-thinking-ovll-eye
-    1.9s
+    chat-ovll-idle-body
+    5.8s
     cubic-bezier(.2,.82,.2,1)
     infinite;
 }
 
-@keyframes astra-thinking-ovll-float {
+:root.dark
+.chat-ovll-presence {
+  --chat-ovll-body:#fff;
+  --chat-ovll-eye:#000;
+
+  box-shadow:
+    0 .16rem .54rem
+    rgba(0,0,0,.28);
+}
+
+.chat-ovll-presence-eye {
+  width:.435rem;
+  height:.46rem;
+
+  display:block;
+  border-radius:50%;
+  background:var(--chat-ovll-eye);
+  transform-origin:center;
+
+  animation:
+    chat-ovll-idle-eye
+    6.4s
+    cubic-bezier(.2,.82,.2,1)
+    infinite;
+}
+
+.chat-ovll-presence.is-thinking {
+  animation:
+    chat-ovll-think-body
+    1.55s
+    cubic-bezier(.22,.76,.2,1)
+    infinite;
+}
+
+.chat-ovll-presence.is-thinking
+.chat-ovll-presence-eye {
+  width:.64rem;
+  height:.16rem;
+  border-radius:999rem;
+
+  animation:
+    chat-ovll-think-eye
+    1.55s
+    cubic-bezier(.2,.82,.2,1)
+    infinite;
+}
+
+.chat-ovll-presence.is-settling {
+  animation:
+    chat-ovll-settle
+    .5s
+    cubic-bezier(.18,.88,.25,1.18)
+    both;
+}
+
+.chat-ovll-presence.is-settling
+.chat-ovll-presence-eye {
+  animation:none;
+}
+
+@keyframes chat-ovll-idle-body {
   0%,
   100% {
-    transform: translateY(0);
+    transform:translateY(0) rotate(0deg);
   }
 
-  50% {
-    transform: translateY(-.06rem);
+  52% {
+    transform:translateY(-.055rem) rotate(.7deg);
   }
 }
 
-@keyframes astra-thinking-ovll-eye {
+@keyframes chat-ovll-idle-eye {
   0%,
+  18%,
   100% {
-    transform:
-      translate(-.035rem, 0)
-      rotate(-3deg)
-      scaleX(.96);
+    transform:translate(0,0) scale(1);
   }
 
-  48% {
-    transform:
-      translate(.04rem, -.015rem)
-      rotate(2deg)
-      scaleX(1.04);
+  38%,
+  54% {
+    transform:translate(.08rem,-.025rem) scale(.9,1);
+  }
+
+  72%,
+  84% {
+    transform:translate(-.055rem,.02rem) scale(.94,1);
+  }
+}
+
+@keyframes chat-ovll-think-body {
+  0%,
+  100% {
+    transform:translate(0,0) rotate(0deg) scale(1);
+  }
+
+  24% {
+    transform:translate(.035rem,-.075rem) rotate(1.4deg) scale(1.015,.985);
+  }
+
+  52% {
+    transform:translate(-.025rem,-.12rem) rotate(-1.2deg) scale(.99,1.01);
+  }
+
+  76% {
+    transform:translate(.02rem,-.045rem) rotate(.7deg) scale(1.008,.992);
+  }
+}
+
+@keyframes chat-ovll-think-eye {
+  0%,
+  100% {
+    transform:translate(-.06rem,.015rem) rotate(-4deg) scaleX(.94);
+  }
+
+  24% {
+    transform:translate(.055rem,-.035rem) rotate(2deg) scaleX(1.05);
+  }
+
+  50% {
+    transform:translate(.095rem,.018rem) rotate(4deg) scaleX(.9);
+  }
+
+  74% {
+    transform:translate(-.02rem,-.04rem) rotate(-1deg) scaleX(1.08);
+  }
+}
+
+@keyframes chat-ovll-settle {
+  0% {
+    transform:translateY(-.08rem) scale(1.04,.96);
+  }
+
+  58% {
+    transform:translateY(.02rem) scale(.97,1.03);
+  }
+
+  100% {
+    transform:translateY(0) scale(1);
   }
 }
 
