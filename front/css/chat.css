@@ -202,6 +202,28 @@
   padding-top: 0;
 }
 
+#chat-messages.is-welcome {
+  justify-content: center;
+}
+
+#chat-messages.is-welcome
+.astra-message-ovll-presence {
+  margin-bottom: .125rem;
+}
+
+.astra-message-welcome
+.astra-message-body {
+  font-size: 1rem;
+  font-weight: 560;
+  letter-spacing: -.02em;
+}
+
+.astra-message-welcome
+.astra-message-actions {
+  display: none;
+}
+
+
 
 .astra-message-reveal-char {
   opacity: 0;
