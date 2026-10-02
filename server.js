@@ -11,6 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const FRONT_DIR = path.join(__dirname, 'front');
 const HOME_FILE = path.join(FRONT_DIR, 'index.html');
+const CRON_FILE = path.join(__dirname, 'cron.txt');
 
 app.use(express.json({limit: '1mb'}));
 app.use(compression());
@@ -22,7 +23,7 @@ const PORT = process.env.PORT || 3000;
  * The frontend compares this server value with its locally stored version
  * before loading application assets.
  */
-const APP_VERSION = '2026.10.02.6';
+const APP_VERSION = '2026.10.02.7';
 
 /* =========================================================
    CANONICAL NODE DEFINITION
@@ -1952,6 +1953,37 @@ app.get(
       nodes:
         nodeDefinitionsPublic
     });
+  }
+);
+
+/* =========================================================
+   CRON TEXT
+========================================================= */
+
+app.get(
+  '/cron.txt',
+  (req, res, next) => {
+    res.type('text/plain');
+
+    res.sendFile(
+      CRON_FILE,
+      error => {
+        if (!error) {
+          return;
+        }
+
+        if (
+          error.code === 'ENOENT' ||
+          error.status === 404
+        ) {
+          return res
+            .status(404)
+            .send('Not Found');
+        }
+
+        next(error);
+      }
+    );
   }
 );
 
