@@ -167,6 +167,7 @@
   background: var(--bg);
   touch-action: pan-y;
   will-change: bottom;
+  transition: bottom .09s linear;
 }
 
 /* =========================================================
@@ -284,98 +285,104 @@
   left: 0;
   top: 0;
 
-  width: min(13rem, calc(100vw - 5.5rem));
-  max-width: 50vw;
-  padding: .48rem .62rem;
+  width: min(10.5rem, calc(100vw - 6rem));
+  max-width: 42vw;
+  padding: .36rem .5rem;
 
-  border: .0625rem solid
+  border:
+    .0625rem solid
     color-mix(
       in srgb,
-      var(--line) 68%,
+      var(--line) 42%,
       transparent
     );
-  border-radius: .82rem;
+
+  border-radius: .68rem;
 
   background:
     color-mix(
       in srgb,
-      var(--panel-strong) 86%,
+      var(--panel-strong) 68%,
       transparent
     );
 
   box-shadow:
-    0 .1rem .36rem
-    rgba(0,0,0,.045);
+    0 .06rem .2rem
+    rgba(0,0,0,.025);
 
-  color: var(--text);
-  font-size: .7rem;
-  font-weight: 500;
-  line-height: 1.42;
-  letter-spacing: -.012em;
+  color:
+    color-mix(
+      in srgb,
+      var(--text) 88%,
+      transparent
+    );
+
+  font-size: .64rem;
+  font-weight: 480;
+  line-height: 1.38;
+  letter-spacing: -.01em;
 
   pointer-events: none;
   opacity: 0;
-  transition: opacity .14s ease;
-  will-change: left, top, transform;
+
+  transform:
+    translate(0,-50%)
+    scale(var(--ovll-speech-scale));
+
+  transform-origin: left center;
+
+  transition:
+    opacity .12s ease;
+
+  will-change:
+    left,
+    top,
+    transform;
 }
 
 #ovll-canvas-speech::after {
   content: "";
+
   position: absolute;
+  left: -.18rem;
   top: 50%;
 
-  width: .46rem;
-  height: .46rem;
+  width: .34rem;
+  height: .34rem;
 
   background: inherit;
-  transform: translateY(-50%) rotate(45deg);
-}
 
-#ovll-canvas-speech.is-left {
   transform:
-    translate(-100%, -50%)
-    scale(var(--ovll-speech-scale));
-  transform-origin: right center;
-}
-
-#ovll-canvas-speech.is-left::after {
-  right: -.22rem;
-}
-
-#ovll-canvas-speech.is-right {
-  transform:
-    translate(0, -50%)
-    scale(var(--ovll-speech-scale));
-  transform-origin: left center;
-}
-
-#ovll-canvas-speech.is-right::after {
-  left: -.22rem;
+    translateY(-50%)
+    rotate(45deg);
 }
 
 #ovll-canvas-speech.is-visible {
-  opacity: .93;
+  opacity: .82;
 }
 
 #ovll-canvas-speech.is-thinking {
   width: auto;
-  min-width: 2.25rem;
-  padding: .48rem .56rem;
+  min-width: 1.95rem;
+  padding: .36rem .44rem;
 }
 
 .ovll-canvas-speech-body {
   display: flex;
   align-items: center;
-  min-height: .9rem;
+  min-height: .78rem;
 }
 
 .ovll-speech-dot {
-  width: .18rem;
-  height: .18rem;
-  margin: 0 .075rem;
+  width: .15rem;
+  height: .15rem;
+  margin: 0 .06rem;
+
   border-radius: 50%;
+
   background: currentColor;
-  opacity: .26;
+  opacity: .22;
+
   animation:
     ovll-speech-thinking
     1.05s
@@ -395,12 +402,12 @@
   0%,
   100% {
     transform: translateY(0);
-    opacity: .22;
+    opacity: .18;
   }
 
   45% {
-    transform: translateY(-.12rem);
-    opacity: .7;
+    transform: translateY(-.1rem);
+    opacity: .58;
   }
 }
 
@@ -457,6 +464,7 @@
       0
     );
   will-change: transform;
+  transition: transform .09s linear;
 }
 
 :root.dark #composer {
