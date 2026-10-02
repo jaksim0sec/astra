@@ -387,6 +387,10 @@ function hideCanvasSpeech(){
   );
 
   stopSpeechTracking();
+
+  if(state.phase==="speaking"){
+    setPhase("idle");
+  }
 }
 
 function thinking(){
@@ -496,10 +500,15 @@ function handleModeChange({
   }
 }
 
-UI?.on?.(
-  "modechange",
-  handleModeChange
-);
+const offModeChange=
+  UI?.on?.(
+    "modechange",
+    handleModeChange
+  );
+
+if(typeof offModeChange==="function"){
+  listeners.push(offModeChange);
+}
 
 const api={
   welcome,
