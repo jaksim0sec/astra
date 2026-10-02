@@ -21,6 +21,7 @@
 
   <link rel="manifest" href="/manifest.webmanifest">
   <link rel="icon" href="/pwa-icon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/pwa-192.png">
 
   <title>ovll</title>
 
@@ -175,6 +176,16 @@
           .catch(error => console.warn('Service worker registration failed:', error));
       });
     }
+
+    window.addEventListener('beforeinstallprompt', () => {
+      document.documentElement.dataset.pwaInstallable = 'true';
+      console.info('[PWA] installable');
+    });
+
+    window.addEventListener('appinstalled', () => {
+      document.documentElement.dataset.pwaInstalled = 'true';
+      console.info('[PWA] installed');
+    });
   </script>
 
 </body>
