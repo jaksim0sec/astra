@@ -713,23 +713,23 @@
    SHORT VIEWPORT
    ========================================================= */
 
-@media (orientation: landscape) and (max-height: 32.5rem) {
-  :root {
+@media (max-height: 32.5rem) {
+  html.physical-landscape {
     --composer-extra-height: 2.3125rem;
     --composer-input-height: 1.9375rem;
   }
 
-  #composer-form {
+  html.physical-landscape #composer-form {
     min-height: 2.75rem;
     padding: .3125rem .3125rem .3125rem .8125rem;
   }
 
-  #composer-input {
+  html.physical-landscape #composer-input {
     height: 1.9375rem;
     min-height: 1.9375rem;
   }
 
-  #composer-submit {
+  html.physical-landscape #composer-submit {
     width: 2rem;
     height: 2rem;
     flex-basis: 2rem;
