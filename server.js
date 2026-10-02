@@ -17,6 +17,13 @@ app.use(compression());
 
 const PORT = process.env.PORT || 3000;
 
+/*
+ * Bump this for every deployed app update.
+ * The frontend compares this server value with its locally stored version
+ * before loading application assets.
+ */
+const APP_VERSION = '2026.10.02.1';
+
 /* =========================================================
    CANONICAL NODE DEFINITION
 ========================================================= */
@@ -1913,6 +1920,27 @@ if (!text) {
 );
 
 /* =========================================================
+   APP VERSION API
+========================================================= */
+
+app.get(
+  '/api/version',
+  (req, res) => {
+    res.set({
+      'Cache-Control':
+        'no-store, no-cache, must-revalidate, proxy-revalidate',
+      Pragma: 'no-cache',
+      Expires: '0'
+    });
+
+    return res.json({
+      ok: true,
+      version: APP_VERSION
+    });
+  }
+);
+
+/* =========================================================
    NODE DEFINITION API
 ========================================================= */
 
@@ -2019,6 +2047,9 @@ app.listen(
     );
     console.log(
       `Home: ${HOME_FILE}`
+    );
+    console.log(
+      `Version: ${APP_VERSION}`
     );
   }
 );
