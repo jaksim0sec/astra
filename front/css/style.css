@@ -215,7 +215,10 @@ svg {
   background: var(--bg);
 
   transition:
+    height var(--app-resize-duration) var(--app-resize-ease),
     background-color .2s ease;
+
+  will-change: height;
 }
 
 html.viewport-shrinking {
