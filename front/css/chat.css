@@ -164,11 +164,11 @@
 }
 
 .astra-message-action svg {
-  width: .9rem;
-  height: .9rem;
+  width: .95rem;
+  height: .95rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.7;
+  stroke-width: 1.6;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
@@ -726,7 +726,7 @@
   width:1.875rem;
   height:1.875rem;
   flex:0 0 1.875rem;
-  padding:.375rem;
+  padding:.34375rem;
   border:1px solid var(--line);
   border-radius:.6875rem;
   background:color-mix(
@@ -737,7 +737,7 @@
   color:var(--text);
   fill:none;
   stroke:currentColor;
-  stroke-width:.09375rem;
+  stroke-width:1.5;
   stroke-linecap:round;
   stroke-linejoin:round;
   max-width:none;
