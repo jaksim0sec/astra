@@ -20,6 +20,8 @@
     0 .1875rem .75rem rgba(0, 0, 0, 0.035);
   --topbar-height: 4.25rem;
   --composer-height: 5.5rem;
+  --bottom-dock-lift: .625rem;
+  --bottom-dock-gap: .625rem;
   --real-vh: 100dvh;
   --viewport-height: 100dvh;
   --real-vh-unit: 1vh;
