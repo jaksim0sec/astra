@@ -30,12 +30,30 @@
 #topbar-left,
 #topbar-right {
   position: absolute;
-  top: var(--safe-top);
-  bottom: 0;
+  top: calc(var(--safe-top) + .6875rem);
+  bottom: auto;
   width: 2.625rem;
+  height: 2.625rem;
   display: flex;
   align-items: center;
+  pointer-events: none;
+}
+
+#topbar-left > button,
+#topbar-right > button {
+  width: 2.625rem;
+  height: 2.625rem;
+  display: grid;
+  place-items: center;
+  border: .0625rem solid var(--line);
+  border-radius: 50%;
+  background: var(--panel-soft);
+  color: var(--text);
+  backdrop-filter: blur(1.375rem) saturate(1.08);
+  -webkit-backdrop-filter: blur(1.375rem) saturate(1.08);
+  box-shadow: var(--shadow-soft);
   pointer-events: auto;
+  touch-action: manipulation;
 }
 
 #topbar-left {
@@ -69,7 +87,7 @@
   -webkit-backdrop-filter: blur(1.375rem) saturate(1.08);
   box-shadow: var(--shadow-soft);
   overflow: hidden;
-  pointer-events: auto;
+  pointer-events: none;
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -103,6 +121,7 @@
 #mode-switch button {
   position: relative;
   z-index: 2;
+  pointer-events: auto;
   height: 1.875rem;
   display: flex;
   align-items: center;
@@ -643,7 +662,7 @@
    SHORT VIEWPORT
    ========================================================= */
 
-@media (max-height: 32.5rem) {
+@media (orientation: landscape) and (max-height: 32.5rem) {
   :root {
     --composer-extra-height: 2.3125rem;
     --composer-input-height: 1.9375rem;
@@ -1019,12 +1038,13 @@
 
 #composer-attach svg {
   display: block;
-  width: 1.125rem;
-  height: 1.125rem;
+  width: 1.1875rem;
+  height: 1.1875rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.55;
+  stroke-width: 1.78;
   stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 #composer-file-input {
@@ -1062,11 +1082,11 @@
 }
 
 #composer-attach {
-  width: 2rem;
-  height: 2rem;
-  flex-basis: 2rem;
-  min-width: 2rem;
-  min-height: 2rem;
+  width: 2.0625rem;
+  height: 2.0625rem;
+  flex-basis: 2.0625rem;
+  min-width: 2.0625rem;
+  min-height: 2.0625rem;
 }
 
 #composer-input {
@@ -1081,11 +1101,11 @@
   }
 
   #composer-attach {
-    width: 1.9375rem;
-    height: 1.9375rem;
-    flex-basis: 1.9375rem;
-    min-width: 1.9375rem;
-    min-height: 1.9375rem;
+    width: 2rem;
+    height: 2rem;
+    flex-basis: 2rem;
+    min-width: 2rem;
+    min-height: 2rem;
   }
 }
 
@@ -1096,11 +1116,11 @@
   }
 
   #composer-attach {
-    width: 1.875rem;
-    height: 1.875rem;
-    flex-basis: 1.875rem;
-    min-width: 1.875rem;
-    min-height: 1.875rem;
+    width: 1.9375rem;
+    height: 1.9375rem;
+    flex-basis: 1.9375rem;
+    min-width: 1.9375rem;
+    min-height: 1.9375rem;
   }
 }
 
@@ -1139,4 +1159,19 @@
     opacity: .8;
     transform: translateY(-.12rem);
   }
+}
+
+
+/* =========================================================
+   COMPOSER ICON DETAIL
+   ========================================================= */
+
+#composer-submit svg {
+  width: 1.0625rem;
+  height: 1.0625rem;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
