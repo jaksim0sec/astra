@@ -4,7 +4,7 @@
    ========================================================= */
 
 #ovll-shell-menu {
-  position: fixed;
+  position: absolute;
   z-index: 140;
   inset: 0;
   pointer-events: none;
@@ -134,29 +134,17 @@
   bottom: 0;
   left: 0;
 
-  width: min(
-    21rem,
-    calc(100vw - 2.75rem)
-  );
-
-  padding:
-    max(
-      .75rem,
-      var(--safe-top)
-    )
-    .625rem
-    max(
-      .75rem,
-      var(--safe-bottom)
-    )
-    max(
-      .625rem,
-      var(--safe-left)
+  width:
+    min(
+      24rem,
+      calc(100% - 2.25rem)
     );
+
+  padding: 0;
 
   transform:
     translate3d(
-      calc(-100% - 1rem),
+      -100%,
       0,
       0
     );
@@ -165,7 +153,7 @@
 
   transition:
     transform
-    .32s
+    .3s
     cubic-bezier(
       .2,
       .82,
@@ -202,36 +190,37 @@
 
   overflow: hidden;
 
-  border: .0625rem solid
+  border: 0;
+  border-right:
+    .0625rem solid
     color-mix(
       in srgb,
-      var(--line) 88%,
+      var(--line) 82%,
       transparent
     );
 
-  border-radius:
-    1.5rem;
+  border-radius: 0;
 
   background:
     color-mix(
       in srgb,
-      var(--panel) 92%,
+      var(--panel) 97%,
       transparent
     );
 
   box-shadow:
+    .45rem
     0
-    .55rem
-    2rem
-    rgba(0,0,0,.09);
+    1.6rem
+    rgba(0,0,0,.075);
 
   backdrop-filter:
-    blur(1.75rem)
-    saturate(1.08);
+    blur(1.5rem)
+    saturate(1.05);
 
   -webkit-backdrop-filter:
-    blur(1.75rem)
-    saturate(1.08);
+    blur(1.5rem)
+    saturate(1.05);
 }
 
 /* header */
@@ -240,10 +229,10 @@
   min-height: 3.9rem;
 
   padding:
-    .65rem
+    calc(var(--safe-top) + .65rem)
     .7rem
     .55rem
-    .8rem;
+    max(.8rem,var(--safe-left));
 
   display: flex;
   align-items: center;
@@ -364,7 +353,10 @@
 
 .ovll-shell-menu-footer {
   padding:
-    .6rem;
+    .6rem
+    .6rem
+    calc(var(--safe-bottom) + .6rem)
+    max(.6rem,var(--safe-left));
 
   border-top:
     .0625rem solid
@@ -539,17 +531,7 @@ html.shell-menu-open body {
 
 @media (max-width: 30rem) {
   #ovll-shell-menu-panel {
-    width:
-      min(
-        19.5rem,
-        calc(100vw - 2.1rem)
-      );
-
-    padding-right: .45rem;
-  }
-
-  .ovll-shell-menu-panel-inner {
-    border-radius: 1.35rem;
+    width: calc(100% - 2rem);
   }
 }
 
