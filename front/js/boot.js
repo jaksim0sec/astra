@@ -154,20 +154,43 @@ async function syncVersion(){
   }
 
   if(localVersion===null){
+    const cacheKeys=
+      "caches" in global
+        ?await caches.keys()
+        :[];
+
+    const hasLegacyCache=
+      cacheKeys.some(
+        key=>
+          key.startsWith(
+            "ovll-shell-"
+          )
+      );
+
+    const hasController=
+      !!navigator.serviceWorker?.controller;
+
     localStorage.setItem(
       VERSION_KEY,
       serverVersion
     );
 
-    return true;
+    if(
+      !hasLegacyCache&&
+      !hasController
+    ){
+      return true;
+    }
+
+    await clearAppCaches();
+  }else{
+    localStorage.setItem(
+      VERSION_KEY,
+      serverVersion
+    );
+
+    await clearAppCaches();
   }
-
-  localStorage.setItem(
-    VERSION_KEY,
-    serverVersion
-  );
-
-  await clearAppCaches();
 
   const alreadyReloaded=
     sessionStorage.getItem(
