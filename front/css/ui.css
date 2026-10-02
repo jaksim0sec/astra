@@ -735,7 +735,7 @@
     flex-basis: 2rem;
   }
 
-  #composer-form.is-expanded {
+  html.physical-landscape #composer-form.is-expanded {
     border-radius: var(--radius-md);
   }
 }
