@@ -68,35 +68,35 @@
 
 html{
   font-size:clamp(
-    .9375rem,
-    calc(.875rem + .6vw),
-    1.0625rem
+    .953125rem,
+    calc(.890625rem + .6vw),
+    1.078125rem
   );
 }
 @media (max-width:43.75rem){
   html{
     font-size:clamp(
-      .9375rem,
-      calc(.9rem + .4vw),
-      1rem
+      .953125rem,
+      calc(.915625rem + .4vw),
+      1.015625rem
     );
   }
 }
 @media (max-width:26.25rem){
   html{
     font-size:clamp(
-      .9375rem,
-      calc(.9rem + .2vw),
-      .96875rem
+      .953125rem,
+      calc(.915625rem + .2vw),
+      .984375rem
     );
   }
 }
 @media (orientation: landscape) and (max-height:32.5rem){
   html{
     font-size:clamp(
-      .875rem,
-      calc(.85rem + .25vw),
-      .9375rem
+      .890625rem,
+      calc(.865625rem + .25vw),
+      .953125rem
     );
   }
 }
