@@ -514,9 +514,9 @@ html.shell-menu-open body {
   overscroll-behavior: none;
 }
 
-@media (max-width: 30rem) {
+@media (max-width: 43.75rem) {
   #ovll-shell-menu-panel {
-    width: calc(100% - 2.5rem);
+    width: 70vw;
   }
 }
 
