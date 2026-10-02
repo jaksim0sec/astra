@@ -1,0 +1,234 @@
+(function(global){
+"use strict";
+
+const VERSION_KEY="ovll:app-version";
+const RELOAD_KEY="ovll:version-reload";
+
+const APP_SCRIPTS=[
+  "./js/functions.js",
+  "./js/api.js",
+  "./js/canvasNode.js",
+  "./js/ui.js",
+  "./js/ovllPresence.js",
+  "./js/app.js",
+  "./js/mascot.js"
+];
+
+async function getServerVersion(){
+  const response=
+    await fetch(
+      "/api/version",
+      {
+        cache:"no-store",
+        headers:{
+          Accept:"application/json"
+        }
+      }
+    );
+
+  if(!response.ok){
+    throw new Error(
+      `Version check failed: ${response.status}`
+    );
+  }
+
+  const data=
+    await response.json();
+
+  const version=
+    String(
+      data?.version||""
+    ).trim();
+
+  if(!version){
+    throw new Error(
+      "Server version is empty."
+    );
+  }
+
+  return version;
+}
+
+async function clearAppCaches(){
+  if(!("caches" in global)){
+    return;
+  }
+
+  const keys=
+    await caches.keys();
+
+  await Promise.all(
+    keys.map(
+      key=>caches.delete(key)
+    )
+  );
+}
+
+function loadScript(src){
+  return new Promise(
+    (resolve,reject)=>{
+      const script=
+        document.createElement(
+          "script"
+        );
+
+      script.src=src;
+      script.async=false;
+
+      script.addEventListener(
+        "load",
+        ()=>resolve(),
+        {once:true}
+      );
+
+      script.addEventListener(
+        "error",
+        ()=>reject(
+          new Error(
+            `Failed to load ${src}`
+          )
+        ),
+        {once:true}
+      );
+
+      document.body.appendChild(
+        script
+      );
+    }
+  );
+}
+
+async function loadApp(){
+  for(const src of APP_SCRIPTS){
+    await loadScript(src);
+  }
+}
+
+async function registerServiceWorker(){
+  if(!("serviceWorker" in navigator)){
+    return;
+  }
+
+  try{
+    const registration=
+      await navigator.serviceWorker.register(
+        "/sw.js",
+        {
+          scope:"/"
+        }
+      );
+
+    registration.update?.();
+  }catch(error){
+    console.warn(
+      "Service worker registration failed:",
+      error
+    );
+  }
+}
+
+async function syncVersion(){
+  const serverVersion=
+    await getServerVersion();
+
+  const localVersion=
+    localStorage.getItem(
+      VERSION_KEY
+    );
+
+  document.documentElement.dataset.appVersion=
+    serverVersion;
+
+  if(localVersion===serverVersion){
+    if(
+      sessionStorage.getItem(
+        RELOAD_KEY
+      )===serverVersion
+    ){
+      sessionStorage.removeItem(
+        RELOAD_KEY
+      );
+    }
+
+    return true;
+  }
+
+  localStorage.setItem(
+    VERSION_KEY,
+    serverVersion
+  );
+
+  await clearAppCaches();
+
+  const alreadyReloaded=
+    sessionStorage.getItem(
+      RELOAD_KEY
+    )===serverVersion;
+
+  if(alreadyReloaded){
+    return true;
+  }
+
+  sessionStorage.setItem(
+    RELOAD_KEY,
+    serverVersion
+  );
+
+  global.location.reload();
+
+  return false;
+}
+
+async function start(){
+  let canStart=true;
+
+  try{
+    canStart=
+      await syncVersion();
+  }catch(error){
+    console.warn(
+      "App version check failed:",
+      error
+    );
+  }
+
+  if(!canStart){
+    return;
+  }
+
+  await loadApp();
+  await registerServiceWorker();
+}
+
+global.addEventListener(
+  "beforeinstallprompt",
+  ()=>{
+    document.documentElement.dataset.pwaInstallable=
+      "true";
+
+    console.info(
+      "[PWA] installable"
+    );
+  }
+);
+
+global.addEventListener(
+  "appinstalled",
+  ()=>{
+    document.documentElement.dataset.pwaInstalled=
+      "true";
+
+    console.info(
+      "[PWA] installed"
+    );
+  }
+);
+
+start().catch(error=>{
+  console.error(
+    "ovll bootstrap failed:",
+    error
+  );
+});
+
+})(window);
