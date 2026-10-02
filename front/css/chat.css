@@ -227,56 +227,88 @@
   pointer-events: none;
 }
 
-.astra-thinking {
-  display: inline-flex;
-  align-items: center;
-  gap: .45rem;
-  min-height: 1.35rem;
-  color: var(--muted);
+.astra-message-thinking
+.astra-message-body {
+  padding-top: .125rem;
 }
 
-.astra-thinking-label {
-  font-size: .75rem;
-  line-height: 1;
-  opacity: .72;
-}
+.astra-thinking-ovll {
+  --thinking-body: #000;
+  --thinking-eye: #fff;
 
-.astra-thinking-dots {
-  display: inline-flex;
-  align-items: center;
-  gap: .18rem;
-  height: .75rem;
-}
+  width: 2.125rem;
+  height: 2.125rem;
 
-.astra-thinking-dots i {
-  width: .24rem;
-  height: .24rem;
-  display: block;
+  display: grid;
+  place-items: center;
+
   border-radius: 50%;
-  background: currentColor;
-  opacity: .28;
-  animation: astra-thinking-dot 1s ease-in-out infinite;
+  background: var(--thinking-body);
+
+  box-shadow:
+    0 .14rem .42rem
+    rgba(0, 0, 0, .14);
+
+  animation:
+    astra-thinking-ovll-float
+    1.9s
+    ease-in-out
+    infinite;
 }
 
-.astra-thinking-dots i:nth-child(2) {
-  animation-delay: .14s;
+:root.dark
+.astra-thinking-ovll {
+  --thinking-body: #fff;
+  --thinking-eye: #000;
+
+  box-shadow:
+    0 .14rem .46rem
+    rgba(0, 0, 0, .28);
 }
 
-.astra-thinking-dots i:nth-child(3) {
-  animation-delay: .28s;
+.astra-thinking-ovll-eye {
+  width: .64rem;
+  height: .16rem;
+
+  display: block;
+
+  border-radius: 999rem;
+  background: var(--thinking-eye);
+
+  transform: rotate(-3deg);
+
+  animation:
+    astra-thinking-ovll-eye
+    1.9s
+    cubic-bezier(.2,.82,.2,1)
+    infinite;
 }
 
-@keyframes astra-thinking-dot {
+@keyframes astra-thinking-ovll-float {
   0%,
-  55%,
   100% {
-    opacity: .22;
-    transform: translateY(0) scale(.82);
+    transform: translateY(0);
   }
 
-  28% {
-    opacity: .86;
-    transform: translateY(-.14rem) scale(1);
+  50% {
+    transform: translateY(-.06rem);
+  }
+}
+
+@keyframes astra-thinking-ovll-eye {
+  0%,
+  100% {
+    transform:
+      translate(-.035rem, 0)
+      rotate(-3deg)
+      scaleX(.96);
+  }
+
+  48% {
+    transform:
+      translate(.04rem, -.015rem)
+      rotate(2deg)
+      scaleX(1.04);
   }
 }
 
