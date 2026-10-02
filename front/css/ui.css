@@ -1087,3 +1087,40 @@
     min-height: 1.875rem;
   }
 }
+
+
+.canvas-ai-thinking {
+  display: inline-flex;
+  align-items: center;
+  gap: .18rem;
+  min-height: .8rem;
+}
+
+.canvas-ai-thinking span {
+  width: .22rem;
+  height: .22rem;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .25;
+  animation: canvas-ai-thinking-dot .95s ease-in-out infinite;
+}
+
+.canvas-ai-thinking span:nth-child(2) {
+  animation-delay: .14s;
+}
+
+.canvas-ai-thinking span:nth-child(3) {
+  animation-delay: .28s;
+}
+
+@keyframes canvas-ai-thinking-dot {
+  0%, 100% {
+    opacity: .22;
+    transform: translateY(0);
+  }
+
+  35% {
+    opacity: .8;
+    transform: translateY(-.12rem);
+  }
+}

@@ -9,7 +9,7 @@
   padding: 1.125rem 0 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: 1.375rem;
+  gap: 1.125rem;
 }
 
 .astra-message {
@@ -137,13 +137,13 @@
 }
 
 .astra-message-action {
-  width: 2rem;
-  height: 2rem;
+  width: 1.7rem;
+  height: 1.7rem;
   padding: 0;
   display: grid;
   place-items: center;
   border: 0;
-  border-radius: .55rem;
+  border-radius: 0;
   background: transparent;
   color: var(--muted);
   font-size: 0;
@@ -157,13 +157,6 @@
 
 .astra-message-action:hover {
   color: var(--text);
-
-  background:
-    color-mix(
-      in srgb,
-      var(--text) 6%,
-      transparent
-    );
 }
 
 .astra-message-action:active {
@@ -171,8 +164,8 @@
 }
 
 .astra-message-action svg {
-  width: 1rem;
-  height: 1rem;
+  width: .9rem;
+  height: .9rem;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.7;
@@ -207,6 +200,84 @@
 .astra-message-assistant:first-of-type
 .astra-message-body {
   padding-top: 0;
+}
+
+
+.astra-message-reveal-char {
+  opacity: 0;
+  animation:
+    astra-message-reveal
+    .01s
+    linear
+    calc(var(--reveal-index) * .018s)
+    both;
+}
+
+@keyframes astra-message-reveal {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.astra-message-thinking {
+  pointer-events: none;
+}
+
+.astra-thinking {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  min-height: 1.35rem;
+  color: var(--muted);
+}
+
+.astra-thinking-label {
+  font-size: .75rem;
+  line-height: 1;
+  opacity: .72;
+}
+
+.astra-thinking-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: .18rem;
+  height: .75rem;
+}
+
+.astra-thinking-dots i {
+  width: .24rem;
+  height: .24rem;
+  display: block;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .28;
+  animation: astra-thinking-dot 1s ease-in-out infinite;
+}
+
+.astra-thinking-dots i:nth-child(2) {
+  animation-delay: .14s;
+}
+
+.astra-thinking-dots i:nth-child(3) {
+  animation-delay: .28s;
+}
+
+@keyframes astra-thinking-dot {
+  0%,
+  55%,
+  100% {
+    opacity: .22;
+    transform: translateY(0) scale(.82);
+  }
+
+  28% {
+    opacity: .86;
+    transform: translateY(-.14rem) scale(1);
+  }
 }
 
 .astra-message-body::selection {
@@ -513,4 +584,41 @@
     border-color .18s ease,
     transform .2s var(--ease),
     box-shadow .2s ease;
+}
+
+    
+.canvas-ai-thinking {
+  display: inline-flex;
+  align-items: center;
+  gap: .18rem;
+  height: .8rem;
+}
+
+.canvas-ai-thinking span {
+  width: .22rem;
+  height: .22rem;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .25;
+  animation: canvas-ai-thinking .95s ease-in-out infinite;
+}
+
+.canvas-ai-thinking span:nth-child(2) {
+  animation-delay: .14s;
+}
+
+.canvas-ai-thinking span:nth-child(3) {
+  animation-delay: .28s;
+}
+
+@keyframes canvas-ai-thinking {
+  0%, 100% {
+    opacity: .22;
+    transform: translateY(0);
+  }
+
+  35% {
+    opacity: .8;
+    transform: translateY(-.12rem);
+  }
 }

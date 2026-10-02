@@ -145,7 +145,7 @@
      Chat
      ======================================================= */
 
-  function updateCanvasAIContext(text) {
+  function updateCanvasAIContext(text, thinking = false) {
     const page =
       document.querySelector(
         "#canvas-page"
@@ -198,8 +198,18 @@
 
     if (!body) return;
 
-    body.textContent =
-      String(text ?? "").trim();
+    if (thinking) {
+      body.innerHTML = `
+        <div class="canvas-ai-thinking">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+      `;
+    } else {
+      body.textContent =
+        String(text ?? "").trim();
+    }
 
     preview.classList.remove(
       "is-visible"
@@ -372,8 +382,8 @@
 
       copyButton.innerHTML = `
         <svg viewBox="0 0 16 16" aria-hidden="true">
-          <rect x="5" y="4" width="7" height="8" rx="1.5"></rect>
-          <path d="M4 10.5H3.5A1.5 1.5 0 0 1 2 9V3.5A1.5 1.5 0 0 1 3.5 2H9A1.5 1.5 0 0 1 10.5 3.5V4"></path>
+          <rect x="4.5" y="4.5" width="7" height="7"></rect>
+          <path d="M3 9V3h6"></path>
         </svg>
         <span>복사</span>
       `;
@@ -408,9 +418,9 @@
           "재시도";
 
         retryButton.innerHTML = `
-          <svg viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M13 5.5V2.5M13 2.5H10"></path>
-            <path d="M12.4 6.3A5 5 0 1 0 13 9"></path>
+            <svg viewBox="0 0 16 16" aria-hidden="true">
+            <path d="M12.5 5.5A4.5 4.5 0 1 0 13 9"></path>
+            <path d="M12.5 2.5v3h-3"></path>
           </svg>
           <span>재시도</span>
         `;
@@ -474,6 +484,60 @@
       );
 
     return message;
+  }
+
+  function addThinkingMessage() {
+    const message =
+      document.createElement("div");
+
+    message.className =
+      "astra-message astra-message-assistant astra-message-thinking";
+
+    const body =
+      document.createElement("div");
+
+    body.className =
+      "astra-message-body";
+
+    body.innerHTML = `
+      <div class="astra-thinking">
+        <span class="astra-thinking-label">Astra</span>
+        <span class="astra-thinking-dots" aria-hidden="true">
+          <i></i>
+          <i></i>
+          <i></i>
+        </span>
+      </div>
+    `;
+
+    message.appendChild(body);
+    chatMessages.appendChild(message);
+    scrollChatToBottom();
+
+    return message;
+  }
+
+  function removeThinkingMessage(message) {
+    if (!message) return;
+    message.remove();
+  }
+
+  function revealAssistantMessage(message, text) {
+    const body = message?.querySelector(".astra-message-body");
+    if (!body) return;
+
+    const chars = Array.from(String(text ?? ""));
+    body.textContent = "";
+
+    chars.forEach((char, index) => {
+      const span = document.createElement("span");
+      span.className = "astra-message-reveal-char";
+      span.textContent = char;
+      span.style.setProperty("--reveal-index", index);
+      body.appendChild(span);
+    });
+
+    return chars.length * 18;
   }
 
   function addSystemMessage(text) {
@@ -800,9 +864,40 @@
 
     setBusy(true);
 
+    updateCanvasAIContext("", true);
+
+    const thinkingMessage =
+      addThinkingMessage();
+
+    const thinkingStartedAt =
+      performance.now();
+
     try {
       const result =
         await plan(value);
+
+      const elapsed =
+        performance.now() -
+        thinkingStartedAt;
+
+      const remaining =
+        Math.max(
+          0,
+          650 - elapsed
+        );
+
+      if (remaining > 0) {
+        await new Promise(resolve =>
+          setTimeout(
+            resolve,
+            remaining
+          )
+        );
+      }
+
+      removeThinkingMessage(
+        thinkingMessage
+      );
 
       if (
         result.message ||
@@ -822,11 +917,24 @@
           );
 
         if (message) {
+          await new Promise(resolve =>
+            setTimeout(
+              resolve,
+              revealAssistantMessage(
+                message,
+                result.message || ""
+              )
+            )
+          );
         }
       }
 
       syncWorkflow();
     } catch (error) {
+      removeThinkingMessage(
+        thinkingMessage
+      );
+
       console.error(
         "Astra Planner Error:",
         error

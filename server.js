@@ -143,7 +143,7 @@ const defaultNodeDef = {
   },
 
   judge: {
-    name: '판단하기',
+    name: '평가하기',
     desc: '조건을 판단하고 참 또는 거짓 경로로 데이터를 전달합니다.',
     llmdesc: '참자료→참출구, 거짓자료→거짓출구로 자료, 실행 흐름이 연결됨. condition가 참이면 참출구만, 아니면 거짓출구만 열리며 동시에 두개가 열리는 상황은 없음.',
     tag: 'JUDGE',
@@ -397,31 +397,22 @@ CONVERSATION AND WORKFLOW:
 - mode="conversation" for greetings, questions, explanations, casual conversation, follow-up requests, and anything that does not require changing the workflow.
 - mode="workflow" only when the user asks to create, modify, delete, connect, disconnect, configure, rebuild, or otherwise change the workflow.
 - In conversation mode, ops MUST be [].
-- MEMORY is persistent conversation state. The MEMORY supplied in the current request is the PREVIOUS MEMORY STATE.
-- The memory returned in the response is the NEXT MEMORY STATE, not a summary of only the latest request.
-- Build NEXT MEMORY from PREVIOUS MEMORY + LATEST_USER_REQUEST.
-- Start from the previous memory and change only information supported by the latest user request.
-- If the latest request does not change a field, preserve that field exactly in meaning.
-- Never clear or replace a non-empty field merely because the latest request does not mention it.
-- An empty value means the information is genuinely unknown or has been explicitly invalidated. It does not mean "not mentioned this turn".
-- memory.flow = a dense sentence capturing the persistent subject, purpose, and direction of the conversation as a whole. Preserve the broader thread across turns and include meaningful context and keywords; never collapse it into a generic category or single word such as "인사".
-- memory.recent = a dense sentence capturing the latest request together with the immediately relevant preceding context and the important content of the assistant response from this turn. Keep the context needed to understand references such as "그거", "그 사람", "방금", and "아까". Do not reduce recent to only the user’s latest sentence.
-- memory.detail = durable facts, decisions, requirements, constraints, preferences, and other established information that may matter later.
-- Each non-empty memory field must be an information-dense complete sentence containing the core facts and keywords needed to reconstruct context. Do not reduce flow, recent, or detail to labels, categories, isolated words, or shallow descriptions.
-- During ordinary conversation, flow and detail normally remain unchanged while recent is updated with the new local context.
-- When new information is added, incorporate it without deleting unrelated existing information.
-- When the user explicitly corrects previous information, update only the affected information and preserve everything else.
-- Never guess missing information. When uncertain, preserve the previous memory.
-- Never turn MEMORY into a transcript or append the whole conversation to it.
-- Update MEMORY only after determining the complete user-facing message for the turn, and preserve the important context introduced or clarified by that response as part of the next memory state.
-- MEMORY is the persistent state. Other context may help interpret the latest request, but it must not replace or reset MEMORY.
-- Before returning memory, verify:
-  1. Unchanged fields were preserved.
-  2. Changed fields reflect only information supported by the latest request.
-  3. recent still contains enough local context to resolve references.
+- MEMORY is persistent conversation state. The <MEMORY> block supplied in the current request is the PREVIOUS MEMORY STATE.
+- The returned memory is the NEXT MEMORY STATE.
+- Build NEXT MEMORY from PREVIOUS MEMORY + LATEST_USER_REQUEST + the actual user-facing response you generate in message/question.
+- Finish the user-facing message and question first, then construct memory from the completed turn. Never describe a response that has not been generated yet.
+- Preserve the previous memory and update only what the complete current turn adds, changes, or corrects.
+- flow = broad ongoing subject and direction. Keep existing thread and add newly introduced meaningful topics. Write dense content with important nouns facts actions and context. Minimize filler words particles and punctuation. Never reduce flow to a category or single word.
+- recent = latest local context. Combine latest user request needed preceding context and actual response meaning in one dense sentence. Keep concrete nouns facts actions and references needed for the next turn. Minimize filler particles and punctuation. Never use future statements such as "설명할 것이다".
+- detail = cumulative important facts topics decisions requirements preferences and established information. Preserve previous detail and add new meaningful information. Keep concrete content and keywords. Minimize filler particles and punctuation.
+- Every non-empty memory field must be one compact information-dense sentence. Maximize useful facts keywords entities actions and relationships. Minimize unnecessary particles repetition explanation and punctuation. Do not use labels isolated keywords or shallow summaries.
+- During ordinary conversation, flow normally continues, recent is refreshed, and detail is preserved or expanded when the turn adds meaningful information.
+- Never clear unrelated memory just because it was not mentioned in the latest request.
+- Never invent information. When uncertain, preserve the previous state.
+- Never turn MEMORY into a transcript.
+- Before returning memory, verify that the broader conversation context, important previously discussed topics, latest request, and actual response are still represented where relevant.
 - User-facing message and question must use the language of the latest user request.
-- Keep MEMORY factual. Do not invent information.
-- question must always be a string. Use "" when no clarification is needed. Use "" when no clarification is needed.
+- question must always be a string. Use "" when no clarification is needed.
 
 
 You are Astra's deterministic workflow planner.
@@ -1580,13 +1571,13 @@ function buildUserPrompt(
   memory
 ) {
   return [
-    '<MEMORY>',
+    '<PREVIOUS_MEMORY>',
     JSON.stringify(
       normalizeMemory(
         memory
       )
     ),
-    '</MEMORY>',
+    '</PREVIOUS_MEMORY>',
     '<CURRENT_WORKFLOW>',
     JSON.stringify(
       workflow
