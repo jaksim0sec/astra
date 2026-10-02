@@ -527,3 +527,47 @@ html.shell-menu-open body {
     transition: none;
   }
 }
+
+
+/* =========================================================
+   OVLL SHELL POLISH
+   ========================================================= */
+
+#ovll-shell-menu-trigger {
+  border: var(--ui-line-width) solid var(--ui-line);
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-glass);
+  backdrop-filter: var(--ui-backdrop);
+  -webkit-backdrop-filter: var(--ui-backdrop);
+  box-shadow: var(--ui-control-shadow);
+}
+
+#ovll-shell-menu-trigger:hover {
+  border-color: var(--ui-line-strong);
+  background: var(--ui-glass-strong);
+}
+
+.ovll-shell-menu-wordmark {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: baseline;
+  gap: .32rem;
+  padding: 0 .15rem;
+  white-space: nowrap;
+  color: var(--text);
+  letter-spacing: -.02em;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.ovll-shell-menu-wordmark strong {
+  font-size: .84rem;
+  font-weight: 720;
+}
+
+.ovll-shell-menu-wordmark span {
+  color: var(--muted);
+  font-size: .69rem;
+  font-weight: 560;
+  letter-spacing: .01em;
+}

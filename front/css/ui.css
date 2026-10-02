@@ -1235,3 +1235,56 @@
   stroke-linecap: round;
   stroke-linejoin: round;
 }
+
+
+/* =========================================================
+   OVLL UI COHESION
+   ========================================================= */
+
+#mode-switch,
+#composer-form,
+#canvas-node-builder-layout,
+#canvas-node-builder-toggle {
+  border: var(--ui-line-width) solid var(--ui-line);
+  background: var(--ui-glass);
+  backdrop-filter: var(--ui-backdrop);
+  -webkit-backdrop-filter: var(--ui-backdrop);
+  box-shadow: var(--ui-control-shadow);
+}
+
+#mode-switch,
+#mode-switch::before,
+#composer-form,
+#canvas-node-builder-layout,
+#canvas-node-builder-toggle {
+  border-radius: var(--ui-radius-pill);
+}
+
+#mode-switch::before {
+  border: var(--ui-line-width) solid var(--ui-line);
+  background: var(--ui-glass-strong);
+}
+
+#composer-form.is-expanded {
+  border-radius: var(--ui-radius-panel);
+}
+
+#mode-switch:hover,
+#composer-form:focus-within,
+#canvas-node-builder-layout:hover,
+#canvas-node-builder-toggle:hover {
+  border-color: var(--ui-line-strong);
+}
+
+#canvas-node-builder-panel {
+  border: var(--ui-line-width) solid var(--ui-line);
+  border-radius: var(--ui-radius-panel);
+  background: var(--ui-glass);
+  backdrop-filter: var(--ui-backdrop);
+  -webkit-backdrop-filter: var(--ui-backdrop);
+}
+
+.canvas-node-builder-option {
+  border: var(--ui-line-width) solid var(--ui-line);
+  border-radius: var(--ui-radius-item);
+}

@@ -29,11 +29,26 @@
   --viewport-height: 100dvh;
   --real-vh-unit: 1vh;
   --ease: cubic-bezier(.2, .82, .2, 1);
-  --radius-sm: .6875rem;
-  --radius-md: 1.5em;
-  --radius-lg: 1.3125rem;
-  --radius-xl: 1.6875rem;
-  --radius-round: 62.4375rem;
+  --radius-sm: .75rem;
+  --radius-md: .9375rem;
+  --radius-lg: 1.125rem;
+  --radius-xl: 1.375rem;
+  --radius-round: 999px;
+
+  --ui-line-width: 1px;
+  --ui-line: var(--line);
+  --ui-line-strong: var(--line-strong);
+  --ui-radius-pill: 999px;
+  --ui-radius-panel: 1.125rem;
+  --ui-radius-item: .875rem;
+  --ui-glass: var(--panel-soft);
+  --ui-glass-strong: var(--panel-strong);
+  --ui-control-shadow: var(--shadow-soft);
+  --ui-backdrop: blur(1.375rem) saturate(1.08);
+
+  --app-resize-duration: .46s;
+  --app-resize-ease: cubic-bezier(.22,.61,.36,1);
+
   --page-progress: 0;
 }
 
@@ -111,6 +126,7 @@ body {
   font-family:
     -apple-system,
     BlinkMacSystemFont,
+    "Pretendard Variable",
     "Pretendard",
     "Noto Sans KR",
     "Segoe UI",
@@ -182,7 +198,7 @@ svg {
   background: var(--bg);
 
   transition:
-    height .46s cubic-bezier(.22,.61,.36,1),
+    height var(--app-resize-duration) var(--app-resize-ease),
     background-color .2s ease;
 
   will-change: height;
@@ -199,11 +215,20 @@ svg {
   background: var(--bg);
 
   transition:
-    height .46s
-    cubic-bezier(.22,.61,.36,1),
+    height var(--app-resize-duration) var(--app-resize-ease),
     background-color .2s ease;
 
   will-change: height;
+}
+
+html.viewport-shrinking {
+  --app-resize-duration: .64s;
+  --app-resize-ease: cubic-bezier(.4, 0, .2, 1);
+}
+
+html.viewport-growing {
+  --app-resize-duration: .46s;
+  --app-resize-ease: cubic-bezier(.22,.61,.36,1);
 }
 
 @media (prefers-reduced-motion: reduce) {

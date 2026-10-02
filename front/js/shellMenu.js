@@ -99,6 +99,7 @@ root.innerHTML=`
     id="ovll-shell-menu-panel"
     aria-hidden="true"
     aria-label="메뉴"
+    tabindex="-1"
   >
     <div class="ovll-shell-menu-panel-inner">
 
@@ -114,21 +115,13 @@ root.innerHTML=`
             <span></span>
           </div>
         </div>
-
-        <button
-          class="ovll-shell-menu-close"
-          type="button"
-          aria-label="메뉴 닫기"
+        <div
+          class="ovll-shell-menu-wordmark"
+          aria-label="오블 ovll"
         >
-          <svg
-            viewBox="0 0 20 20"
-            fill="none"
-            aria-hidden="true"
-          >
-            <path d="M5.5 5.5 14.5 14.5"></path>
-            <path d="M14.5 5.5 5.5 14.5"></path>
-          </svg>
-        </button>
+          <strong>오블</strong>
+          <span>ovll</span>
+        </div>
       </header>
 
       <div
@@ -164,10 +157,6 @@ const panel=
     "#ovll-shell-menu-panel"
   );
 
-const closeButton=
-  root.querySelector(
-    ".ovll-shell-menu-close"
-  );
 
 const slotMap={
   header:
@@ -224,7 +213,7 @@ function setOpen(open){
 
   if(next){
     requestAnimationFrame(
-      ()=>closeButton.focus({
+      ()=>panel.focus({
         preventScroll:true
       })
     );
@@ -396,11 +385,6 @@ listen(
   toggle
 );
 
-listen(
-  closeButton,
-  "click",
-  close
-);
 
 listen(
   backdrop,
