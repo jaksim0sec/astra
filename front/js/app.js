@@ -470,6 +470,10 @@
 
     if (!value) return null;
 
+    chatMessages.classList.remove(
+      "is-welcome"
+    );
+
     const message =
       createMessage(
         "user",
@@ -1379,11 +1383,31 @@ listen(composerInput, "keydown", handleComposerKeydown);
 
     state.ready = true;
 
-    addSystemMessage(
-      "무엇을 만들지 입력하면 오블이 워크플로우를 구성합니다."
+    const welcomeOvll =
+      ensureChatOvll();
+
+    const welcomeMessage =
+      addAssistantMessage(
+        "안녕. 뭘 만들어볼까?"
+      );
+
+    welcomeMessage?.classList.add(
+      "astra-message-welcome"
     );
 
-    ensureChatOvll();
+    if (
+      welcomeOvll &&
+      welcomeMessage
+    ) {
+      chatMessages.insertBefore(
+        welcomeOvll,
+        welcomeMessage
+      );
+    }
+
+    chatMessages.classList.add(
+      "is-welcome"
+    );
 
     resizeComposer();
     scrollChatToBottom(true);
