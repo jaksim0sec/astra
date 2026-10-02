@@ -398,7 +398,7 @@ function mount(world,canvas,options={}){
   }
 
   function eyes(dx=0,dy=0){
-    const max=.17;
+    const max=.19;
 
     const nx=Math.max(
       -1,
@@ -446,7 +446,7 @@ function mount(world,canvas,options={}){
     );
   }
 
-  function lookAt(clientX,clientY,amount=.15){
+  function lookAt(clientX,clientY,amount=.175){
     const c=
       center(
         orb.getBoundingClientRect()
@@ -525,7 +525,7 @@ function mount(world,canvas,options={}){
       lookAt(
         c.x,
         c.y,
-        .17
+        .195
       );
 
       return;
@@ -548,7 +548,7 @@ function mount(world,canvas,options={}){
       lookAt(
         c.x,
         c.y,
-        .105
+        .135
       );
 
       return;
@@ -785,8 +785,8 @@ function mount(world,canvas,options={}){
     orb.style.setProperty("--sy",".986");
 
     eyes(
-      ux*.15,
-      uy*.12
+      ux*.17,
+      uy*.14
     );
 
     function frame(now){
@@ -972,8 +972,8 @@ function mount(world,canvas,options={}){
         c.x,
         c.y,
         mood==="surprised"
-          ?.18
-          :.16
+          ?.21
+          :.185
       );
 
       if(approach)
@@ -1323,8 +1323,8 @@ function mount(world,canvas,options={}){
       data.x,
       data.y,
       distance<62
-        ?.2
-        :.16
+        ?.22
+        :.19
     );
 
     connectionClose=
@@ -1626,7 +1626,7 @@ function mount(world,canvas,options={}){
       lookAt(
         c.x,
         c.y,
-        .17
+        .195
       );
 
       pushFromNode(node);
@@ -1820,10 +1820,96 @@ function mount(world,canvas,options={}){
   const view=
     viewport.getBoundingClientRect();
 
+  function pickInitialClientPoint(){
+    const orbSize=
+      orb.getBoundingClientRect().width||
+      36;
+
+    const margin=
+      orbSize*.8+12;
+
+    const candidates=[
+      [.78,.68],
+      [.82,.38],
+      [.66,.28],
+      [.28,.7],
+      [.2,.38]
+    ].map(([px,py])=>({
+      x:Math.max(
+        view.left+margin,
+        Math.min(
+          view.right-margin,
+          view.left+view.width*px
+        )
+      ),
+      y:Math.max(
+        view.top+margin,
+        Math.min(
+          view.bottom-margin,
+          view.top+view.height*py
+        )
+      )
+    }));
+
+    const nodes=[
+      ...viewport.querySelectorAll(
+        ".vc-node"
+      )
+    ].map(
+      node=>node.getBoundingClientRect()
+    ).filter(
+      rect=>
+        rect.right>view.left&&
+        rect.left<view.right&&
+        rect.bottom>view.top&&
+        rect.top<view.bottom
+    );
+
+    if(!nodes.length)
+      return candidates[0];
+
+    const clearance=point=>{
+      let nearest=Infinity;
+
+      nodes.forEach(rect=>{
+        const dx=Math.max(
+          rect.left-point.x,
+          0,
+          point.x-rect.right
+        );
+
+        const dy=Math.max(
+          rect.top-point.y,
+          0,
+          point.y-rect.bottom
+        );
+
+        nearest=Math.min(
+          nearest,
+          Math.hypot(dx,dy)
+        );
+      });
+
+      return nearest;
+    };
+
+    return candidates.reduce(
+      (best,point)=>
+        clearance(point)>
+        clearance(best)
+          ?point
+          :best,
+      candidates[0]
+    );
+  }
+
+  const initialClient=
+    pickInitialClientPoint();
+
   const initial=
     worldPoint(
-      view.left+view.width*.72,
-      view.top+view.height*.65
+      initialClient.x,
+      initialClient.y
     );
 
   x=initial.x;
