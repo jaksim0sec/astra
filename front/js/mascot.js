@@ -489,6 +489,20 @@ function mount(world,canvas,options={}){
     );
   }
 
+  function react(){
+    noteActivity();
+    setMood("surprised",360);
+    pulse("boop",280);
+    blink();
+    eyes(.045,-.02);
+
+    setTimeout(()=>{
+      if(!drag&&!motion){
+        restoreGaze();
+      }
+    },320);
+  }
+
   function nodeVisible(node){
     const view=
       viewport.getBoundingClientRect();
@@ -1405,7 +1419,10 @@ function mount(world,canvas,options={}){
     drag={
       id:event.pointerId,
       dx:x-point.x,
-      dy:y-point.y
+      dy:y-point.y,
+      startClientX:event.clientX,
+      startClientY:event.clientY,
+      moved:false
     };
 
     orb.classList.add(
@@ -1433,6 +1450,15 @@ function mount(world,canvas,options={}){
         event.clientY
       );
 
+    if(
+      Math.hypot(
+        event.clientX-drag.startClientX,
+        event.clientY-drag.startClientY
+      )>5
+    ){
+      drag.moved=true;
+    }
+
     x=point.x+drag.dx;
     y=point.y+drag.dy;
 
@@ -1447,6 +1473,9 @@ function mount(world,canvas,options={}){
       return;
     }
 
+    const wasClick=
+      !drag.moved;
+
     drag=null;
 
     orb.classList.remove(
@@ -1458,6 +1487,10 @@ function mount(world,canvas,options={}){
         event.pointerId
       );
     }catch{}
+
+    if(wasClick){
+      react();
+    }
 
     scheduleVisible();
   }
@@ -1922,6 +1955,7 @@ function mount(world,canvas,options={}){
 
   return{
     element:orb,
+    react,
 
     destroy(){
       stopMotion();
@@ -2011,6 +2045,10 @@ function init(){
           world,
           canvas
         );
+
+    global.OvllPresence?.attachCanvasMascot?.(
+      mascot
+    );
 
     const sync=()=>{
       mascot.element.hidden=
