@@ -275,94 +275,130 @@
   background: var(--bg);
 }
 
-#canvas-ai-preview {
+#ovll-canvas-speech {
   position: absolute;
-  z-index: 30;
-  top: calc(var(--safe-top) + var(--topbar-height) + .25rem);
-  left: 50%;
-  width: min(24rem, calc(100% - 2rem));
-  box-sizing: border-box;
-  padding: .625rem 2.75rem .6875rem .8125rem;
+  z-index: 45;
+  left: 0;
+  top: 0;
+  width: min(15.5rem, calc(100vw - 5.5rem));
+  max-width: 58vw;
+  padding: .625rem .75rem;
   border: .0625rem solid var(--line);
-  border-radius: .875rem;
-  background: var(--panel-soft);
+  border-radius: 1rem;
+  background: var(--panel-strong);
   backdrop-filter: blur(1.125rem) saturate(1.06);
   -webkit-backdrop-filter: blur(1.125rem) saturate(1.06);
   box-shadow: var(--shadow-soft);
+  color: var(--text);
+  font-size: .75rem;
+  font-weight: 520;
+  line-height: 1.48;
+  letter-spacing: -.01em;
   pointer-events: none;
   opacity: 0;
-  transform: translate3d(-50%, -.3125rem, 0);
+  transform-origin: center;
   transition:
-    opacity .2s ease,
+    opacity .18s ease,
     transform .24s var(--ease);
+  will-change: left, top, transform;
 }
 
-#canvas-ai-preview.is-visible {
-  opacity: .9;
-  transform: translate3d(-50%, 0, 0);
-}
-
-#canvas-ai-preview.is-hidden {
-  opacity: 0;
-  transform: translate3d(-50%, -.3125rem, 0);
-}
-
-.canvas-ai-preview-label {
-  margin-bottom: .1875rem;
-  color: var(--muted);
-  font-size: .5625rem;
-  font-weight: 750;
-  letter-spacing: .02em;
-}
-
-.canvas-ai-preview-text {
-  color: var(--text);
-  font-size: .71875rem;
-  font-weight: 500;
-  line-height: 1.5;
-  letter-spacing: -.01em;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-}
-
-.canvas-ai-preview-close {
+#ovll-canvas-speech::after {
+  content: "";
   position: absolute;
   top: 50%;
-  right: .5rem;
-  width: 1.75rem;
-  height: 1.75rem;
-  padding: 0;
-  display: grid;
-  place-items: center;
-  transform: translateY(-50%);
-  border: 0;
-  border-radius: .5rem;
-  background: transparent;
-  color: var(--muted);
-  font-size: 1rem;
-  font-weight: 450;
-  line-height: 1;
-  cursor: pointer;
-  pointer-events: auto;
-  transition:
-    color .14s ease,
-    background-color .14s ease,
-    transform .14s ease;
+  width: .625rem;
+  height: .625rem;
+  background: inherit;
+  border: .0625rem solid var(--line);
+  transform: translateY(-50%) rotate(45deg);
 }
 
-.canvas-ai-preview-close:hover {
-  color: var(--text);
-  background: color-mix(
-    in srgb,
-    var(--text) 7%,
-    transparent
-  );
+#ovll-canvas-speech.is-left {
+  transform:
+    translate(calc(-100% - .875rem), -50%)
+    scale(.96);
 }
 
-.canvas-ai-preview-close:active {
-  transform: translateY(-50%) scale(.9);
+#ovll-canvas-speech.is-left::after {
+  right: -.35rem;
+  border-left: 0;
+  border-bottom: 0;
+}
+
+#ovll-canvas-speech.is-right {
+  transform:
+    translate(.875rem, -50%)
+    scale(.96);
+}
+
+#ovll-canvas-speech.is-right::after {
+  left: -.35rem;
+  border-right: 0;
+  border-top: 0;
+}
+
+#ovll-canvas-speech.is-visible {
+  opacity: .96;
+}
+
+#ovll-canvas-speech.is-visible.is-left {
+  transform:
+    translate(calc(-100% - .875rem), -50%)
+    scale(1);
+}
+
+#ovll-canvas-speech.is-visible.is-right {
+  transform:
+    translate(.875rem, -50%)
+    scale(1);
+}
+
+#ovll-canvas-speech.is-thinking {
+  width: auto;
+  min-width: 2.65rem;
+  padding: .625rem .72rem;
+}
+
+.ovll-canvas-speech-body {
+  display: flex;
+  align-items: center;
+  min-height: 1rem;
+}
+
+.ovll-speech-dot {
+  width: .22rem;
+  height: .22rem;
+  margin: 0 .095rem;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: .28;
+  animation:
+    ovll-speech-thinking
+    1.05s
+    ease-in-out
+    infinite;
+}
+
+.ovll-speech-dot:nth-child(2) {
+  animation-delay: .12s;
+}
+
+.ovll-speech-dot:nth-child(3) {
+  animation-delay: .24s;
+}
+
+@keyframes ovll-speech-thinking {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: .24;
+  }
+
+  45% {
+    transform: translateY(-.16rem);
+    opacity: .78;
+  }
 }
 
 #canvas-viewport {
