@@ -1862,79 +1862,22 @@ function mount(world,canvas,options={}){
     const margin=
       orbSize*.8+12;
 
-    const candidates=[
-      [.78,.68],
-      [.82,.38],
-      [.66,.28],
-      [.28,.7],
-      [.2,.38]
-    ].map(([px,py])=>({
+    return{
       x:Math.max(
         view.left+margin,
         Math.min(
           view.right-margin,
-          view.left+view.width*px
+          view.left+view.width/2
         )
       ),
       y:Math.max(
         view.top+margin,
         Math.min(
           view.bottom-margin,
-          view.top+view.height*py
+          view.top+view.height/2
         )
       )
-    }));
-
-    const nodes=[
-      ...viewport.querySelectorAll(
-        ".vc-node"
-      )
-    ].map(
-      node=>node.getBoundingClientRect()
-    ).filter(
-      rect=>
-        rect.right>view.left&&
-        rect.left<view.right&&
-        rect.bottom>view.top&&
-        rect.top<view.bottom
-    );
-
-    if(!nodes.length)
-      return candidates[0];
-
-    const clearance=point=>{
-      let nearest=Infinity;
-
-      nodes.forEach(rect=>{
-        const dx=Math.max(
-          rect.left-point.x,
-          0,
-          point.x-rect.right
-        );
-
-        const dy=Math.max(
-          rect.top-point.y,
-          0,
-          point.y-rect.bottom
-        );
-
-        nearest=Math.min(
-          nearest,
-          Math.hypot(dx,dy)
-        );
-      });
-
-      return nearest;
     };
-
-    return candidates.reduce(
-      (best,point)=>
-        clearance(point)>
-        clearance(best)
-          ?point
-          :best,
-      candidates[0]
-    );
   }
 
   const initialClient=
