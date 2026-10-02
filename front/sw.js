@@ -1,9 +1,11 @@
-const CACHE = 'ovll-shell-v1';
+const CACHE = 'ovll-shell-v2';
 
 const SHELL = [
   '/home',
   '/manifest.webmanifest',
   '/pwa-icon.svg',
+  '/pwa-192.png',
+  '/pwa-512.png',
   '/css/style.css',
   '/css/ui.css',
   '/css/node.css',
