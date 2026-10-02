@@ -26,11 +26,11 @@
   const composerSubmit = document.querySelector("#composer-submit");
 
   if (!workspace || !chatPage || !chatContent || !chatMessages || !composerForm || !composerInput || !composerSubmit) {
-    throw new Error("Astra Application DOM 구조가 올바르지 않습니다.");
+    throw new Error("ovll Application DOM 구조가 올바르지 않습니다.");
   }
 
   if (!UI || !API || typeof mountCanvasNode !== "function") {
-    throw new Error("Astra Application dependency가 준비되지 않았습니다.");
+    throw new Error("ovll Application dependency가 준비되지 않았습니다.");
   }
 
   /* =======================================================
