@@ -1,10 +1,10 @@
 (function(global){
 "use strict";
 
-const app=
-  document.querySelector("#app");
+const appStage=
+  document.querySelector("#app-stage");
 
-if(!app){
+if(!appStage){
   return;
 }
 
@@ -145,7 +145,7 @@ root.innerHTML=`
   </aside>
 `;
 
-app.appendChild(
+appStage.appendChild(
   root
 );
 
