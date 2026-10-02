@@ -528,6 +528,10 @@
     function renderTransform() {
       world.style.transform =
         `translate(${state.offset.x}px,${state.offset.y}px) scale(${state.scale})`;
+      emit('viewport', {
+        scale: state.scale,
+        offset: { ...state.offset }
+      });
     }
     function centerWorkflow() {
       if (!state.nodes.length) return;
@@ -562,6 +566,10 @@
       const toggle = element.querySelector('.vc-node-toggle');
       node.expanded = !!expanded;
       element.classList.toggle('vc-expanded', node.expanded);
+      emit('nodeExpand', {
+        id: node.id,
+        expanded: node.expanded
+      });
       toggle?.setAttribute('aria-expanded', String(node.expanded));
       toggle?.setAttribute(
         'aria-label',
@@ -2008,6 +2016,7 @@
       state.nodes.push(node);
       state.selectedNode = node.id;
       render();
+      emit('nodeAdd', clone(node));
       emit(
         'change',
         getWorkflow()
@@ -2053,6 +2062,7 @@
         state.selectedNode = null;
       }
       render();
+      emit('nodeRemove', clone(node));
       emit(
         'change',
         getWorkflow()
@@ -2098,13 +2108,22 @@
           event.pointerId
         );
       } catch {}
+      emit('connectionDragStart', clone(state.connectionDrag));
       renderDragConnection();
     }
-    function cancelConnectionDrag() {
+    function cancelConnectionDrag(notify = true) {
       const drag = state.connectionDrag;
       if (!drag) {
         dragLayer.textContent = '';
         return false;
+      }
+      if (notify) {
+        emit('connectionDragEnd', {
+          connected: false,
+          cancelled: true,
+          x: drag.x,
+          y: drag.y
+        });
       }
       try {
         viewport.releasePointerCapture(
@@ -2212,7 +2231,20 @@
           );
         }
       }
-      cancelConnectionDrag();
+      emit('connectionDragEnd', {
+        connected: !!targetPort,
+        target: targetPort ? clone(targetPort) : null,
+        x: event.clientX,
+        y: event.clientY
+      });
+      emit('connectionDragEnd', {
+        connected: !!targetPort,
+        cancelled: false,
+        target: targetPort ? clone(targetPort) : null,
+        x: event.clientX,
+        y: event.clientY
+      });
+      cancelConnectionDrag(false);
       return !!targetPort;
     }
     listen(
@@ -2319,6 +2351,11 @@
       });
     }
 
+    emit('nodeEdit', {
+      id: node.id,
+      param: input.dataset.paramId,
+      value: input.value
+    });
     emit(
       'change',
       getWorkflow()
@@ -2568,6 +2605,11 @@
             event.clientX;
           state.connectionDrag.y =
             event.clientY;
+          emit('connectionDragMove', {
+            ...clone(state.connectionDrag),
+            x: event.clientX,
+            y: event.clientY
+          });
           scheduleConnectionRender();
           return;
         }
@@ -2596,6 +2638,11 @@
               element.classList.add(
                 'vc-dragging'
               );
+              emit('nodeDragStart', {
+                id: drag.node.id,
+                x: event.clientX,
+                y: event.clientY
+              });
               if (
                 drag.wasExpanded
               ) {
@@ -2635,10 +2682,13 @@
               )
             );
           }
-          /*
-            좌표를 바로 갱신한다
-            rAF에서 line DOM만 다시 그린다
-          */
+          emit('nodeDragMove', {
+            id: drag.node.id,
+            x: event.clientX,
+            y: event.clientY,
+            nodeX: drag.node.x,
+            nodeY: drag.node.y
+          });
           scheduleConnectionRender();
           return;
         }
@@ -2697,6 +2747,10 @@
       }
       state.nodeDrag = null;
       renderConnections();
+      emit('nodeDragEnd', {
+        id: drag.node.id,
+        node: clone(drag.node)
+      });
       emit(
         'change',
         getWorkflow()
