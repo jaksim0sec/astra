@@ -1,0 +1,562 @@
+/* =========================================================
+   OVLL Shell Menu
+   Dedicated top-level navigation surface
+   ========================================================= */
+
+#ovll-shell-menu {
+  position: fixed;
+  z-index: 140;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* trigger */
+
+#ovll-shell-menu-trigger {
+  position: absolute;
+  z-index: 3;
+
+  top: calc(
+    var(--safe-top) +
+    .75rem
+  );
+
+  left: max(
+    .75rem,
+    var(--safe-left)
+  );
+
+  width: 2.5rem;
+  height: 2.5rem;
+
+  display: grid;
+  place-items: center;
+
+  border: .0625rem solid var(--line);
+  border-radius: 50%;
+
+  background: var(--panel-soft);
+  color: var(--text);
+
+  backdrop-filter:
+    blur(1.375rem)
+    saturate(1.08);
+
+  -webkit-backdrop-filter:
+    blur(1.375rem)
+    saturate(1.08);
+
+  box-shadow: var(--shadow-soft);
+
+  pointer-events: auto;
+  touch-action: manipulation;
+
+  transition:
+    background-color .16s ease,
+    border-color .16s ease,
+    transform .16s var(--ease),
+    opacity .16s ease;
+}
+
+#ovll-shell-menu-trigger:hover {
+  background: var(--panel-strong);
+  border-color: var(--line-strong);
+}
+
+#ovll-shell-menu-trigger:active {
+  transform: scale(.94);
+}
+
+#ovll-shell-menu.is-open
+#ovll-shell-menu-trigger {
+  opacity: 0;
+  transform:
+    translateX(-.35rem)
+    scale(.94);
+
+  pointer-events: none;
+}
+
+.ovll-shell-menu-dots {
+  width: 1rem;
+  height: 1rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  gap: .145rem;
+}
+
+.ovll-shell-menu-dots i {
+  width: .16rem;
+  height: .16rem;
+
+  display: block;
+
+  border-radius: 50%;
+  background: currentColor;
+
+  opacity: .9;
+}
+
+/* backdrop */
+
+#ovll-shell-menu-backdrop {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+
+  background:
+    rgba(0,0,0,.14);
+
+  opacity: 0;
+
+  pointer-events: none;
+
+  transition:
+    opacity .22s ease;
+}
+
+#ovll-shell-menu.is-open
+#ovll-shell-menu-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* panel */
+
+#ovll-shell-menu-panel {
+  position: absolute;
+  z-index: 2;
+
+  top: 0;
+  bottom: 0;
+  left: 0;
+
+  width: min(
+    21rem,
+    calc(100vw - 2.75rem)
+  );
+
+  padding:
+    max(
+      .75rem,
+      var(--safe-top)
+    )
+    .625rem
+    max(
+      .75rem,
+      var(--safe-bottom)
+    )
+    max(
+      .625rem,
+      var(--safe-left)
+    );
+
+  transform:
+    translate3d(
+      calc(-100% - 1rem),
+      0,
+      0
+    );
+
+  pointer-events: none;
+
+  transition:
+    transform
+    .32s
+    cubic-bezier(
+      .2,
+      .82,
+      .2,
+      1
+    );
+
+  will-change: transform;
+}
+
+#ovll-shell-menu.is-open
+#ovll-shell-menu-panel {
+  transform:
+    translate3d(
+      0,
+      0,
+      0
+    );
+
+  pointer-events: auto;
+}
+
+.ovll-shell-menu-panel-inner {
+  width: 100%;
+  height: 100%;
+
+  min-height: 0;
+
+  display: grid;
+  grid-template-rows:
+    auto
+    minmax(0,1fr)
+    auto;
+
+  overflow: hidden;
+
+  border: .0625rem solid
+    color-mix(
+      in srgb,
+      var(--line) 88%,
+      transparent
+    );
+
+  border-radius:
+    1.5rem;
+
+  background:
+    color-mix(
+      in srgb,
+      var(--panel) 92%,
+      transparent
+    );
+
+  box-shadow:
+    0
+    .55rem
+    2rem
+    rgba(0,0,0,.09);
+
+  backdrop-filter:
+    blur(1.75rem)
+    saturate(1.08);
+
+  -webkit-backdrop-filter:
+    blur(1.75rem)
+    saturate(1.08);
+}
+
+/* header */
+
+.ovll-shell-menu-header {
+  min-height: 3.9rem;
+
+  padding:
+    .65rem
+    .7rem
+    .55rem
+    .8rem;
+
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+
+  border-bottom:
+    .0625rem solid
+    color-mix(
+      in srgb,
+      var(--line) 68%,
+      transparent
+    );
+}
+
+.ovll-shell-menu-header
+[data-shell-slot="header"] {
+  min-width: 0;
+
+  flex: 1;
+
+  display: flex;
+  align-items: center;
+}
+
+.ovll-shell-menu-brand-mark {
+  width: 2rem;
+  height: 2rem;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+  background: var(--text);
+  color: var(--bg);
+
+  box-shadow:
+    0 .08rem .28rem
+    rgba(0,0,0,.1);
+}
+
+.ovll-shell-menu-brand-mark span {
+  width: .35rem;
+  height: .37rem;
+
+  display: block;
+
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.ovll-shell-menu-close {
+  width: 2.25rem;
+  height: 2.25rem;
+
+  flex: 0 0 2.25rem;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: 50%;
+
+  color: var(--muted);
+
+  transition:
+    color .15s ease,
+    background-color .15s ease,
+    transform .15s var(--ease);
+}
+
+.ovll-shell-menu-close:hover {
+  color: var(--text);
+
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 5%,
+      transparent
+    );
+}
+
+.ovll-shell-menu-close:active {
+  transform: scale(.94);
+}
+
+.ovll-shell-menu-close svg {
+  width: 1rem;
+  height: 1rem;
+
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+/* slots */
+
+.ovll-shell-menu-slot {
+  min-width: 0;
+}
+
+.ovll-shell-menu-main {
+  min-height: 0;
+
+  padding:
+    .55rem
+    .5rem
+    .75rem;
+
+  overflow-x: hidden;
+  overflow-y: auto;
+
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+
+.ovll-shell-menu-main::-webkit-scrollbar {
+  display: none;
+}
+
+.ovll-shell-menu-footer {
+  padding:
+    .6rem;
+
+  border-top:
+    .0625rem solid
+    color-mix(
+      in srgb,
+      var(--line) 68%,
+      transparent
+    );
+}
+
+/* generic reusable section primitives */
+
+.ovll-shell-menu-section {
+  padding:
+    .45rem
+    .3rem;
+}
+
+.ovll-shell-menu-section-head {
+  min-height: 1.9rem;
+
+  padding:
+    0
+    .45rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  gap: .5rem;
+}
+
+.ovll-shell-menu-section-title {
+  overflow: hidden;
+
+  color: var(--muted);
+
+  font-size: .6875rem;
+  font-weight: 700;
+
+  letter-spacing: .015em;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* useful primitives for future chat/account rendering */
+
+.ovll-shell-menu-item {
+  width: 100%;
+  min-height: 2.7rem;
+
+  padding:
+    .55rem
+    .65rem;
+
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+
+  border-radius: .8rem;
+
+  color: var(--text);
+
+  text-align: left;
+
+  transition:
+    background-color .14s ease,
+    transform .14s var(--ease);
+}
+
+.ovll-shell-menu-item:hover {
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 5%,
+      transparent
+    );
+}
+
+.ovll-shell-menu-item:active {
+  transform: scale(.985);
+}
+
+.ovll-shell-menu-item-icon {
+  width: 1.65rem;
+  height: 1.65rem;
+
+  flex: 0 0 1.65rem;
+
+  display: grid;
+  place-items: center;
+
+  border-radius: .52rem;
+
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 5%,
+      transparent
+    );
+
+  color: var(--muted);
+}
+
+.ovll-shell-menu-item-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.ovll-shell-menu-item-title {
+  overflow: hidden;
+
+  font-size: .8rem;
+  font-weight: 560;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ovll-shell-menu-item-subtitle {
+  margin-top: .1rem;
+
+  overflow: hidden;
+
+  color: var(--muted);
+
+  font-size: .675rem;
+  font-weight: 450;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ovll-shell-menu-cta {
+  width: 100%;
+  min-height: 2.85rem;
+
+  padding:
+    .65rem
+    .8rem;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: .9rem;
+
+  background: var(--text);
+  color: var(--bg);
+
+  font-size: .78rem;
+  font-weight: 700;
+
+  transition:
+    opacity .15s ease,
+    transform .15s var(--ease);
+}
+
+.ovll-shell-menu-cta:hover {
+  opacity: .9;
+}
+
+.ovll-shell-menu-cta:active {
+  transform: scale(.985);
+}
+
+html.shell-menu-open,
+html.shell-menu-open body {
+  overscroll-behavior: none;
+}
+
+@media (max-width: 30rem) {
+  #ovll-shell-menu-panel {
+    width:
+      min(
+        19.5rem,
+        calc(100vw - 2.1rem)
+      );
+
+    padding-right: .45rem;
+  }
+
+  .ovll-shell-menu-panel-inner {
+    border-radius: 1.35rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #ovll-shell-menu-panel,
+  #ovll-shell-menu-backdrop,
+  #ovll-shell-menu-trigger {
+    transition: none;
+  }
+}
