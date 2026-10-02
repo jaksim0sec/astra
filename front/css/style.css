@@ -69,37 +69,26 @@
 }
 
 html{
-  font-size:clamp(
-    .953125rem,
-    calc(.890625rem + .6vw),
-    1.078125rem
-  );
+  font-size:17px;
+  -webkit-text-size-adjust:100%;
+  text-size-adjust:100%;
 }
+
 @media (max-width:43.75rem){
   html{
-    font-size:clamp(
-      .953125rem,
-      calc(.915625rem + .4vw),
-      1.015625rem
-    );
+    font-size:16px;
   }
 }
+
 @media (max-width:26.25rem){
   html{
-    font-size:clamp(
-      .953125rem,
-      calc(.915625rem + .2vw),
-      .984375rem
-    );
+    font-size:15.5px;
   }
 }
-@media (orientation: landscape) and (max-height:32.5rem){
+
+@media (orientation:landscape) and (max-width:60rem){
   html{
-    font-size:clamp(
-      .890625rem,
-      calc(.865625rem + .25vw),
-      .953125rem
-    );
+    font-size:15px;
   }
 }
 
@@ -178,7 +167,9 @@ svg {
 
 #app {
   position: fixed;
-  inset: 0;
+  top: 0;
+  right: 0;
+  left: 0;
 
   width: 100%;
   height: var(--real-vh);
