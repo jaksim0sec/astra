@@ -1150,9 +1150,9 @@ listen(composerInput, "keydown", handleComposerKeydown);
 
     state.ready = true;
 
-    Presence.welcome(
-      "안녕. 뭘 만들어볼까?"
-    );
+    Presence.showStart({
+      headline: "ovll"
+    });
 
     resizeComposer();
     scrollChatToBottom(true);
