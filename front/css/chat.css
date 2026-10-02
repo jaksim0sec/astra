@@ -211,7 +211,7 @@
   display:flex;
   flex-direction:column;
   align-items:center;
-  gap:1rem;
+  gap:0;
   transform:translate(-50%,-54%);
   text-align:center;
   pointer-events:none;
@@ -261,17 +261,6 @@
     width .18s var(--ease),
     height .18s var(--ease),
     border-radius .18s var(--ease);
-}
-
-.ovll-chat-start-title {
-  font-size:clamp(
-    1.85rem,
-    6vw,
-    2.55rem
-  );
-  font-weight:650;
-  line-height:1.05;
-  letter-spacing:-.055em;
 }
 
 .ovll-chat-start-orb.is-reacting {
@@ -347,37 +336,6 @@
   pointer-events:none;
   transform:translate3d(0,0,0);
   will-change:transform,opacity;
-}
-
-.astra-message-ovll-presence.is-entering-from-edge {
-  animation:
-    ovll-chat-enter
-    .6s
-    cubic-bezier(.2,.82,.2,1)
-    both;
-}
-
-@keyframes ovll-chat-enter {
-  0% {
-    opacity:0;
-    transform:
-      translate3d(var(--ovll-entry-x,-4rem),.12rem,0)
-      scale(.95);
-  }
-
-  70% {
-    opacity:1;
-    transform:
-      translate3d(.11rem,-.02rem,0)
-      scale(1.018,.986);
-  }
-
-  100% {
-    opacity:1;
-    transform:
-      translate3d(0,0,0)
-      scale(1);
-  }
 }
 
 .astra-message-ovll-body {
