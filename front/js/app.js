@@ -341,12 +341,12 @@
         "캔버스에서 보기"
       );
       canvasButton.innerHTML = `
-        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-          <rect x="3" y="3" width="14" height="14" rx="3"></rect>
-          <circle cx="7" cy="7" r="1.1"></circle>
-          <circle cx="13" cy="7" r="1.1"></circle>
-          <circle cx="7" cy="13" r="1.1"></circle>
-          <circle cx="13" cy="13" r="1.1"></circle>
+        <svg viewBox="0 0 20 20" fill="none" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <rect x="3.25" y="3.25" width="13.5" height="13.5" rx="3.25"></rect>
+          <circle cx="7" cy="7" r="1"></circle>
+          <circle cx="13" cy="7" r="1"></circle>
+          <circle cx="7" cy="13" r="1"></circle>
+          <circle cx="13" cy="13" r="1"></circle>
           <path d="M7 7h6M7 13h6M7 7v6M13 7v6"></path>
         </svg>
         <span>캔버스에서 보기</span>
@@ -406,9 +406,9 @@
         "복사";
 
       copyButton.innerHTML = `
-        <svg viewBox="0 0 16 16" aria-hidden="true">
-          <rect x="4.5" y="4.5" width="7" height="7"></rect>
-          <path d="M3 9V3h6"></path>
+        <svg viewBox="0 0 16 16" fill="none" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+          <rect x="5" y="5" width="7" height="7" rx="1.35"></rect>
+          <path d="M3.5 9V4.75c0-.7.55-1.25 1.25-1.25H9"></path>
         </svg>
         <span>복사</span>
       `;
@@ -443,9 +443,9 @@
           "재시도";
 
         retryButton.innerHTML = `
-            <svg viewBox="0 0 16 16" aria-hidden="true">
-            <path d="M12.5 5.5A4.5 4.5 0 1 0 13 9"></path>
-            <path d="M12.5 2.5v3h-3"></path>
+            <svg viewBox="0 0 16 16" fill="none" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+            <path d="M12.4 5.4A4.6 4.6 0 1 0 12.8 9.4"></path>
+            <path d="M12.4 2.6v2.8H9.6"></path>
           </svg>
           <span>재시도</span>
         `;
@@ -1125,11 +1125,11 @@
         </button>
         <button id="canvas-node-builder-layout" type="button" aria-label="노드 정리하기" title="노드 정리하기">
           <span class="canvas-node-builder-layout-icon" aria-hidden="true">
-            <svg viewBox="0 0 20 20" fill="none">
-              <rect x="3" y="3" width="5" height="5" rx="1.5"></rect>
-              <rect x="12" y="3" width="5" height="5" rx="1.5"></rect>
-              <rect x="7.5" y="12" width="5" height="5" rx="1.5"></rect>
-              <path d="M8 5.5h4M5.5 8v2.25M14.5 8v2.25M8.5 12h3"></path>
+            <svg viewBox="0 0 20 20" fill="none" preserveAspectRatio="xMidYMid meet">
+              <rect x="3.25" y="3.25" width="4.75" height="4.75" rx="1.4"></rect>
+              <rect x="12" y="3.25" width="4.75" height="4.75" rx="1.4"></rect>
+              <rect x="7.625" y="12" width="4.75" height="4.75" rx="1.4"></rect>
+              <path d="M8 5.625h4M5.625 8v2.125M14.375 8v2.125M8.625 12h2.75"></path>
             </svg>
           </span>
           <span>정리하기</span>
