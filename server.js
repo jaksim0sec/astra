@@ -16,6 +16,59 @@ const CRON_FILE = path.join(__dirname, 'cron.txt');
 app.use(express.json({limit: '1mb'}));
 app.use(compression());
 
+const DEFAULT_NATIVE_APP_ORIGINS = [
+  'capacitor://localhost',
+  'https://localhost'
+];
+
+const NATIVE_APP_ORIGINS =
+  new Set(
+    String(
+      process.env.NATIVE_APP_ORIGINS ||
+      DEFAULT_NATIVE_APP_ORIGINS.join(',')
+    )
+      .split(',')
+      .map(value => value.trim())
+      .filter(Boolean)
+  );
+
+app.use(
+  '/api',
+  (req, res, next) => {
+    const origin =
+      req.get('Origin');
+
+    if (
+      origin &&
+      NATIVE_APP_ORIGINS.has(origin)
+    ) {
+      res.set(
+        'Access-Control-Allow-Origin',
+        origin
+      );
+      res.vary('Origin');
+      res.set(
+        'Access-Control-Allow-Methods',
+        'GET,POST,OPTIONS'
+      );
+      res.set(
+        'Access-Control-Allow-Headers',
+        'Accept,Content-Type'
+      );
+      res.set(
+        'Access-Control-Max-Age',
+        '86400'
+      );
+    }
+
+    if (req.method === 'OPTIONS') {
+      return res.sendStatus(204);
+    }
+
+    return next();
+  }
+);
+
 const PORT = process.env.PORT || 3000;
 
 /*
@@ -23,7 +76,7 @@ const PORT = process.env.PORT || 3000;
  * The frontend compares this server value with its locally stored version
  * before loading application assets.
  */
-const APP_VERSION = '2026.10.03.7';
+const APP_VERSION = '2026.10.03.8';
 
 /* =========================================================
    CANONICAL NODE DEFINITION

@@ -7,7 +7,16 @@
   /* =======================================================
      Configuration
      ======================================================= */
-  const API_PREFIX = "/api";
+  const runtime =
+    global.OVLL_RUNTIME || {};
+  const API_ORIGIN =
+    typeof runtime.apiOrigin === "string"
+      ? runtime.apiOrigin
+          .trim()
+          .replace(/\/+$/, "")
+      : "";
+  const API_PREFIX =
+    `${API_ORIGIN}/api`;
   /* =======================================================
      Internal State
      ======================================================= */

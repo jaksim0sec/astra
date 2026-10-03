@@ -4,6 +4,21 @@
 const VERSION_KEY="ovll:app-version";
 const RELOAD_KEY="ovll:version-reload";
 
+const RUNTIME=
+  global.OVLL_RUNTIME||{};
+
+const IS_NATIVE=
+  RUNTIME.native===true;
+
+const API_ORIGIN=
+  typeof RUNTIME.apiOrigin==="string"
+    ?RUNTIME.apiOrigin.trim().replace(/\/+$/,"")
+    :"";
+
+function apiUrl(path){
+  return `${API_ORIGIN}/api/${path}`;
+}
+
 const APP_SCRIPTS=[
   "./js/functions.js",
   "./js/api.js",
@@ -18,7 +33,7 @@ const APP_SCRIPTS=[
 async function getServerVersion(){
   const response=
     await fetch(
-      "/api/version",
+      apiUrl("version"),
       {
         cache:"no-store",
         headers:{
@@ -106,6 +121,10 @@ async function loadApp(){
 }
 
 async function registerServiceWorker(){
+  if(IS_NATIVE){
+    return;
+  }
+
   if(!("serviceWorker" in navigator)){
     return;
   }
@@ -131,6 +150,15 @@ async function registerServiceWorker(){
 async function syncVersion(){
   const serverVersion=
     await getServerVersion();
+
+  document.documentElement.dataset.serverVersion=
+    serverVersion;
+
+  if(IS_NATIVE){
+    document.documentElement.dataset.appVersion=
+      serverVersion;
+    return true;
+  }
 
   const localVersion=
     localStorage.getItem(
