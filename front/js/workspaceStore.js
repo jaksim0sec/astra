@@ -106,6 +106,7 @@ function normalizeMessage(value){
               mime:String(item.mime || ""),
               size:Number(item.size || 0),
               downloadUrl:String(item.downloadUrl || ""),
+              previewUrl:String(item.previewUrl || ""),
               previewText:String(item.previewText || "").slice(0,500)
             }))
         : [],
