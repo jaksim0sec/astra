@@ -120,6 +120,330 @@
     return min + (span ? hash % (span + 1) : 0);
   }
 
+
+  const GEMINI_NODE_TYPES =
+    new Set([
+      "research",
+      "organize",
+      "judge",
+      "write",
+      "convert"
+    ]);
+
+  function isGeminiNode(node) {
+    return (
+      !!node &&
+      GEMINI_NODE_TYPES.has(
+        String(node.type || "")
+      )
+    );
+  }
+
+  function nodeParams(node) {
+    if (
+      node?.data?.params &&
+      typeof node.data.params === "object" &&
+      !Array.isArray(node.data.params)
+    ) {
+      return clone(node.data.params);
+    }
+
+    if (
+      node?.params &&
+      typeof node.params === "object" &&
+      !Array.isArray(node.params)
+    ) {
+      return clone(node.params);
+    }
+
+    return {};
+  }
+
+  function planExecutionGroups(
+    workflow,
+    pivotId,
+    mode = "spread",
+    maxGroupNodes = 6
+  ) {
+    const nodes =
+      new Map(
+        workflow.nodes.map(
+          node => [node.id, node]
+        )
+      );
+
+    const incoming =
+      new Map(
+        workflow.nodes.map(
+          node => [node.id, []]
+        )
+      );
+
+    const outgoing =
+      new Map(
+        workflow.nodes.map(
+          node => [node.id, []]
+        )
+      );
+
+    for (
+      const connection
+        of workflow.connections
+    ) {
+      incoming
+        .get(connection.to.node)
+        ?.push(connection);
+
+      outgoing
+        .get(connection.from.node)
+        ?.push(connection);
+    }
+
+    const pivot =
+      String(pivotId || "");
+
+    const scope =
+      new Set();
+
+    if (mode === "target") {
+      const queue = [pivot];
+
+      while (queue.length) {
+        const current =
+          queue.shift();
+
+        if (
+          !current ||
+          scope.has(current)
+        ) {
+          continue;
+        }
+
+        scope.add(current);
+
+        for (
+          const connection
+            of incoming.get(current) || []
+        ) {
+          queue.push(
+            connection.from.node
+          );
+        }
+      }
+    } else {
+      const queue = [pivot];
+
+      while (queue.length) {
+        const current =
+          queue.shift();
+
+        if (
+          !current ||
+          scope.has(current)
+        ) {
+          continue;
+        }
+
+        scope.add(current);
+
+        for (
+          const connection
+            of incoming.get(current) || []
+        ) {
+          queue.push(
+            connection.from.node
+          );
+        }
+
+        for (
+          const connection
+            of outgoing.get(current) || []
+        ) {
+          queue.push(
+            connection.to.node
+          );
+        }
+      }
+    }
+
+    const scopedIncoming =
+      new Map();
+
+    const scopedOutgoing =
+      new Map();
+
+    for (const nodeId of scope) {
+      scopedIncoming.set(
+        nodeId,
+        (incoming.get(nodeId) || [])
+          .filter(connection =>
+            scope.has(
+              connection.from.node
+            )
+          )
+      );
+
+      scopedOutgoing.set(
+        nodeId,
+        (outgoing.get(nodeId) || [])
+          .filter(connection =>
+            scope.has(
+              connection.to.node
+            )
+          )
+      );
+    }
+
+    const indegree =
+      new Map(
+        [...scope].map(
+          nodeId => [
+            nodeId,
+            (
+              scopedIncoming.get(nodeId) ||
+              []
+            ).length
+          ]
+        )
+      );
+
+    const queue =
+      workflow.nodes
+        .map(node => node.id)
+        .filter(nodeId =>
+          scope.has(nodeId) &&
+          indegree.get(nodeId) === 0
+        );
+
+    const topological = [];
+
+    while (queue.length) {
+      const current =
+        queue.shift();
+
+      topological.push(current);
+
+      for (
+        const connection
+          of scopedOutgoing.get(current) ||
+          []
+      ) {
+        const next =
+          connection.to.node;
+
+        const count =
+          (indegree.get(next) || 0) - 1;
+
+        indegree.set(
+          next,
+          count
+        );
+
+        if (count === 0) {
+          queue.push(next);
+        }
+      }
+    }
+
+    for (
+      const node
+        of workflow.nodes
+    ) {
+      if (
+        scope.has(node.id) &&
+        !topological.includes(node.id)
+      ) {
+        topological.push(node.id);
+      }
+    }
+
+    const groups = [];
+    const assigned =
+      new Set();
+    const limit =
+      Math.max(
+        1,
+        Number(maxGroupNodes) || 6
+      );
+
+    for (
+      const startId
+        of topological
+    ) {
+      if (assigned.has(startId)) {
+        continue;
+      }
+
+      const startNode =
+        nodes.get(startId);
+
+      if (!isGeminiNode(startNode)) {
+        continue;
+      }
+
+      const nodeIds =
+        [startId];
+
+      assigned.add(startId);
+
+      if (startNode.type !== "judge") {
+        let current =
+          startId;
+
+        while (
+          nodeIds.length < limit
+        ) {
+          const outEdges =
+            scopedOutgoing.get(current) ||
+            [];
+
+          if (outEdges.length !== 1) {
+            break;
+          }
+
+          const next =
+            outEdges[0].to.node;
+
+          const inEdges =
+            scopedIncoming.get(next) ||
+            [];
+
+          const currentNode =
+            nodes.get(current);
+
+          const nextNode =
+            nodes.get(next);
+
+          if (
+            inEdges.length !== 1 ||
+            assigned.has(next) ||
+            !isGeminiNode(nextNode) ||
+            currentNode?.type === "judge" ||
+            nextNode?.type === "judge"
+          ) {
+            break;
+          }
+
+          nodeIds.push(next);
+          assigned.add(next);
+          current = next;
+        }
+      }
+
+      groups.push({
+        id:
+          `gemini:${nodeIds.join(">")}`,
+        nodeIds
+      });
+    }
+
+    return {
+      scope:
+        topological,
+      groups
+    };
+  }
+
   class DemoNodeExecutor {
     constructor(options = {}) {
       this.minDelay =
@@ -332,6 +656,24 @@
       this.running = false;
       this.runCounter = 0;
       this.lastRun = null;
+
+      this.maxGroupNodes =
+        Math.max(
+          1,
+          Number(
+            options.maxGroupNodes ??
+            6
+          ) || 6
+        );
+
+      this.maxGroupInputChars =
+        Math.max(
+          1000,
+          Number(
+            options.maxGroupInputChars ??
+            60000
+          ) || 60000
+        );
     }
 
     isRunning() {
@@ -412,6 +754,38 @@
           ?.push(connection);
       }
 
+
+      const executionPlan =
+        planExecutionGroups(
+          workflow,
+          pivot,
+          mode,
+          this.maxGroupNodes
+        );
+
+      const executionScope =
+        new Set(
+          executionPlan.scope
+        );
+
+      const groupByNode =
+        new Map();
+
+      for (
+        const group
+          of executionPlan.groups
+      ) {
+        for (
+          const nodeId
+            of group.nodeIds
+        ) {
+          groupByNode.set(
+            nodeId,
+            group
+          );
+        }
+      }
+
       const runId =
         `demo-run-${Date.now().toString(36)}-${++this.runCounter}`;
 
@@ -435,6 +809,7 @@
         );
 
       const nodeJobs = new Map();
+      const groupJobs = new Map();
       const edgeRefs = new Map();
 
       const setState = (
@@ -619,6 +994,17 @@
 
       const resolveNode =
         nodeId => {
+          const group =
+            groupByNode.get(nodeId);
+
+          if (
+            group &&
+            typeof this.executor.runGroup ===
+              "function"
+          ) {
+            return resolveGroup(group);
+          }
+
           if (nodeJobs.has(nodeId)) {
             return nodeJobs.get(nodeId);
           }
@@ -834,6 +1220,514 @@
           return job;
         };
 
+      const resolveGroup =
+        group => {
+          if (groupJobs.has(group.id)) {
+            return groupJobs.get(group.id);
+          }
+
+          const job =
+            (async () => {
+              const nodeIds =
+                group.nodeIds.slice();
+
+              const groupSet =
+                new Set(nodeIds);
+
+              const allEdges =
+                workflow.connections
+                  .filter(connection =>
+                    groupSet.has(
+                      connection.to.node
+                    ) ||
+                    groupSet.has(
+                      connection.from.node
+                    )
+                  );
+
+              const externalParentEdges =
+                allEdges.filter(
+                  connection =>
+                    groupSet.has(
+                      connection.to.node
+                    ) &&
+                    !groupSet.has(
+                      connection.from.node
+                    )
+                );
+
+              const internalEdges =
+                allEdges.filter(
+                  connection =>
+                    groupSet.has(
+                      connection.from.node
+                    ) &&
+                    groupSet.has(
+                      connection.to.node
+                    )
+                );
+
+              for (
+                const nodeId
+                  of nodeIds
+              ) {
+                if (
+                  (incoming.get(nodeId) || [])
+                    .length
+                ) {
+                  setState(
+                    nodeId,
+                    "WAITING"
+                  );
+                }
+              }
+
+              const releases =
+                [
+                  ...externalParentEdges,
+                  ...internalEdges
+                ].map(
+                  connection =>
+                    acquireEdge(connection)
+                );
+
+              try {
+                const externalParents =
+                  [
+                    ...new Set(
+                      externalParentEdges
+                        .map(
+                          connection =>
+                            connection.from.node
+                        )
+                    )
+                  ];
+
+                await Promise.all(
+                  externalParents.map(
+                    parentId =>
+                      resolveNode(parentId)
+                  )
+                );
+
+                const failedDependencies =
+                  externalParentEdges
+                    .map(connection => {
+                      const state =
+                        states.get(
+                          connection.from.node
+                        );
+
+                      if (
+                        state?.status ===
+                        "FAILED"
+                      ) {
+                        return [
+                          connection.from.node
+                        ];
+                      }
+
+                      if (
+                        state?.status ===
+                          "SKIPPED" &&
+                        state?.skipReason ===
+                          "dependency_failed"
+                      ) {
+                        return (
+                          Array.isArray(
+                            state.blockedBy
+                          ) &&
+                          state.blockedBy.length
+                            ? state.blockedBy
+                            : [
+                                connection
+                                  .from.node
+                              ]
+                        );
+                      }
+
+                      return [];
+                    })
+                    .flat();
+
+                if (
+                  failedDependencies.length
+                ) {
+                  const blockedBy =
+                    [
+                      ...new Set(
+                        failedDependencies
+                      )
+                    ];
+
+                  for (
+                    const nodeId
+                      of nodeIds
+                  ) {
+                    setState(
+                      nodeId,
+                      "SKIPPED",
+                      {
+                        skipReason:
+                          "dependency_failed",
+                        blockedBy,
+                        finishedAt:
+                          Date.now()
+                      }
+                    );
+                  }
+
+                  return null;
+                }
+
+                const headId =
+                  nodeIds[0];
+
+                const headFlowEdges =
+                  externalParentEdges
+                    .filter(
+                      connection =>
+                        connection.to.node ===
+                          headId &&
+                        connectionKind(
+                          connection
+                        ) === "flow"
+                    );
+
+                if (
+                  headFlowEdges.length &&
+                  !headFlowEdges.some(
+                    edgeIsActive
+                  )
+                ) {
+                  for (
+                    const nodeId
+                      of nodeIds
+                  ) {
+                    setState(
+                      nodeId,
+                      "SKIPPED",
+                      {
+                        finishedAt:
+                          Date.now()
+                      }
+                    );
+                  }
+
+                  return null;
+                }
+
+                const buildRequest =
+                  ids => ({
+                    nodes:
+                      ids.map(
+                        nodeId => {
+                          const node =
+                            nodes.get(nodeId);
+
+                          return {
+                            id: node.id,
+                            type: node.type,
+                            params:
+                              nodeParams(node),
+                            inputs:
+                              collectInputs(
+                                nodeId
+                              )
+                          };
+                        }
+                      ),
+                    internalConnections:
+                      internalEdges
+                        .filter(
+                          connection =>
+                            ids.includes(
+                              connection.from.node
+                            ) &&
+                            ids.includes(
+                              connection.to.node
+                            )
+                        )
+                        .map(
+                          connection =>
+                            clone(connection)
+                        )
+                  });
+
+                const normalizeResults =
+                  (ids, response) => {
+                    const results =
+                      Array.isArray(response)
+                        ? response
+                        : response?.results;
+
+                    if (
+                      !Array.isArray(results) ||
+                      results.length !==
+                        ids.length
+                    ) {
+                      throw new Error(
+                        "그룹 실행 결과 개수가 올바르지 않습니다."
+                      );
+                    }
+
+                    for (
+                      let index = 0;
+                      index < ids.length;
+                      index++
+                    ) {
+                      if (
+                        String(
+                          results[index]
+                            ?.nodeId || ""
+                        ) !==
+                        ids[index]
+                      ) {
+                        throw new Error(
+                          "그룹 실행 결과 순서가 올바르지 않습니다."
+                        );
+                      }
+                    }
+
+                    return results;
+                  };
+
+                const commitResults =
+                  (ids, results) => {
+                    for (
+                      let index = 0;
+                      index < ids.length;
+                      index++
+                    ) {
+                      const nodeId =
+                        ids[index];
+
+                      const item =
+                        results[index];
+
+                      const result = {
+                        outputs:
+                          item?.outputs &&
+                          typeof item.outputs ===
+                            "object"
+                            ? clone(
+                                item.outputs
+                              )
+                            : {},
+                        decision:
+                          typeof item?.decision ===
+                            "boolean"
+                            ? item.decision
+                            : null,
+                        report:
+                          item?.report ??
+                          null
+                      };
+
+                      setState(
+                        nodeId,
+                        "SUCCESS",
+                        {
+                          inputs:
+                            clone(
+                              collectInputs(
+                                nodeId
+                              )
+                            ),
+                          result,
+                          finishedAt:
+                            Date.now(),
+                          report:
+                            result.report
+                        }
+                      );
+                    }
+                  };
+
+                const executeIds =
+                  async ids => {
+                    for (
+                      const nodeId
+                        of ids
+                    ) {
+                      setState(
+                        nodeId,
+                        "RUNNING",
+                        {
+                          inputs:
+                            clone(
+                              collectInputs(
+                                nodeId
+                              )
+                            ),
+                          startedAt:
+                            Date.now()
+                        }
+                      );
+                    }
+
+                    const request =
+                      buildRequest(ids);
+
+                    const response =
+                      await this.executor
+                        .runGroup(
+                          clone(request),
+                          {
+                            runId,
+                            pivot,
+                            mode,
+                            groupId:
+                              group.id
+                          }
+                        );
+
+                    const results =
+                      normalizeResults(
+                        ids,
+                        response
+                      );
+
+                    commitResults(
+                      ids,
+                      results
+                    );
+                  };
+
+                const fullRequest =
+                  buildRequest(nodeIds);
+
+                const serializedSize =
+                  JSON.stringify(
+                    fullRequest
+                  ).length;
+
+                if (
+                  serializedSize >
+                    this
+                      .maxGroupInputChars &&
+                  nodeIds.length > 1
+                ) {
+                  for (
+                    let index = 0;
+                    index < nodeIds.length;
+                    index++
+                  ) {
+                    const nodeId =
+                      nodeIds[index];
+
+                    try {
+                      await executeIds([
+                        nodeId
+                      ]);
+                    } catch (error) {
+                      const failure = {
+                        message:
+                          error?.message ||
+                          String(error)
+                      };
+
+                      setState(
+                        nodeId,
+                        "FAILED",
+                        {
+                          error: failure,
+                          finishedAt:
+                            Date.now()
+                        }
+                      );
+
+                      for (
+                        const laterId
+                          of nodeIds.slice(
+                            index + 1
+                          )
+                      ) {
+                        setState(
+                          laterId,
+                          "SKIPPED",
+                          {
+                            skipReason:
+                              "dependency_failed",
+                            blockedBy: [
+                              nodeId
+                            ],
+                            finishedAt:
+                              Date.now()
+                          }
+                        );
+                      }
+
+                      return null;
+                    }
+                  }
+
+                  return true;
+                }
+
+                try {
+                  await executeIds(
+                    nodeIds
+                  );
+
+                  return true;
+                } catch (error) {
+                  const failedId =
+                    nodeIds[0];
+
+                  const failure = {
+                    message:
+                      error?.message ||
+                      String(error)
+                  };
+
+                  setState(
+                    failedId,
+                    "FAILED",
+                    {
+                      error: failure,
+                      finishedAt:
+                        Date.now()
+                    }
+                  );
+
+                  for (
+                    const nodeId
+                      of nodeIds.slice(1)
+                  ) {
+                    setState(
+                      nodeId,
+                      "SKIPPED",
+                      {
+                        skipReason:
+                          "dependency_failed",
+                        blockedBy: [
+                          failedId
+                        ],
+                        finishedAt:
+                          Date.now()
+                      }
+                    );
+                  }
+
+                  return null;
+                }
+              } finally {
+                releases.forEach(
+                  release =>
+                    release()
+                );
+              }
+            })();
+
+          groupJobs.set(
+            group.id,
+            job
+          );
+
+          return job;
+        };
+
       const collectSpreadScope =
         nodeId => {
           const scope = new Set();
@@ -889,11 +1783,8 @@
         if (mode === "target") {
           await resolveNode(pivot);
         } else {
-          const spreadScope =
-            collectSpreadScope(pivot);
-
           await Promise.all(
-            spreadScope.map(
+            executionPlan.scope.map(
               nodeId =>
                 resolveNode(nodeId)
             )
@@ -1020,6 +1911,7 @@
   global.OvllExecutionEngine = {
     RuntimeEngine,
     DemoNodeExecutor,
-    normalizeWorkflow
+    normalizeWorkflow,
+    planExecutionGroups
   };
 })(window);
