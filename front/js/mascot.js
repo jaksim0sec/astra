@@ -217,7 +217,7 @@ function installStyle(){
 }
 
 .ovll-mascot.thinking{
-  animation:ovll-thinking 1.55s cubic-bezier(.22,.76,.2,1) infinite;
+  animation:ovll-thinking 1.9s ease-in-out infinite;
 }
 
 .ovll-mascot.pop{
@@ -243,10 +243,8 @@ function installStyle(){
 }
 
 @keyframes ovll-thinking{
-  0%,100%{translate:0 0}
-  24%{translate:.025rem -.055rem}
-  52%{translate:-.02rem -.085rem}
-  76%{translate:.018rem -.035rem}
+  0%,100%{filter:brightness(1)}
+  50%{filter:brightness(.94)}
 }
 
 @keyframes ovll-pop{
@@ -1262,6 +1260,33 @@ function mount(world,canvas,options={}){
     );
   }
 
+  function centerInViewport(){
+    stopMotion();
+
+    const view=
+      viewport.getBoundingClientRect();
+
+    if(
+      view.width<1||
+      view.height<1
+    ){
+      return false;
+    }
+
+    const point=
+      worldPoint(
+        view.left+view.width/2,
+        view.top+view.height/2
+      );
+
+    x=point.x;
+    y=point.y;
+    render();
+    restoreGaze();
+
+    return true;
+  }
+
   function scheduleVisible(){
     clearTimeout(
       viewportTimer
@@ -2022,6 +2047,7 @@ function mount(world,canvas,options={}){
     element:orb,
     react,
     setThinking,
+    centerInViewport,
 
     destroy(){
       stopMotion();
@@ -2116,14 +2142,57 @@ function init(){
       mascot
     );
 
+    let shownOnCanvas=false;
+
+    const revealFirstCanvas=()=>{
+      if(shownOnCanvas)
+        return;
+
+      shownOnCanvas=true;
+
+      requestAnimationFrame(()=>{
+        mascot.centerInViewport?.();
+        mascot.element.hidden=false;
+      });
+    };
+
     const sync=()=>{
-      mascot.element.hidden=
-        global.AstraUI?.getMode?.()!=="canvas";
+      const isCanvas=
+        global.AstraUI?.getMode?.()==="canvas";
+
+      if(!isCanvas){
+        mascot.element.hidden=true;
+        return;
+      }
+
+      const settled=
+        (global.AstraUI?.getProgress?.()??0)>=.999;
+
+      if(!shownOnCanvas&&!settled){
+        mascot.element.hidden=true;
+        return;
+      }
+
+      if(!shownOnCanvas){
+        revealFirstCanvas();
+        return;
+      }
+
+      mascot.element.hidden=false;
     };
 
     global.AstraUI?.on?.(
       "modechange",
       sync
+    );
+
+    global.AstraUI?.on?.(
+      "snap",
+      event=>{
+        if(event?.mode==="canvas"){
+          revealFirstCanvas();
+        }
+      }
     );
 
     sync();
