@@ -8,6 +8,10 @@ import {
   createGeminiExecution,
   GeminiExecutionError
 } from './geminiExecution.js';
+import {
+  createStoredArtifact,
+  getStoredArtifact
+} from './artifactStore.js';
 
 const app = express();
 
@@ -83,7 +87,7 @@ const geminiExecution =
  * The frontend compares this server value with its locally stored version
  * before loading application assets.
  */
-const APP_VERSION = '2026.10.04.08';
+const APP_VERSION = '2026.10.04.09';
 
 /* =========================================================
    CANONICAL NODE DEFINITION
@@ -1959,6 +1963,86 @@ function geminiHttpFailure(
 }
 
 /* =========================================================
+   GENERATED ARTIFACT API
+========================================================= */
+
+app.post(
+  '/api/create-artifact',
+  (req, res) => {
+    try {
+      const artifact =
+        createStoredArtifact({
+          format:
+            req.body?.format,
+          filename:
+            req.body?.filename,
+          sources:
+            req.body?.sources
+        });
+
+      return res.json({
+        ok: true,
+        artifact
+      });
+    } catch (error) {
+      console.error(
+        '[artifact create]',
+        error
+      );
+
+      return res
+        .status(400)
+        .json({
+          ok: false,
+          error:
+            error?.message ||
+            '파일을 생성하지 못했습니다.'
+        });
+    }
+  }
+);
+
+app.get(
+  '/api/artifacts/:id',
+  (req, res) => {
+    const artifact =
+      getStoredArtifact(
+        req.params.id
+      );
+
+    if (!artifact) {
+      return res
+        .status(404)
+        .json({
+          ok: false,
+          error:
+            '파일을 찾을 수 없습니다.'
+        });
+    }
+
+    res.set({
+      'Content-Type':
+        artifact.mime,
+      'Content-Length':
+        String(
+          artifact.size
+        ),
+      'Content-Disposition':
+        "attachment; filename*=UTF-8''" +
+        encodeURIComponent(
+          artifact.name
+        ),
+      'Cache-Control':
+        'private, no-store'
+    });
+
+    return res.send(
+      artifact.buffer
+    );
+  }
+);
+
+/* =========================================================
    GEMINI GROUP EXECUTION API
 ========================================================= */
 
@@ -1972,7 +2056,9 @@ app.post(
             nodes:
               req.body?.nodes,
             connections:
-              req.body?.connections
+              req.body?.connections,
+            context:
+              req.body?.context
           });
 
       console.info(
