@@ -84,8 +84,8 @@
 }
 
 #ovll-shell-menu-trigger svg {
-  width: 1.28rem;
-  height: 1.28rem;
+  width: 1.42rem;
+  height: 1.42rem;
   max-width: none;
 }
 
@@ -391,8 +391,8 @@
 }
 
 .ovll-sidebar-primary-icon svg {
-  width: 1.16rem;
-  height: 1.16rem;
+  width: 1.28rem;
+  height: 1.28rem;
   max-width: none;
 }
 
@@ -443,44 +443,40 @@
 }
 
 .ovll-sidebar-search-icon svg {
-  width: 1.05rem;
-  height: 1.05rem;
+  width: 1.14rem;
+  height: 1.14rem;
 }
 
 .ovll-sidebar-search input {
-  appearance: none;
-  -webkit-appearance: none;
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  box-sizing: border-box;
+  display: block;
   width: 100%;
   min-width: 0;
   height: 1.7rem;
-  margin: 0;
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  outline: 0;
-  box-shadow: none;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
   color: var(--text);
-  background: transparent;
   font: inherit;
   font-size: .78rem;
   font-weight: 520;
   line-height: 1.4;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.ovll-sidebar-search input::-webkit-search-decoration,
-.ovll-sidebar-search input::-webkit-search-cancel-button,
-.ovll-sidebar-search input::-webkit-search-results-button,
-.ovll-sidebar-search input::-webkit-search-results-decoration {
-  display: none;
-  -webkit-appearance: none;
+.ovll-sidebar-search input:focus,
+.ovll-sidebar-search input:focus-visible {
+  outline: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
 }
 
-.ovll-sidebar-search input::-ms-clear,
-.ovll-sidebar-search input::-ms-reveal {
-  display: none;
-  width: 0;
-  height: 0;
-}
 
 .ovll-sidebar-search input::placeholder {
   color: var(--muted);
@@ -838,64 +834,6 @@
     );
 }
 
-.ovll-sidebar-local-tools {
-  min-height: 2.2rem;
-  display: flex;
-  align-items: center;
-  gap: .32rem;
-  padding:
-    0
-    .12rem
-    .48rem;
-}
-
-.ovll-sidebar-local-tools button {
-  width: 2.15rem;
-  height: 2.15rem;
-  display: grid;
-  place-items: center;
-  border:
-    .0625rem solid
-    var(--line);
-  border-radius: 999px;
-  color: var(--muted);
-  background:
-    color-mix(
-      in srgb,
-      var(--text) 3.5%,
-      transparent
-    );
-  cursor: pointer;
-  transition:
-    color .14s ease,
-    background-color .14s ease,
-    transform .14s ease;
-}
-
-.ovll-sidebar-local-tools button:hover {
-  color: var(--text);
-  background:
-    color-mix(
-      in srgb,
-      var(--text) 7%,
-      transparent
-    );
-}
-
-.ovll-sidebar-local-tools button:active {
-  transform: scale(.94);
-}
-
-.ovll-sidebar-local-tools button svg {
-  width: 1.02rem;
-  height: 1.02rem;
-  max-width: none;
-}
-
-.ovll-sidebar-local-tools > span {
-  display: none;
-}
-
 .ovll-sidebar-account {
   width: 100%;
   min-width: 0;
@@ -903,8 +841,7 @@
   display: grid;
   grid-template-columns:
     2.3rem
-    minmax(0,1fr)
-    1.4rem;
+    minmax(0,1fr);
   align-items: center;
   gap: .62rem;
   padding:
@@ -943,7 +880,7 @@
   height: 2.3rem;
   display: grid;
   place-items: center;
-  border-radius: .82rem;
+  border-radius: .95rem;
   color: var(--sub);
   background:
     color-mix(
@@ -954,8 +891,8 @@
 }
 
 .ovll-sidebar-account-avatar svg {
-  width: 1.15rem;
-  height: 1.15rem;
+  width: 1.24rem;
+  height: 1.24rem;
   max-width: none;
 }
 
@@ -982,23 +919,10 @@
   white-space: nowrap;
 }
 
-.ovll-sidebar-account-more {
-  width: 1.3rem;
-  height: 1.3rem;
-  display: grid;
-  place-items: center;
-  color: var(--muted);
-}
-
-.ovll-sidebar-account-more svg {
-  width: .96rem;
-  height: .96rem;
-}
-
 /* focus */
 
 #ovll-shell-menu button:focus-visible,
-#ovll-shell-menu input:focus-visible {
+.ovll-sidebar-inline-editor input:focus-visible {
   outline:
     .125rem solid
     color-mix(
@@ -1061,67 +985,15 @@
 
 .ovll-sidebar-chat-item {
   min-width: 0;
-  display: grid;
-  grid-template-columns:
-    minmax(0,1fr)
-    2rem;
-  align-items: center;
-  gap: .08rem;
   position: relative;
 }
 
 .ovll-sidebar-chat-item
 .ovll-sidebar-chat {
+  width: 100%;
   grid-template-columns:
-    1.4rem
+    1.45rem
     minmax(0,1fr);
-}
-
-.ovll-sidebar-chat-more {
-  width: 2rem;
-  height: 2rem;
-  display: grid;
-  place-items: center;
-  border-radius: .68rem;
-  color: var(--muted);
-  background: transparent;
-  opacity: 0;
-  cursor: pointer;
-  transition:
-    opacity .13s ease,
-    color .13s ease,
-    background-color .13s ease,
-    transform .13s ease;
-}
-
-.ovll-sidebar-chat-item:hover
-.ovll-sidebar-chat-more,
-.ovll-sidebar-chat-more:focus-visible,
-.ovll-sidebar-chat-item:has(
-  .ovll-sidebar-chat.is-active
-)
-.ovll-sidebar-chat-more {
-  opacity: 1;
-}
-
-.ovll-sidebar-chat-more:hover {
-  color: var(--text);
-  background:
-    color-mix(
-      in srgb,
-      var(--text) 6%,
-      transparent
-    );
-}
-
-.ovll-sidebar-chat-more:active {
-  transform: scale(.92);
-}
-
-.ovll-sidebar-chat-more svg {
-  width: 1rem;
-  height: 1rem;
-  max-width: none;
 }
 
 .ovll-sidebar-chat-copy {
@@ -1223,8 +1095,12 @@
   max-width: none;
 }
 
-@media (hover: none) {
-  .ovll-sidebar-chat-more {
-    opacity: .68;
-  }
+
+#ovll-shell-menu svg path,
+#ovll-shell-menu svg rect,
+#ovll-shell-menu svg circle,
+#ovll-shell-menu svg line,
+#ovll-shell-menu svg polyline {
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
