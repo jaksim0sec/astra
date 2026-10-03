@@ -920,7 +920,12 @@
 @media (max-width: 26.25rem) {
   #canvas-node-builder {
     left: calc(max(.5rem, var(--safe-left)) + .375rem);
-    bottom: calc(var(--safe-bottom) + var(--bottom-dock-lift) + .5rem);
+    bottom: calc(
+      var(--safe-bottom) +
+      var(--bottom-dock-lift) +
+      var(--composer-live-height) +
+      .5rem
+    );
   }
 
   #canvas-node-builder-panel {
@@ -1283,7 +1288,12 @@
 @media (max-width: 26.25rem) {
   #canvas-node-builder {
     left: calc(max(.5rem, var(--safe-left)) + .375rem);
-    bottom: calc(var(--safe-bottom) + var(--bottom-dock-lift) + .5rem);
+    bottom: calc(
+      var(--safe-bottom) +
+      var(--bottom-dock-lift) +
+      var(--composer-live-height) +
+      .5rem
+    );
   }
 }
 
