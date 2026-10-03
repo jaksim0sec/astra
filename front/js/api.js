@@ -17,6 +17,27 @@
       : "";
   const API_PREFIX =
     `${API_ORIGIN}/api`;
+
+  function resolveApiAssetUrl(
+    value
+  ) {
+    const url =
+      String(value || "");
+
+    if (
+      !url ||
+      /^(?:https?:|blob:|data:)/i
+        .test(url)
+    ) {
+      return url;
+    }
+
+    if (!API_ORIGIN) {
+      return url;
+    }
+
+    return `${API_ORIGIN}${url.startsWith("/") ? "" : "/"}${url}`;
+  }
   /* =======================================================
      Internal State
      ======================================================= */
@@ -417,6 +438,7 @@
      ======================================================= */
   async function executeGroup(
     group,
+    context = {},
     options = {}
   ) {
     if (
@@ -444,12 +466,61 @@
         body: {
           nodes:
             group.nodes,
-          connections
+          connections,
+          context: {
+            userRequest:
+              String(
+                context.userRequest ||
+                ""
+              ),
+            memory:
+              context.memory || null
+          }
         },
         signal:
           options.signal
       }
     );
+  }
+
+  async function createArtifact(
+    input,
+    options = {}
+  ) {
+    const result =
+      await request(
+        "create-artifact",
+        {
+          method: "POST",
+          body: {
+            format:
+              input?.format,
+            filename:
+              input?.filename,
+            sources:
+              Array.isArray(
+                input?.sources
+              )
+                ? input.sources
+                : []
+          },
+          signal:
+            options.signal
+        }
+      );
+
+    if (
+      result?.artifact
+        ?.downloadUrl
+    ) {
+      result.artifact.downloadUrl =
+        resolveApiAssetUrl(
+          result.artifact
+            .downloadUrl
+        );
+    }
+
+    return result;
   }
 
   async function finalizeRun(
@@ -506,6 +577,7 @@
     request,
     planWorkflow,
     executeGroup,
+    createArtifact,
     finalizeRun,
     execute,
     getNodeDefinitions,
