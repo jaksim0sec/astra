@@ -11,6 +11,7 @@
   const UI = global.AstraUI;
   const API = global.AstraAPI;
   const Presence = global.OvllPresence;
+  const WorkspaceStore = global.OvllWorkspaceStore;
   const Execution = global.OvllExecutionEngine;
   const mountCanvasNode = global.mountCanvasNode;
 
@@ -35,6 +36,7 @@
     !UI ||
     !API ||
     !Presence ||
+    !WorkspaceStore ||
     !Execution ||
     typeof Execution.RuntimeEngine !== "function" ||
     typeof mountCanvasNode !== "function"
@@ -65,6 +67,10 @@
     runtimeConnections: new Set(),
     runtimeActivity: null,
     lastUserRequest: "",
+    activeConversationId: null,
+    messages: [],
+    restoringConversation: false,
+    workspaceSaveTimer: null,
     nodeBuilder: { root: null, open: false },
     messageCount: 0
   };
@@ -139,11 +145,188 @@
     state.conversationMemory =
       normalized;
     memoryStore.value = normalized;
+    scheduleWorkspaceSave();
   }
 
   function clearMemory() {
     state.conversationMemory = null;
     memoryStore.value = null;
+    scheduleWorkspaceSave();
+  }
+
+  function storageSafe(value) {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    if (value === null) {
+      return null;
+    }
+
+    if (typeof value === "string") {
+      if (
+        value.startsWith("blob:") ||
+        (
+          value.startsWith("data:") &&
+          value.length > 2048
+        )
+      ) {
+        return "";
+      }
+
+      return value;
+    }
+
+    if (
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
+      return value;
+    }
+
+    if (Array.isArray(value)) {
+      return value
+        .map(storageSafe)
+        .filter(item =>
+          item !== undefined
+        );
+    }
+
+    if (typeof value === "object") {
+      const out = {};
+
+      for (
+        const [key, item]
+        of Object.entries(value)
+      ) {
+        const safe =
+          storageSafe(item);
+
+        if (safe !== undefined) {
+          out[key] = safe;
+        }
+      }
+
+      return out;
+    }
+
+    return undefined;
+  }
+
+  function conversationTitleFromText(text) {
+    const value =
+      String(text || "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    if (!value) {
+      return "새 대화";
+    }
+
+    return value.length > 36
+      ? value.slice(0, 35) + "…"
+      : value;
+  }
+
+  function currentConversationId() {
+    return (
+      state.activeConversationId ||
+      WorkspaceStore
+        .getActiveConversation?.()
+        ?.id ||
+      null
+    );
+  }
+
+  async function saveActiveConversation() {
+    if (
+      state.destroyed ||
+      state.restoringConversation
+    ) {
+      return null;
+    }
+
+    const id =
+      currentConversationId();
+
+    if (!id) {
+      return null;
+    }
+
+    if (state.workspaceSaveTimer) {
+      clearTimeout(
+        state.workspaceSaveTimer
+      );
+      state.workspaceSaveTimer =
+        null;
+    }
+
+    const canvasState =
+      state.canvas
+        ?.getState?.() ||
+      {
+        workflow:
+          state.canvas
+            ?.getWorkflow?.() ||
+          {
+            nodes: [],
+            connections: []
+          }
+      };
+
+    return WorkspaceStore
+      .updateConversationState(
+        id,
+        {
+          mode:
+            UI.getMode?.() ||
+            "chat",
+          messages:
+            storageSafe(
+              state.messages
+            ) || [],
+          canvas:
+            storageSafe(
+              canvasState
+            ),
+          lastUserRequest:
+            state.lastUserRequest
+        },
+        normalizeMemory(
+          state.conversationMemory
+        ) || {
+          flow: "",
+          recent: "",
+          detail: ""
+        }
+      );
+  }
+
+  function scheduleWorkspaceSave(
+    delay = 180
+  ) {
+    if (
+      state.destroyed ||
+      state.restoringConversation ||
+      !state.ready
+    ) {
+      return;
+    }
+
+    clearTimeout(
+      state.workspaceSaveTimer
+    );
+
+    state.workspaceSaveTimer =
+      setTimeout(
+        () => {
+          state.workspaceSaveTimer =
+            null;
+
+          void saveActiveConversation();
+        },
+        delay
+      );
   }
 
   function scrollChatToBottom(immediate = false) {
@@ -368,7 +551,10 @@
       document.createElement("div");
 
     const id =
-      `message-${++state.messageCount}`;
+      String(
+        options.id ||
+        `message-${Date.now().toString(36)}-${++state.messageCount}`
+      );
 
     const value =
       String(text ?? "");
@@ -586,7 +772,71 @@
     );
 
     if (
-      role === "assistant"
+      options.persist !== false
+    ) {
+      const record = {
+        id,
+        role,
+        text: value,
+        question,
+        showCanvasView:
+          options.showCanvasView === true,
+        artifacts:
+          storageSafe(
+            Array.isArray(
+              options.artifacts
+            )
+              ? options.artifacts
+              : []
+          ) || [],
+        createdAt:
+          Number(
+            options.createdAt
+          ) ||
+          Date.now()
+      };
+
+      state.messages.push(
+        record
+      );
+
+      const activeId =
+        currentConversationId();
+
+      if (
+        role === "user" &&
+        activeId
+      ) {
+        const conversation =
+          WorkspaceStore
+            .getConversation?.(
+              activeId
+            );
+
+        if (
+          conversation &&
+          (
+            !conversation.title ||
+            conversation.title ===
+              "새 대화"
+          )
+        ) {
+          WorkspaceStore
+            .updateConversationTitle(
+              activeId,
+              conversationTitleFromText(
+                value
+              )
+            );
+        }
+      }
+
+      scheduleWorkspaceSave();
+    }
+
+    if (
+      role === "assistant" &&
+      options.silent !== true
     ) {
       Presence.moveToEnd();
       Presence.speak(value);
@@ -1782,11 +2032,13 @@
   function handleCanvasChange(workflow) {
     if (!workflow) return;
     state.workflow = clone(workflow);
+    scheduleWorkspaceSave();
   }
 
   function handleCanvasWorkflowApplied(workflow) {
     if (!workflow) return;
     state.workflow = clone(workflow);
+    scheduleWorkspaceSave();
   }
 
   /* =======================================================
@@ -2270,6 +2522,250 @@
     );
   }
 
+  async function openConversation(
+    conversationId,
+    options = {}
+  ) {
+    if (
+      state.destroyed ||
+      state.busy
+    ) {
+      return null;
+    }
+
+    const id =
+      String(
+        conversationId ||
+        ""
+      );
+
+    const conversation =
+      WorkspaceStore
+        .getConversation?.(
+          id
+        );
+
+    if (!conversation) {
+      return null;
+    }
+
+    const previousId =
+      currentConversationId();
+
+    if (
+      previousId &&
+      previousId !== id &&
+      options.skipSave !== true
+    ) {
+      await saveActiveConversation();
+    }
+
+    if (
+      WorkspaceStore
+        .getActiveConversation?.()
+        ?.id !== id
+    ) {
+      WorkspaceStore
+        .activateConversation(
+          id
+        );
+    }
+
+    state.restoringConversation =
+      true;
+
+    try {
+      clearRuntimeConnections();
+
+      finishRuntimeActivity({
+        removeImmediately:
+          true
+      });
+
+      state.canvas
+        ?.clearRuntimeNodeStates?.();
+
+      chatMessages.replaceChildren();
+
+      state.messages = [];
+      state.messageCount = 0;
+      state.activeConversationId =
+        id;
+      state.lastUserRequest =
+        String(
+          conversation
+            .state
+            ?.lastUserRequest ||
+          ""
+        );
+
+      const memory =
+        WorkspaceStore
+          .getConversationMemory(
+            id
+          );
+
+      state.conversationMemory =
+        normalizeMemory(
+          memory
+        ) || {
+          flow: "",
+          recent: "",
+          detail: ""
+        };
+
+      memoryStore.value =
+        clone(
+          state.conversationMemory
+        );
+
+      const canvasState =
+        conversation
+          .state
+          ?.canvas;
+
+      if (
+        canvasState &&
+        state.canvas
+          ?.setState
+      ) {
+        state.canvas.setState(
+          clone(
+            canvasState
+          )
+        );
+      } else {
+        state.canvas
+          ?.setState?.({
+            workflow: {
+              nodes: [],
+              connections: []
+            },
+            viewport: {
+              scale: 1,
+              offset: {
+                x: 0,
+                y: 0
+              }
+            }
+          });
+      }
+
+      const messages =
+        Array.isArray(
+          conversation
+            .state
+            ?.messages
+        )
+          ? conversation
+              .state
+              .messages
+          : [];
+
+      for (
+        const item
+        of messages
+      ) {
+        createMessage(
+          item.role,
+          item.text,
+          {
+            id:
+              item.id,
+            question:
+              item.question,
+            showCanvasView:
+              item.showCanvasView,
+            artifacts:
+              item.artifacts,
+            createdAt:
+              item.createdAt,
+            persist:
+              false,
+            silent:
+              true
+          }
+        );
+
+        state.messages.push(
+          clone(item)
+        );
+      }
+
+      Presence
+        .resetConversation?.({
+          started:
+            messages.length > 0
+        });
+
+      UI.setMode?.(
+        conversation
+          .state
+          ?.mode ||
+        "chat",
+        {
+          immediate: true
+        }
+      );
+
+      state.workflow =
+        getCurrentWorkflow();
+
+      requestAnimationFrame(
+        () => {
+          state.canvas
+            ?.render?.();
+          scrollChatToBottom(
+            true
+          );
+        }
+      );
+    } finally {
+      state.restoringConversation =
+        false;
+    }
+
+    global.OvllShellMenu
+      ?.refresh?.();
+
+    return clone(
+      conversation
+    );
+  }
+
+  function refreshConversationContext() {
+    const id =
+      currentConversationId();
+
+    if (!id) {
+      return null;
+    }
+
+    const memory =
+      WorkspaceStore
+        .getConversationMemory(
+          id
+        );
+
+    state.conversationMemory =
+      normalizeMemory(
+        memory
+      ) || {
+        flow: "",
+        recent: "",
+        detail: ""
+      };
+
+    memoryStore.value =
+      clone(
+        state.conversationMemory
+      );
+
+    return clone(
+      state.conversationMemory
+    );
+  }
+
   /* =======================================================
      Canvas
      ======================================================= */
@@ -2645,8 +3141,31 @@
   async function initialize() {
     if (state.destroyed) return;
 
+    const initialConversation =
+      WorkspaceStore
+        .getActiveConversation?.();
+
+    state.activeConversationId =
+      initialConversation?.id ||
+      null;
+
     state.conversationMemory =
-      loadMemory();
+      initialConversation
+        ? WorkspaceStore
+            .getConversationMemory(
+              initialConversation.id
+            )
+        : loadMemory();
+
+    memoryStore.value =
+      clone(
+        state.conversationMemory ||
+        {
+          flow: "",
+          recent: "",
+          detail: ""
+        }
+      );
 
     syncPhysicalOrientation();
     syncAppViewport();
@@ -2688,6 +3207,8 @@ listen(composerInput, "keydown", handleComposerKeydown);
           state.canvas?.render?.();
         });
       }
+
+      scheduleWorkspaceSave();
     });
 
     try {
@@ -2707,10 +3228,29 @@ listen(composerInput, "keydown", handleComposerKeydown);
 
     state.ready = true;
 
-    Presence.showStart();
+    const active =
+      WorkspaceStore
+        .getActiveConversation?.();
+
+    if (active) {
+      await openConversation(
+        active.id,
+        {
+          skipSave: true
+        }
+      );
+    } else {
+      Presence.showStart();
+    }
 
     resizeComposer();
     scrollChatToBottom(true);
+
+    global.dispatchEvent(
+      new CustomEvent(
+        "ovll:app-ready"
+      )
+    );
   }
 
   /* =======================================================
@@ -2771,6 +3311,16 @@ listen(composerInput, "keydown", handleComposerKeydown);
         : null;
     },
 
+    getActiveConversationId() {
+      return currentConversationId();
+    },
+
+    saveActiveConversation,
+
+    openConversation,
+
+    refreshConversationContext,
+
     clearConversationMemory() {
       clearMemory();
     },
@@ -2796,6 +3346,12 @@ listen(composerInput, "keydown", handleComposerKeydown);
       if (state.destroyed) return;
 
       state.destroyed = true;
+
+      clearTimeout(
+        state.workspaceSaveTimer
+      );
+      state.workspaceSaveTimer =
+        null;
 
       listeners.splice(0).forEach(cleanup => {
         try {
