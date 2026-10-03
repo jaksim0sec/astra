@@ -58,7 +58,6 @@
   };
 
   const listeners = [];
-  let viewportFrame = 0;
 
 
   /* =======================================================
@@ -160,37 +159,8 @@
     );
   }
 
-  function resetDocumentScroll() {
-    const scrollingElement =
-      document.scrollingElement;
-
-    if (
-      global.scrollX !== 0 ||
-      global.scrollY !== 0 ||
-      scrollingElement?.scrollLeft ||
-      scrollingElement?.scrollTop
-    ) {
-      global.scrollTo(0, 0);
-
-      if (scrollingElement) {
-        scrollingElement.scrollLeft = 0;
-        scrollingElement.scrollTop = 0;
-      }
-    }
-  }
-
   function syncAppViewport() {
     UI.syncViewport?.();
-  }
-
-  function requestAppViewportSync() {
-    if (viewportFrame) return;
-
-    viewportFrame =
-      requestAnimationFrame(() => {
-        viewportFrame = 0;
-        syncAppViewport();
-      });
   }
 
   function focusComposerWithoutScroll() {
@@ -1279,11 +1249,6 @@ listen(composerInput, "keydown", handleComposerKeydown);
       if (state.destroyed) return;
 
       state.destroyed = true;
-
-      if (viewportFrame) {
-        cancelAnimationFrame(viewportFrame);
-        viewportFrame = 0;
-      }
 
       listeners.splice(0).forEach(cleanup => {
         try {
