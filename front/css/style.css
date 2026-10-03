@@ -49,8 +49,8 @@
   --ui-control-shadow: var(--shadow-soft);
   --ui-backdrop: blur(1.125rem) saturate(1.03);
 
-  --app-resize-duration: .345s;
-  --app-resize-ease: cubic-bezier(.22,.61,.36,1);
+  --app-resize-duration: .22s;
+  --app-resize-ease: cubic-bezier(.2,.82,.2,1);
 
   --page-progress: 0;
 }
@@ -215,22 +215,24 @@ svg {
   background: var(--bg);
 
   /*
-   * Viewport height follows visualViewport immediately.
-   * Smoothness is handled by the compositor-only follower in ui.js,
-   * avoiding delayed height transitions that snap at keyboard close.
+   * The browser viewport itself stays stable.
+   * Only this inner stage follows the available keyboard-safe height.
    */
   transition:
+    height var(--app-resize-duration) var(--app-resize-ease),
     background-color .2s ease;
+
+  will-change: height;
 }
 
 html.viewport-shrinking {
-  --app-resize-duration: .48s;
-  --app-resize-ease: cubic-bezier(.4, 0, .2, 1);
+  --app-resize-duration: .18s;
+  --app-resize-ease: cubic-bezier(.4,0,.2,1);
 }
 
 html.viewport-growing {
-  --app-resize-duration: .345s;
-  --app-resize-ease: cubic-bezier(.22,.61,.36,1);
+  --app-resize-duration: .22s;
+  --app-resize-ease: cubic-bezier(.2,.82,.2,1);
 }
 
 @media (prefers-reduced-motion: reduce) {
