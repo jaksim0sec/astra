@@ -487,6 +487,16 @@
     }
 
     if (
+      status === 413 ||
+      code ===
+        "CLIENT_PAYLOAD_TOO_LARGE" ||
+      /too large|payload too large/i
+        .test(message)
+    ) {
+      return "한 번에 처리할 내용이 너무 커. 범위를 조금 줄이거나 작업을 나눠서 실행해줘.";
+    }
+
+    if (
       code ===
         "INVALID_SERVER_RESPONSE" ||
       code ===
