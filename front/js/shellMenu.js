@@ -2034,6 +2034,14 @@ listen(
           state.suppressClick=
             true;
 
+          setTimeout(
+            ()=>{
+              state.suppressClick=
+                false;
+            },
+            360
+          );
+
           openConversationMenu(
             state.longPress.conversationId,
             state.longPress.target
