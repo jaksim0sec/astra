@@ -1076,9 +1076,21 @@ function search(
     state.conversations
       .slice()
       .sort(
-        (a,b) =>
-          Number(b.updatedAt) -
-          Number(a.updatedAt)
+        (a,b) => {
+          if(
+            !!a.pinned !==
+            !!b.pinned
+          ){
+            return a.pinned
+              ? -1
+              : 1;
+          }
+
+          return (
+            Number(b.updatedAt) -
+            Number(a.updatedAt)
+          );
+        }
       );
 
   if(!value){
