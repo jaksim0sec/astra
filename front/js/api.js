@@ -550,6 +550,17 @@
         );
     }
 
+    if (
+      result?.artifact
+        ?.previewUrl
+    ) {
+      result.artifact.previewUrl =
+        resolveApiAssetUrl(
+          result.artifact
+            .previewUrl
+        );
+    }
+
     return result;
   }
 
