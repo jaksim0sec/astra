@@ -1053,3 +1053,178 @@
 .ovll-sidebar-chat-list-flat {
   margin-top: .08rem;
 }
+
+
+/* =========================================================
+   Conversation actions
+   ========================================================= */
+
+.ovll-sidebar-chat-item {
+  min-width: 0;
+  display: grid;
+  grid-template-columns:
+    minmax(0,1fr)
+    2rem;
+  align-items: center;
+  gap: .08rem;
+  position: relative;
+}
+
+.ovll-sidebar-chat-item
+.ovll-sidebar-chat {
+  grid-template-columns:
+    1.4rem
+    minmax(0,1fr);
+}
+
+.ovll-sidebar-chat-more {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border-radius: .68rem;
+  color: var(--muted);
+  background: transparent;
+  opacity: 0;
+  cursor: pointer;
+  transition:
+    opacity .13s ease,
+    color .13s ease,
+    background-color .13s ease,
+    transform .13s ease;
+}
+
+.ovll-sidebar-chat-item:hover
+.ovll-sidebar-chat-more,
+.ovll-sidebar-chat-more:focus-visible,
+.ovll-sidebar-chat-item:has(
+  .ovll-sidebar-chat.is-active
+)
+.ovll-sidebar-chat-more {
+  opacity: 1;
+}
+
+.ovll-sidebar-chat-more:hover {
+  color: var(--text);
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 6%,
+      transparent
+    );
+}
+
+.ovll-sidebar-chat-more:active {
+  transform: scale(.92);
+}
+
+.ovll-sidebar-chat-more svg {
+  width: 1rem;
+  height: 1rem;
+  max-width: none;
+}
+
+.ovll-sidebar-chat-copy {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+}
+
+.ovll-sidebar-chat-pin {
+  width: .9rem;
+  height: .9rem;
+  flex: 0 0 .9rem;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.ovll-sidebar-chat-pin svg {
+  width: .78rem;
+  height: .78rem;
+  max-width: none;
+}
+
+.ovll-sidebar-chat-menu {
+  position: absolute;
+  z-index: 12;
+  width: 9.4rem;
+  display: grid;
+  gap: .16rem;
+  padding: .32rem;
+  border:
+    .0625rem solid
+    color-mix(
+      in srgb,
+      var(--line) 90%,
+      transparent
+    );
+  border-radius: .9rem;
+  background:
+    color-mix(
+      in srgb,
+      var(--panel) 97%,
+      var(--bg)
+    );
+  box-shadow:
+    0
+    .65rem
+    1.8rem
+    rgba(0,0,0,.14);
+  backdrop-filter:
+    blur(1rem);
+  -webkit-backdrop-filter:
+    blur(1rem);
+}
+
+.ovll-sidebar-chat-menu button {
+  width: 100%;
+  min-height: 2.3rem;
+  display: grid;
+  grid-template-columns:
+    1.15rem
+    minmax(0,1fr);
+  align-items: center;
+  gap: .52rem;
+  padding:
+    .42rem
+    .58rem;
+  border-radius: .68rem;
+  color: var(--sub);
+  background: transparent;
+  text-align: left;
+  font-size: .72rem;
+  font-weight: 590;
+  cursor: pointer;
+}
+
+.ovll-sidebar-chat-menu button:hover {
+  color: var(--text);
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 6%,
+      transparent
+    );
+}
+
+.ovll-sidebar-chat-menu button.is-danger {
+  color:
+    color-mix(
+      in srgb,
+      #d76060 84%,
+      var(--text)
+    );
+}
+
+.ovll-sidebar-chat-menu button svg {
+  width: 1rem;
+  height: 1rem;
+  max-width: none;
+}
+
+@media (hover: none) {
+  .ovll-sidebar-chat-more {
+    opacity: .68;
+  }
+}
