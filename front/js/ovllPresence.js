@@ -389,6 +389,46 @@ function speak(text,options={}){
   });
 }
 
+function resetConversation({
+  started=false
+}={}){
+  clearTimeout(
+    state.speechTimer
+  );
+  clearTimeout(
+    state.settleTimer
+  );
+
+  state.speechTimer=null;
+  state.settleTimer=null;
+
+  state.chatRow?.remove();
+  state.startView?.remove();
+  state.canvasSpeech?.remove();
+
+  state.chatRow=null;
+  state.chatOrb=null;
+  state.startView=null;
+  state.startOrb=null;
+  state.canvasSpeech=null;
+  state.speechText=null;
+  state.started=false;
+
+  setPhase(
+    "idle"
+  );
+
+  if(started){
+    beginConversation();
+    moveToEnd();
+    settleChat();
+  }else{
+    showStart();
+  }
+
+  return api;
+}
+
 function workAtNode(
   id,
   active=true
@@ -448,6 +488,7 @@ const api={
   settle,
   speak,
   hideCanvasSpeech,
+  resetConversation,
   workAtNode,
   attachCanvasMascot,
   react(){
