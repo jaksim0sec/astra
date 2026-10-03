@@ -23,6 +23,7 @@ const state = {
   editing:null,
   destroyed:false,
   renderFrame:null,
+  suppressClick:false,
   gesture:{
     active:false,
     horizontal:false,
@@ -1302,6 +1303,13 @@ async function importWorkspaceFile(
 }
 
 function handleClick(event){
+  if(state.suppressClick){
+    event.preventDefault();
+    event.stopPropagation();
+    state.suppressClick=false;
+    return;
+  }
+
   const conversation=
     event.target.closest(
       "[data-conversation-id]"
@@ -1450,7 +1458,7 @@ function beginGesture(event){
 
   if(
     event.target.closest(
-      "input,button,a"
+      "input,textarea"
     )
   ){
     return;
@@ -1618,6 +1626,9 @@ function endGesture(event){
         .width
     );
 
+  const wasHorizontal=
+    gesture.horizontal;
+
   const shouldClose=
     Math.abs(
       gesture.dragX
@@ -1647,6 +1658,17 @@ function endGesture(event){
       event.pointerId
     );
   }catch{}
+
+  if(wasHorizontal){
+    state.suppressClick=true;
+
+    setTimeout(
+      ()=>{
+        state.suppressClick=false;
+      },
+      320
+    );
+  }
 
   if(shouldClose){
     close();
