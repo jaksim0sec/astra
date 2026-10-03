@@ -1,66 +1,72 @@
 /* =========================================================
-   OVLL Shell Menu
-   Dedicated top-level navigation surface
+   ovll workspace sidebar
    ========================================================= */
+
+:root {
+  --sidebar-width: 17.5rem;
+  --sidebar-edge-gap: 2.75rem;
+  --sidebar-item-radius: .65rem;
+}
 
 #ovll-shell-menu {
   position: absolute;
-  z-index: 140;
+  z-index: 150;
   inset: 0;
   pointer-events: none;
+  --sidebar-drag-x: 0px;
+  --sidebar-drag-progress: 1;
 }
 
 /* trigger */
 
 #ovll-shell-menu-trigger {
   position: absolute;
-  z-index: 3;
-
-  top: calc(
-    var(--safe-top) +
-    var(--top-control-top)
-  );
-
-  left: max(
-    .75rem,
-    var(--safe-left)
-  );
-
-  width: var(--top-control-height);
-  height: var(--top-control-height);
-
+  z-index: 4;
+  top:
+    calc(
+      var(--safe-top) +
+      var(--top-control-top) +
+      .18rem
+    );
+  left:
+    max(
+      .72rem,
+      var(--safe-left)
+    );
+  width: 2.35rem;
+  height: 2.35rem;
   display: grid;
   place-items: center;
-
-  border: .0625rem solid var(--line);
-  border-radius: 50%;
-
-  background: var(--panel-soft);
-  color: var(--text);
-
+  border: 0;
+  border-radius: .72rem;
+  color: var(--sub);
+  background:
+    color-mix(
+      in srgb,
+      var(--bg) 88%,
+      transparent
+    );
   backdrop-filter:
-    blur(1.375rem)
-    saturate(1.08);
-
+    blur(1rem);
   -webkit-backdrop-filter:
-    blur(1.375rem)
-    saturate(1.08);
-
-  box-shadow: var(--shadow-soft);
-
+    blur(1rem);
   pointer-events: auto;
   touch-action: manipulation;
-
   transition:
+    color .16s ease,
     background-color .16s ease,
-    border-color .16s ease,
     transform .16s var(--ease),
     opacity .16s ease;
 }
 
+#ovll-shell-menu-trigger svg {
+  width: 1.18rem;
+  height: 1.18rem;
+}
+
 #ovll-shell-menu-trigger:hover {
-  background: var(--panel-strong);
-  border-color: var(--line-strong);
+  color: var(--text);
+  background: var(--soft);
 }
 
 #ovll-shell-menu-trigger:active {
@@ -73,31 +79,7 @@
   transform:
     translateX(-.35rem)
     scale(.94);
-
   pointer-events: none;
-}
-
-.ovll-shell-menu-dots {
-  width: 1rem;
-  height: 1rem;
-
-  display: flex;
-  align-items: center;
-  justify-content: center;
-
-  gap: .145rem;
-}
-
-.ovll-shell-menu-dots i {
-  width: .16rem;
-  height: .16rem;
-
-  display: block;
-
-  border-radius: 50%;
-  background: currentColor;
-
-  opacity: .9;
 }
 
 /* backdrop */
@@ -106,21 +88,21 @@
   position: absolute;
   z-index: 1;
   inset: 0;
-
   background:
-    rgba(0,0,0,.14);
-
+    rgba(0,0,0,.22);
   opacity: 0;
-
   pointer-events: none;
-
   transition:
-    opacity .22s ease;
+    opacity .24s ease;
 }
 
 #ovll-shell-menu.is-open
 #ovll-shell-menu-backdrop {
-  opacity: 1;
+  opacity:
+    var(
+      --sidebar-drag-progress,
+      1
+    );
   pointer-events: auto;
 }
 
@@ -129,28 +111,25 @@
 #ovll-shell-menu-panel {
   position: absolute;
   z-index: 2;
-
   top: 0;
   bottom: 0;
   left: 0;
-
   width:
     min(
-      22.5rem,
-      calc(100% - 2.65rem)
+      var(--sidebar-width),
+      calc(
+        100% -
+        var(--sidebar-edge-gap)
+      )
     );
-
-  padding: 0;
-
   transform:
     translate3d(
       -100%,
       0,
       0
     );
-
   pointer-events: none;
-
+  outline: none;
   transition:
     transform
     .3s
@@ -160,8 +139,10 @@
       .2,
       1
     );
-
-  will-change: transform;
+  will-change:
+    transform;
+  touch-action:
+    pan-y;
 }
 
 #ovll-shell-menu.is-open
@@ -172,403 +153,899 @@
       0,
       0
     );
-
   pointer-events: auto;
 }
 
-.ovll-shell-menu-panel-inner {
+#ovll-shell-menu.is-dragging
+#ovll-shell-menu-panel {
+  transform:
+    translate3d(
+      var(--sidebar-drag-x),
+      0,
+      0
+    );
+  transition: none;
+}
+
+#ovll-shell-menu.is-dragging
+#ovll-shell-menu-backdrop {
+  transition: none;
+}
+
+.ovll-sidebar-inner {
   width: 100%;
   height: 100%;
-
   min-height: 0;
-
   display: grid;
   grid-template-rows:
     auto
+    auto
     minmax(0,1fr)
     auto;
-
   overflow: hidden;
-
-  border: 0;
   border-right:
     .0625rem solid
     color-mix(
       in srgb,
-      var(--line) 82%,
+      var(--line) 88%,
       transparent
     );
-
-  border-radius: 0;
-
   background:
     color-mix(
       in srgb,
-      var(--panel) 97%,
-      transparent
+      var(--panel) 98%,
+      var(--bg)
     );
-
   box-shadow:
-    .45rem
+    .65rem
     0
-    1.6rem
-    rgba(0,0,0,.075);
-
-  backdrop-filter:
-    blur(1.5rem)
-    saturate(1.05);
-
-  -webkit-backdrop-filter:
-    blur(1.5rem)
-    saturate(1.05);
+    2rem
+    rgba(0,0,0,.11);
 }
 
 /* header */
 
-.ovll-shell-menu-header {
-  min-height: 3.9rem;
-
+.ovll-sidebar-header {
+  min-height:
+    calc(
+      var(--safe-top) +
+      3.55rem
+    );
   padding:
-    calc(var(--safe-top) + .65rem)
-    .85rem
-    .55rem
-    max(.9rem,var(--safe-left));
-
+    calc(
+      var(--safe-top) +
+      .65rem
+    )
+    .7rem
+    .48rem
+    max(
+      .82rem,
+      var(--safe-left)
+    );
   display: flex;
   align-items: center;
-  gap: .625rem;
-
+  justify-content: space-between;
+  gap: .5rem;
 }
 
-.ovll-shell-menu-header
-[data-shell-slot="header"] {
+.ovll-sidebar-brand {
   min-width: 0;
-
-  flex: 1;
-
   display: flex;
   align-items: center;
+  gap: .52rem;
+  padding-left: .12rem;
 }
 
-.ovll-shell-menu-brand-mark {
-  width: 2rem;
-  height: 2rem;
-
+.ovll-sidebar-brand-orb {
+  width: 1.62rem;
+  height: 1.62rem;
+  flex: 0 0 1.62rem;
   display: grid;
   place-items: center;
-
   border-radius: 50%;
   background: var(--text);
   color: var(--bg);
-
-  box-shadow:
-    0 .08rem .28rem
-    rgba(0,0,0,.1);
 }
 
-.ovll-shell-menu-brand-mark span {
-  width: .35rem;
-  height: .37rem;
-
+.ovll-sidebar-brand-orb i {
+  width: .27rem;
+  height: .31rem;
   display: block;
-
   border-radius: 50%;
   background: currentColor;
 }
 
-.ovll-shell-menu-close {
-  width: 2.25rem;
-  height: 2.25rem;
+.ovll-sidebar-brand-name {
+  color: var(--text);
+  font-size: .88rem;
+  font-weight: 760;
+  letter-spacing: -.03em;
+}
 
-  flex: 0 0 2.25rem;
-
+.ovll-sidebar-icon-button {
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
   display: grid;
   place-items: center;
-
-  border-radius: 50%;
-
+  border-radius: .58rem;
   color: var(--muted);
-
+  background: transparent;
+  cursor: pointer;
   transition:
-    color .15s ease,
-    background-color .15s ease,
-    transform .15s var(--ease);
-}
-
-.ovll-shell-menu-close:hover {
-  color: var(--text);
-
-  background:
-    color-mix(
-      in srgb,
-      var(--text) 5%,
-      transparent
-    );
-}
-
-.ovll-shell-menu-close:active {
-  transform: scale(.94);
-}
-
-.ovll-shell-menu-close svg {
-  width: 1rem;
-  height: 1rem;
-
-  stroke: currentColor;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
-/* slots */
-
-.ovll-shell-menu-slot {
-  min-width: 0;
-}
-
-.ovll-shell-menu-main {
-  min-height: 0;
-
-  padding:
-    .55rem
-    .65rem
-    .75rem;
-
-  overflow-x: hidden;
-  overflow-y: auto;
-
-  overscroll-behavior: contain;
-  scrollbar-width: none;
-}
-
-.ovll-shell-menu-main::-webkit-scrollbar {
-  display: none;
-}
-
-.ovll-shell-menu-footer {
-  padding:
-    .6rem
-    .75rem
-    calc(var(--safe-bottom) + .6rem)
-    max(.8rem,var(--safe-left));
-}
-
-/* generic reusable section primitives */
-
-.ovll-shell-menu-section {
-  padding:
-    .45rem
-    .3rem;
-}
-
-.ovll-shell-menu-section-head {
-  min-height: 1.9rem;
-
-  padding:
-    0
-    .45rem;
-
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-
-  gap: .5rem;
-}
-
-.ovll-shell-menu-section-title {
-  overflow: hidden;
-
-  color: var(--muted);
-
-  font-size: .6875rem;
-  font-weight: 700;
-
-  letter-spacing: .015em;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* useful primitives for future chat/account rendering */
-
-.ovll-shell-menu-item {
-  width: 100%;
-  min-height: 2.7rem;
-
-  padding:
-    .55rem
-    .65rem;
-
-  display: flex;
-  align-items: center;
-  gap: .65rem;
-
-  border-radius: .8rem;
-
-  color: var(--text);
-
-  text-align: left;
-
-  transition:
+    color .14s ease,
     background-color .14s ease,
     transform .14s var(--ease);
 }
 
-.ovll-shell-menu-item:hover {
-  background:
-    color-mix(
-      in srgb,
-      var(--text) 5%,
-      transparent
-    );
+.ovll-sidebar-icon-button svg {
+  width: .98rem;
+  height: .98rem;
 }
 
-.ovll-shell-menu-item:active {
-  transform: scale(.985);
+.ovll-sidebar-icon-button:hover {
+  color: var(--text);
+  background: var(--soft);
 }
 
-.ovll-shell-menu-item-icon {
-  width: 1.65rem;
-  height: 1.65rem;
+.ovll-sidebar-icon-button:active {
+  transform: scale(.94);
+}
 
-  flex: 0 0 1.65rem;
+/* primary actions */
 
+.ovll-sidebar-primary {
   display: grid;
-  place-items: center;
-
-  border-radius: .52rem;
-
-  background:
-    color-mix(
-      in srgb,
-      var(--text) 5%,
-      transparent
-    );
-
-  color: var(--muted);
-}
-
-.ovll-shell-menu-item-main {
-  min-width: 0;
-  flex: 1;
-}
-
-.ovll-shell-menu-item-title {
-  overflow: hidden;
-
-  font-size: .8rem;
-  font-weight: 560;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ovll-shell-menu-item-subtitle {
-  margin-top: .1rem;
-
-  overflow: hidden;
-
-  color: var(--muted);
-
-  font-size: .675rem;
-  font-weight: 450;
-
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ovll-shell-menu-cta {
-  width: 100%;
-  min-height: 2.85rem;
-
+  gap: .08rem;
   padding:
-    .65rem
-    .8rem;
+    .16rem
+    .58rem
+    .55rem;
+}
 
+.ovll-sidebar-primary-action {
+  width: 100%;
+  min-height: 2.35rem;
   display: flex;
   align-items: center;
-  justify-content: center;
-
-  border-radius: .9rem;
-
-  background: var(--text);
-  color: var(--bg);
-
-  font-size: .78rem;
-  font-weight: 700;
-
+  gap: .58rem;
+  padding:
+    .4rem
+    .58rem;
+  border-radius:
+    var(--sidebar-item-radius);
+  color: var(--text);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-size: .74rem;
+  font-weight: 580;
+  letter-spacing: -.012em;
   transition:
-    opacity .15s ease,
-    transform .15s var(--ease);
+    background-color .13s ease,
+    transform .13s var(--ease);
 }
 
-.ovll-shell-menu-cta:hover {
-  opacity: .9;
+.ovll-sidebar-primary-action:hover {
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 5%,
+      transparent
+    );
 }
 
-.ovll-shell-menu-cta:active {
-  transform: scale(.985);
+.ovll-sidebar-primary-action:active {
+  transform: scale(.988);
 }
 
-html.shell-menu-open,
-html.shell-menu-open body {
-  overscroll-behavior: none;
+.ovll-sidebar-primary-icon {
+  width: 1.22rem;
+  height: 1.22rem;
+  flex: 0 0 1.22rem;
+  display: grid;
+  place-items: center;
+  color: var(--sub);
 }
+
+.ovll-sidebar-primary-icon svg {
+  width: 1.06rem;
+  height: 1.06rem;
+}
+
+.ovll-sidebar-keyhint {
+  margin-left: auto;
+  color: var(--muted);
+  font-size: .55rem;
+  font-weight: 540;
+}
+
+.ovll-sidebar-search {
+  min-height: 2.35rem;
+  display: grid;
+  grid-template-columns:
+    1.15rem
+    minmax(0,1fr)
+    1.65rem;
+  align-items: center;
+  gap: .34rem;
+  margin-top: .18rem;
+  padding:
+    .3rem
+    .36rem
+    .3rem
+    .58rem;
+  border:
+    .0625rem solid
+    var(--line);
+  border-radius:
+    .72rem;
+  background:
+    color-mix(
+      in srgb,
+      var(--soft) 72%,
+      transparent
+    );
+}
+
+.ovll-sidebar-search[hidden] {
+  display: none;
+}
+
+.ovll-sidebar-search-icon {
+  width: 1rem;
+  height: 1rem;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.ovll-sidebar-search-icon svg {
+  width: .9rem;
+  height: .9rem;
+}
+
+.ovll-sidebar-search input {
+  width: 100%;
+  min-width: 0;
+  height: 1.55rem;
+  padding: 0;
+  border: 0;
+  color: var(--text);
+  background: transparent;
+  font-size: .7rem;
+  font-weight: 500;
+}
+
+.ovll-sidebar-search input::placeholder {
+  color: var(--muted);
+}
+
+.ovll-sidebar-search button {
+  width: 1.65rem;
+  height: 1.65rem;
+  display: grid;
+  place-items: center;
+  border-radius: .48rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.ovll-sidebar-search button:hover {
+  color: var(--text);
+  background: var(--soft);
+}
+
+.ovll-sidebar-search button svg {
+  width: .78rem;
+  height: .78rem;
+}
+
+/* scroll area */
+
+.ovll-sidebar-scroll {
+  min-height: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  padding:
+    .1rem
+    .5rem
+    .75rem;
+  scrollbar-width: none;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+}
+
+.ovll-sidebar-scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.ovll-sidebar-sections,
+.ovll-sidebar-contexts {
+  display: grid;
+  gap: .1rem;
+}
+
+.ovll-sidebar-contexts {
+  margin-top: .75rem;
+  padding-top: .62rem;
+  border-top:
+    .0625rem solid
+    color-mix(
+      in srgb,
+      var(--line) 72%,
+      transparent
+    );
+}
+
+.ovll-sidebar-group-head {
+  min-height: 1.8rem;
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  padding:
+    .2rem
+    .5rem;
+  color: var(--muted);
+  font-size: .58rem;
+  font-weight: 720;
+  letter-spacing: .035em;
+}
+
+.ovll-sidebar-group-head small {
+  color: var(--muted);
+  font: inherit;
+  opacity: .72;
+}
+
+.ovll-sidebar-group-head > button {
+  width: 1.5rem;
+  height: 1.5rem;
+  margin-left: auto;
+  display: grid;
+  place-items: center;
+  border-radius: .45rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.ovll-sidebar-group-head > button:hover {
+  color: var(--text);
+  background: var(--soft);
+}
+
+.ovll-sidebar-group-head > button svg {
+  width: .8rem;
+  height: .8rem;
+}
+
+/* sections */
+
+.ovll-sidebar-section {
+  display: grid;
+  gap: .02rem;
+}
+
+.ovll-sidebar-section-head {
+  min-width: 0;
+  display: grid;
+  grid-template-columns:
+    minmax(0,1fr)
+    1.55rem;
+  align-items: center;
+  gap: .1rem;
+}
+
+.ovll-sidebar-section-toggle {
+  min-width: 0;
+  min-height: 1.75rem;
+  display: grid;
+  grid-template-columns:
+    .9rem
+    minmax(0,1fr)
+    auto;
+  align-items: center;
+  gap: .18rem;
+  padding:
+    .22rem
+    .42rem;
+  border-radius: .52rem;
+  color: var(--muted);
+  text-align: left;
+  cursor: pointer;
+}
+
+.ovll-sidebar-section-toggle:hover {
+  color: var(--sub);
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 3%,
+      transparent
+    );
+}
+
+.ovll-sidebar-section-chevron {
+  width: .82rem;
+  height: .82rem;
+  display: grid;
+  place-items: center;
+  transition:
+    transform .18s var(--ease);
+}
+
+.ovll-sidebar-section-toggle[aria-expanded="false"]
+.ovll-sidebar-section-chevron {
+  transform: rotate(-90deg);
+}
+
+.ovll-sidebar-section-chevron svg {
+  width: .72rem;
+  height: .72rem;
+}
+
+.ovll-sidebar-section-title {
+  min-width: 0;
+  overflow: hidden;
+  font-size: .61rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ovll-sidebar-section-count {
+  min-width: 1rem;
+  color: var(--muted);
+  font-size: .53rem;
+  text-align: right;
+}
+
+.ovll-sidebar-section-add {
+  width: 1.5rem;
+  height: 1.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: .45rem;
+  color: transparent;
+  cursor: pointer;
+  transition:
+    color .14s ease,
+    background-color .14s ease;
+}
+
+.ovll-sidebar-section-head:hover
+.ovll-sidebar-section-add,
+.ovll-sidebar-section-add:focus-visible {
+  color: var(--muted);
+}
+
+.ovll-sidebar-section-add:hover {
+  color: var(--text);
+  background: var(--soft);
+}
+
+.ovll-sidebar-section-add svg {
+  width: .74rem;
+  height: .74rem;
+}
+
+/* conversations */
+
+.ovll-sidebar-chat-list {
+  display: grid;
+  gap: .03rem;
+}
+
+.ovll-sidebar-chat {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.12rem;
+  display: grid;
+  grid-template-columns:
+    1.05rem
+    minmax(0,1fr);
+  align-items: center;
+  gap: .45rem;
+  padding:
+    .33rem
+    .5rem;
+  border-radius:
+    var(--sidebar-item-radius);
+  color: var(--sub);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    color .13s ease,
+    background-color .13s ease,
+    transform .13s var(--ease);
+}
+
+.ovll-sidebar-chat:hover {
+  color: var(--text);
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 4%,
+      transparent
+    );
+}
+
+.ovll-sidebar-chat:active {
+  transform: scale(.99);
+}
+
+.ovll-sidebar-chat.is-active {
+  color: var(--text);
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 6.5%,
+      transparent
+    );
+}
+
+.ovll-sidebar-chat-icon {
+  width: 1rem;
+  height: 1rem;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.ovll-sidebar-chat-icon svg {
+  width: .88rem;
+  height: .88rem;
+}
+
+.ovll-sidebar-chat-copy {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+}
+
+.ovll-sidebar-chat-title {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  font-size: .68rem;
+  font-weight: 520;
+  letter-spacing: -.012em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ovll-sidebar-chat.is-active
+.ovll-sidebar-chat-title {
+  font-weight: 620;
+}
+
+.ovll-sidebar-chat-meta {
+  flex: 0 0 auto;
+  color: var(--muted);
+  font-size: .5rem;
+  font-weight: 480;
+}
+
+/* contexts */
+
+.ovll-sidebar-context {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.1rem;
+  display: grid;
+  grid-template-columns:
+    1rem
+    minmax(0,1fr)
+    auto;
+  align-items: center;
+  gap: .42rem;
+  padding:
+    .34rem
+    .5rem;
+  border-radius:
+    var(--sidebar-item-radius);
+  color: var(--sub);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    color .13s ease,
+    background-color .13s ease;
+}
+
+.ovll-sidebar-context:hover {
+  color: var(--text);
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 4%,
+      transparent
+    );
+}
+
+.ovll-sidebar-context.is-active {
+  color: var(--text);
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 5.5%,
+      transparent
+    );
+}
+
+.ovll-sidebar-context-icon {
+  width: 1rem;
+  height: 1rem;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.ovll-sidebar-context-icon svg {
+  width: .9rem;
+  height: .9rem;
+}
+
+.ovll-sidebar-context-title {
+  min-width: 0;
+  overflow: hidden;
+  font-size: .66rem;
+  font-weight: 520;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ovll-sidebar-context-state {
+  color: var(--muted);
+  font-size: .49rem;
+  font-weight: 600;
+}
+
+/* inline editor */
+
+.ovll-sidebar-inline-editor {
+  padding:
+    .22rem
+    .42rem
+    .32rem;
+}
+
+.ovll-sidebar-inline-editor input {
+  width: 100%;
+  height: 2rem;
+  padding:
+    0
+    .58rem;
+  border:
+    .0625rem solid
+    var(--line-strong);
+  border-radius:
+    .58rem;
+  color: var(--text);
+  background:
+    var(--soft);
+  font-size: .67rem;
+  font-weight: 520;
+}
+
+/* empty */
+
+.ovll-sidebar-empty {
+  padding:
+    1.25rem
+    .5rem;
+  color: var(--muted);
+  font-size: .65rem;
+  text-align: center;
+}
+
+/* footer */
+
+.ovll-sidebar-footer {
+  padding:
+    .55rem
+    .58rem
+    calc(
+      var(--safe-bottom) +
+      .58rem
+    );
+  border-top:
+    .0625rem solid
+    color-mix(
+      in srgb,
+      var(--line) 74%,
+      transparent
+    );
+}
+
+.ovll-sidebar-local-tools {
+  min-height: 1.85rem;
+  display: flex;
+  align-items: center;
+  gap: .08rem;
+  padding:
+    0
+    .18rem
+    .3rem;
+  color: var(--muted);
+}
+
+.ovll-sidebar-local-tools button {
+  width: 1.65rem;
+  height: 1.65rem;
+  display: grid;
+  place-items: center;
+  border-radius: .48rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.ovll-sidebar-local-tools button:hover {
+  color: var(--text);
+  background: var(--soft);
+}
+
+.ovll-sidebar-local-tools button svg {
+  width: .82rem;
+  height: .82rem;
+}
+
+.ovll-sidebar-local-tools span {
+  margin-left: .22rem;
+  font-size: .5rem;
+  font-weight: 560;
+}
+
+.ovll-sidebar-account {
+  width: 100%;
+  min-width: 0;
+  min-height: 3rem;
+  display: grid;
+  grid-template-columns:
+    2rem
+    minmax(0,1fr)
+    1.4rem;
+  align-items: center;
+  gap: .52rem;
+  padding:
+    .42rem
+    .46rem;
+  border-radius: .72rem;
+  color: var(--text);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    background-color .14s ease;
+}
+
+.ovll-sidebar-account:hover {
+  background: var(--soft);
+}
+
+.ovll-sidebar-account-avatar {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border:
+    .0625rem solid
+    var(--line);
+  border-radius: 50%;
+  color: var(--sub);
+  background:
+    color-mix(
+      in srgb,
+      var(--panel-strong) 78%,
+      transparent
+    );
+}
+
+.ovll-sidebar-account-avatar svg {
+  width: .98rem;
+  height: .98rem;
+}
+
+.ovll-sidebar-account-copy {
+  min-width: 0;
+  display: grid;
+  gap: .08rem;
+}
+
+.ovll-sidebar-account-copy strong {
+  overflow: hidden;
+  font-size: .68rem;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ovll-sidebar-account-copy small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: .5rem;
+  font-weight: 470;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ovll-sidebar-account-more {
+  width: 1.2rem;
+  height: 1.2rem;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+
+.ovll-sidebar-account-more svg {
+  width: .9rem;
+  height: .9rem;
+}
+
+/* accessibility */
+
+#ovll-shell-menu button:focus-visible,
+#ovll-shell-menu input:focus-visible {
+  outline:
+    .125rem solid
+    color-mix(
+      in srgb,
+      var(--text) 16%,
+      transparent
+    );
+  outline-offset: .08rem;
+}
+
+/* compact mobile */
 
 @media (max-width: 43.75rem) {
-  #ovll-shell-menu-panel {
-    width: 70vw;
+  :root {
+    --sidebar-width:
+      min(
+        20rem,
+        calc(
+          100vw -
+          var(--sidebar-edge-gap)
+        )
+      );
+  }
+
+  #ovll-shell-menu-trigger {
+    left:
+      max(
+        .58rem,
+        var(--safe-left)
+      );
+  }
+
+  .ovll-sidebar-header {
+    padding-left:
+      max(
+        .68rem,
+        var(--safe-left)
+      );
+  }
+
+  .ovll-sidebar-inner {
+    box-shadow:
+      .55rem
+      0
+      1.6rem
+      rgba(0,0,0,.18);
+  }
+
+  .ovll-sidebar-keyhint {
+    display: none;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
   #ovll-shell-menu-panel,
   #ovll-shell-menu-backdrop,
-  #ovll-shell-menu-trigger {
-    transition: none;
+  #ovll-shell-menu-trigger,
+  .ovll-sidebar-section-chevron {
+    transition: none !important;
   }
-}
-
-
-/* =========================================================
-   OVLL SHELL POLISH
-   ========================================================= */
-
-#ovll-shell-menu-trigger {
-  border: var(--ui-line-width) solid var(--ui-line);
-  border-radius: var(--ui-radius-pill);
-  background: var(--ui-glass);
-  backdrop-filter: var(--ui-backdrop);
-  -webkit-backdrop-filter: var(--ui-backdrop);
-  box-shadow: var(--ui-control-shadow);
-}
-
-#ovll-shell-menu-trigger:hover {
-  border-color: var(--ui-line-strong);
-  background: var(--ui-glass-strong);
-}
-
-.ovll-shell-menu-wordmark {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: baseline;
-  gap: .32rem;
-  padding: 0 .15rem;
-  white-space: nowrap;
-  color: var(--text);
-  letter-spacing: -.02em;
-  user-select: none;
-  -webkit-user-select: none;
-}
-
-.ovll-shell-menu-wordmark strong {
-  font-size: .84rem;
-  font-weight: 720;
-}
-
-.ovll-shell-menu-wordmark span {
-  color: var(--muted);
-  font-size: .69rem;
-  font-weight: 560;
-  letter-spacing: .01em;
 }
