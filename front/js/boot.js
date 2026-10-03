@@ -23,6 +23,7 @@ const APP_SCRIPTS=[
   "./js/functions.js",
   "./js/api.js",
   "./js/canvasNode.js",
+  "./js/runtimeEngine.js",
   "./js/ui.js",
   "./js/shellMenu.js",
   "./js/ovllPresence.js",
