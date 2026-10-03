@@ -108,7 +108,8 @@
       connectionDrag: null,
       interactionEnabled: options.interactionEnabled !== false,
       destroyed: false,
-      connectionFrame: null
+      connectionFrame: null,
+      lastNodeDragEndAt: 0
     };
     const registry = new Map(
       Object.entries(definitions).map(([type, def]) => [
@@ -2450,7 +2451,45 @@
           event.target.closest(
             '[data-action]'
           );
-        if (!action) return;
+
+        if (!action) {
+          const element =
+            event.target.closest(
+              '.vc-node'
+            );
+
+          if (!element) {
+            return;
+          }
+
+          if (
+            performance.now() -
+              state.lastNodeDragEndAt <
+            180
+          ) {
+            return;
+          }
+
+          const node =
+            getNode(
+              element.dataset.nodeId
+            );
+
+          if (!node) {
+            return;
+          }
+
+          emit(
+            'nodeClick',
+            {
+              id: node.id,
+              node: clone(node)
+            }
+          );
+
+          return;
+        }
+
         const element =
           action.closest('.vc-node');
         if (!element) return;
@@ -2923,6 +2962,11 @@
           );
         }
       }
+      if (drag.moved) {
+        state.lastNodeDragEndAt =
+          performance.now();
+      }
+
       state.nodeDrag = null;
       renderConnections();
       emit('nodeDragEnd', {
