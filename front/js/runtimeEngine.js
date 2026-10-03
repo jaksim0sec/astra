@@ -1,6 +1,6 @@
 /* =========================================================
    ovll
-   Demo execution engine
+   Workflow execution engine
    ========================================================= */
 (function (global) {
   "use strict";
@@ -8,10 +8,6 @@
   function clone(value) {
     if (value === undefined) return undefined;
     return JSON.parse(JSON.stringify(value));
-  }
-
-  function wait(ms) {
-    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   function connectionKind(connection) {
@@ -102,24 +98,6 @@
       .map(item => item?.value)
       .filter(value => value !== undefined);
   }
-
-  function demoDelayFor(nodeId, min, max) {
-    const text = String(nodeId || "");
-    let hash = 0;
-
-    for (let index = 0; index < text.length; index++) {
-      hash =
-        (
-          hash * 31 +
-          text.charCodeAt(index)
-        ) >>> 0;
-    }
-
-    const span = Math.max(0, max - min);
-
-    return min + (span ? hash % (span + 1) : 0);
-  }
-
 
   const GEMINI_NODE_TYPES =
     new Set([
@@ -444,196 +422,108 @@
     };
   }
 
-  class DemoNodeExecutor {
-    constructor(options = {}) {
-      this.minDelay =
-        Math.max(
-          0,
-          Number(options.minDelay ?? 420) || 0
+  class LocalNodeExecutor {
+    async run(
+      node,
+      inputs = {},
+      context = {}
+    ) {
+      if (
+        !node ||
+        typeof node !== "object"
+      ) {
+        throw new TypeError(
+          "실행할 node가 없습니다."
         );
-
-      this.maxDelay =
-        Math.max(
-          this.minDelay,
-          Number(options.maxDelay ?? 1050) ||
-            this.minDelay
-        );
-    }
-
-    async run(node, inputs = {}, context = {}) {
-      await wait(
-        demoDelayFor(
-          node.id,
-          this.minDelay,
-          this.maxDelay
-        )
-      );
+      }
 
       const params =
-        node.data?.params &&
-        typeof node.data.params === "object"
-          ? node.data.params
-          : node.params &&
-            typeof node.params === "object"
-            ? node.params
-            : {};
+        nodeParams(node);
 
-      const values = inputValues(inputs);
+      const values =
+        inputValues(inputs);
 
       switch (node.type) {
         case "start":
           return {
-            outputs: { out: true },
-            report: { title: "시작 준비 완료" }
+            outputs: {
+              out: true
+            },
+            report: {
+              title:
+                "시작 준비 완료"
+            }
           };
 
         case "file": {
           const file = {
-            kind: "demo-file",
-            id: `demo-file:${node.id}`,
-            name: node.data?.name || "예시 파일",
+            kind:
+              "workflow-file",
+            id:
+              String(
+                node.data?.fileId ||
+                node.data?.id ||
+                `file:${node.id}`
+              ),
+            name:
+              node.data?.name ||
+              params.name ||
+              "파일",
             mime:
               node.data?.mime ||
+              params.mime ||
               "application/octet-stream",
-            size: Number(node.data?.size || 0)
+            size:
+              Number(
+                node.data?.size ||
+                0
+              )
           };
 
-          return {
-            outputs: { file },
-            report: {
-              title: `${file.name} 준비 완료`
-            }
-          };
-        }
-
-        case "research":
           return {
             outputs: {
-              result: {
-                kind: "demo-research",
-                topic: params.topic || "지정된 주제",
-                filter: params.filter || "",
-                inputCount: values.length,
-                items: [
-                  "시연 자료 A",
-                  "시연 자료 B",
-                  "시연 자료 C"
-                ]
-              }
-            },
-            report: {
-              title: "시연 자료 3개 탐색 완료"
-            }
-          };
-
-        case "organize":
-          return {
-            outputs: {
-              result: {
-                kind: "demo-structured",
-                criteria:
-                  params.criteria || "기본 기준",
-                format:
-                  params.format || "목록",
-                sources: clone(values)
-              }
-            },
-            report: {
-              title: "자료 정리 완료"
-            }
-          };
-
-        case "judge": {
-          const condition =
-            String(params.condition || "")
-              .trim()
-              .toLowerCase();
-
-          const decision =
-            !(
-              condition === "false" ||
-              condition.includes("거짓") ||
-              condition.includes("아니")
-            );
-
-          return {
-            decision,
-            outputs: {
-              true:
-                decision
-                  ? clone(values)
-                  : undefined,
-              false:
-                decision
-                  ? undefined
-                  : clone(values)
+              file
             },
             report: {
               title:
-                decision
-                  ? "조건을 참으로 판단"
-                  : "조건을 거짓으로 판단"
+                `${file.name} 준비 완료`
             }
           };
         }
-
-        case "write":
-          return {
-            outputs: {
-              result: {
-                kind: "demo-document",
-                title:
-                  params.title || "예시 문서",
-                style:
-                  params.style || "일반",
-                length:
-                  params.length || "기본 분량",
-                sources: clone(values),
-                text:
-                  "시연 실행기가 만든 임시 결과입니다."
-              }
-            },
-            report: {
-              title:
-                `${params.title || "문서"} 작성 완료`
-            }
-          };
 
         case "createFile": {
           const filename =
-            params.filename || "결과물";
+            params.filename ||
+            "결과물";
+
           const format =
-            params.format || "PDF";
+            params.format ||
+            "PDF";
 
           return {
             outputs: {},
             artifact: {
-              kind: "demo-artifact",
+              kind:
+                "workflow-artifact",
               id:
-                `demo-artifact:${context.runId}:${node.id}`,
+                `artifact:${context.runId}:${node.id}`,
               name:
                 `${filename}.${String(format).toLowerCase()}`,
               format,
-              sources: clone(values)
+              sources:
+                clone(values)
             },
             report: {
-              title: `${filename} 생성 완료`
+              title:
+                `${filename} 생성 준비 완료`
             }
           };
         }
 
         default:
-          return {
-            outputs: {
-              result: {
-                kind: "demo-value",
-                sources: clone(values)
-              }
-            },
-            report: {
-              title: `${node.type} 실행 완료`
-            }
-          };
+          throw new Error(
+            `node type requires server group execution: ${node.type}`
+          );
       }
     }
   }
@@ -644,9 +534,7 @@
         options.executor &&
         typeof options.executor.run === "function"
           ? options.executor
-          : new DemoNodeExecutor(
-              options.executorOptions || {}
-            );
+          : new LocalNodeExecutor();
 
       this.onEvent =
         typeof options.onEvent === "function"
@@ -702,7 +590,7 @@
     async run(inputWorkflow, pivotId, options = {}) {
       if (this.running) {
         throw new Error(
-          "이미 demo run이 실행 중입니다."
+          "이미 run이 실행 중입니다."
         );
       }
 
@@ -1870,7 +1758,7 @@
 
   global.OvllExecutionEngine = {
     RuntimeEngine,
-    DemoNodeExecutor,
+    LocalNodeExecutor,
     normalizeWorkflow,
     planExecutionGroups
   };
