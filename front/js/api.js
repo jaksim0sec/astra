@@ -415,13 +415,43 @@
   /* =======================================================
      Execution
      ======================================================= */
-  /*
-   * 실행 API는 Executor가 연결되는 시점에
-   * 서버 계약에 맞춰 확장한다.
-   *
-   * 현재는 브라우저 API 계층에서
-   * 정의만 제공한다.
-   */
+  async function executeGroup(
+    group,
+    options = {}
+  ) {
+    if (
+      !group ||
+      typeof group !== "object" ||
+      !Array.isArray(group.nodes) ||
+      !group.nodes.length
+    ) {
+      throw new TypeError(
+        "실행할 Gemini node group이 없습니다."
+      );
+    }
+
+    const connections =
+      Array.isArray(
+        group.internalConnections
+      )
+        ? group.internalConnections
+        : [];
+
+    return request(
+      "execute-group",
+      {
+        method: "POST",
+        body: {
+          nodes:
+            group.nodes,
+          connections
+        },
+        signal:
+          options.signal
+      }
+    );
+  }
+
   async function execute(
     workflow,
     options = {}
@@ -429,30 +459,19 @@
     validateWorkflow(
       workflow
     );
-    /*
-     * 아직 실행 endpoint를
-     * 연결하지 않는다.
-     *
-     * 향후:
-     *
-     *   POST /api/execute
-     *
-     * 또는
-     *
-     *   POST /api/workflow/execute
-     *
-     * 가 확정되면 이 함수만 변경한다.
-     */
+
     throw new Error(
-      "Workflow 실행 API가 아직 연결되지 않았습니다."
+      "전체 Workflow 실행 API 대신 RuntimeEngine group 실행을 사용합니다."
     );
   }
+
   /* =======================================================
      Public API
      ======================================================= */
   const api = Object.freeze({
     request,
     planWorkflow,
+    executeGroup,
     execute,
     getNodeDefinitions,
     getNodeDefinitionSync,
