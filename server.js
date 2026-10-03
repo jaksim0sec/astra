@@ -87,7 +87,7 @@ const geminiExecution =
  * The frontend compares this server value with its locally stored version
  * before loading application assets.
  */
-const APP_VERSION = '2026.10.04.12';
+const APP_VERSION = '2026.10.04.13';
 
 /* =========================================================
    CANONICAL NODE DEFINITION
@@ -102,8 +102,7 @@ const defaultNodeDef = {
     color: '#10B981',
     icon: `
       <svg viewBox="0 0 20 20" fill="none">
-        <circle cx="10" cy="10" r="6.1" stroke="currentColor" stroke-width="1.6"/>
-        <path d="M8.35 7.45 12.45 10l-4.1 2.55v-5.1Z" fill="currentColor"/>
+        <path d="M7.25 5.9 14 10l-6.75 4.1V5.9Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/>
       </svg>
     `,
     inputs: [],
@@ -127,8 +126,8 @@ const defaultNodeDef = {
     color: '#4F8EF7',
     icon: `
       <svg viewBox="0 0 20 20" fill="none">
-        <circle cx="10" cy="10" r="6.7" stroke="currentColor" stroke-width="1.55"/>
-        <path d="M3.3 10h13.4M10 3.3c-1.75 1.9-2.65 4.1-2.65 6.7s.9 4.8 2.65 6.7M10 3.3c1.75 1.9 2.65 4.1 2.65 6.7s-.9 4.8-2.65 6.7" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="8.7" cy="8.7" r="4.55" stroke="currentColor" stroke-width="1.55"/>
+        <path d="m12.15 12.15 3.55 3.55" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
       </svg>
     `,
     params: [
@@ -175,7 +174,10 @@ const defaultNodeDef = {
     color: '#E9A63A',
     icon: `
       <svg viewBox="0 0 20 20" fill="none">
-        <path d="M4 5.25h12M4 10h12M4 14.75h8.25" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="5" cy="5.5" r=".9" fill="currentColor"/>
+        <circle cx="5" cy="10" r=".9" fill="currentColor"/>
+        <circle cx="5" cy="14.5" r=".9" fill="currentColor"/>
+        <path d="M8 5.5h7M8 10h7M8 14.5h5" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
       </svg>
     `,
     params: [
@@ -222,8 +224,7 @@ const defaultNodeDef = {
     color: '#8B6BE8',
     icon: `
       <svg viewBox="0 0 20 20" fill="none">
-        <circle cx="10" cy="10" r="6.15" stroke="currentColor" stroke-width="1.6"/>
-        <path d="M7 10.1 9 12.05 13.1 7.95" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="m5.4 10.2 3 3 6.2-6.4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `,
     params: [
@@ -280,7 +281,8 @@ const defaultNodeDef = {
     color: '#D96F83',
     icon: `
       <svg viewBox="0 0 20 20" fill="none">
-        <path d="m4.65 15.35 1.15-4.2 6.75-6.75a2 2 0 0 1 2.82 0l.23.23a2 2 0 0 1 0 2.82L8.85 14.2l-4.2 1.15Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="m5 15 1.05-3.45 6.7-6.7a1.65 1.65 0 0 1 2.35 0l.05.05a1.65 1.65 0 0 1 0 2.35l-6.7 6.7L5 15Z" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="m11.7 5.9 2.4 2.4" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
       </svg>
     `,
     params: [
@@ -340,7 +342,7 @@ const defaultNodeDef = {
     color: '#718096',
     icon: `
       <svg viewBox="0 0 20 20" fill="none">
-        <path d="M16.4 9.2 9.15 16.45a4.5 4.5 0 0 1-6.36-6.36l7.85-7.85a3.25 3.25 0 0 1 4.6 4.6l-7.85 7.85a2 2 0 0 1-2.83-2.83l7.15-7.15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="m7.1 10.25 4.7-4.7a2.65 2.65 0 1 1 3.75 3.75l-6.2 6.2a3.75 3.75 0 0 1-5.3-5.3l5.85-5.85" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `,
     inputs: [],
@@ -364,7 +366,8 @@ const defaultNodeDef = {
     color: '#0EA5A4',
     icon: `
       <svg viewBox="0 0 20 20" fill="none">
-        <path d="M10 2.9c.45 4.45 2.65 6.65 7.1 7.1-4.45.45-6.65 2.65-7.1 7.1-.45-4.45-2.65-6.65-7.1-7.1 4.45-.45 6.65-2.65 7.1-7.1Z" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M9.65 3.7c.36 3.55 1.9 5.1 5.45 5.45-3.55.36-5.09 1.9-5.45 5.45-.36-3.55-1.9-5.09-5.45-5.45 3.55-.35 5.09-1.9 5.45-5.45Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+        <circle cx="15.25" cy="14.75" r="1.15" fill="currentColor"/>
       </svg>
     `,
     params: [
