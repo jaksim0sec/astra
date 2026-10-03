@@ -476,9 +476,6 @@
         if (isRequest) {
           out.push(`
             <div class="vc-request-group">
-              <div class="vc-request-label">
-                ${escapeHtml(param.name || "요청사항")}
-              </div>
               <textarea
                 class="vc-slot-param vc-request-input"
                 data-param-id="${escapeHtml(param.id)}"
