@@ -189,6 +189,176 @@
      Chat
      ======================================================= */
 
+  function formatArtifactSize(
+    value
+  ) {
+    const size =
+      Number(value || 0);
+
+    if (size < 1024) {
+      return `${size} B`;
+    }
+
+    if (size < 1048576) {
+      return `${(size / 1024).toFixed(1)} KB`;
+    }
+
+    return `${(size / 1048576).toFixed(1)} MB`;
+  }
+
+  function artifactFormat(
+    artifact
+  ) {
+    const direct =
+      String(
+        artifact?.format || ""
+      ).trim();
+
+    if (direct) {
+      return direct.toUpperCase();
+    }
+
+    const name =
+      String(
+        artifact?.name || ""
+      );
+
+    const dot =
+      name.lastIndexOf(".");
+
+    return dot > 0
+      ? name.slice(dot + 1)
+        .toUpperCase()
+      : "FILE";
+  }
+
+  function appendArtifactCards(
+    message,
+    artifacts
+  ) {
+    const list =
+      Array.isArray(artifacts)
+        ? artifacts.filter(Boolean)
+        : [];
+
+    if (!list.length) return;
+
+    const group =
+      document.createElement(
+        "div"
+      );
+    group.className =
+      "astra-message-artifacts";
+
+    const label =
+      document.createElement(
+        "div"
+      );
+    label.className =
+      "astra-message-artifacts-label";
+    label.textContent =
+      "결과물";
+    group.appendChild(label);
+
+    for (const artifact of list) {
+      const link =
+        document.createElement(
+          "a"
+        );
+      link.className =
+        "astra-artifact-card";
+      link.href =
+        String(
+          artifact.downloadUrl ||
+          "#"
+        );
+      link.download =
+        String(
+          artifact.name ||
+          "result"
+        );
+
+      const icon =
+        document.createElement(
+          "span"
+        );
+      icon.className =
+        "astra-artifact-icon";
+      icon.innerHTML = `
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M5.2 2.9h6.15l3.45 3.45V17.1H5.2V2.9Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
+          <path d="M11.2 2.9v3.65h3.6M7.55 11h4.95M7.55 13.35h3.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+
+      const format =
+        document.createElement(
+          "span"
+        );
+      format.className =
+        "astra-artifact-format";
+      format.textContent =
+        artifactFormat(
+          artifact
+        );
+      icon.appendChild(format);
+
+      const info =
+        document.createElement(
+          "span"
+        );
+      info.className =
+        "astra-artifact-info";
+
+      const name =
+        document.createElement(
+          "span"
+        );
+      name.className =
+        "astra-artifact-name";
+      name.textContent =
+        String(
+          artifact.name ||
+          "결과물"
+        );
+
+      const meta =
+        document.createElement(
+          "span"
+        );
+      meta.className =
+        "astra-artifact-meta";
+      meta.textContent =
+        `${artifactFormat(artifact)} · ${formatArtifactSize(artifact.size)}`;
+
+      info.append(
+        name,
+        meta
+      );
+
+      const action =
+        document.createElement(
+          "span"
+        );
+      action.className =
+        "astra-artifact-download";
+      action.innerHTML = `
+        <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+          <path d="M9 3v7.2m0 0 2.55-2.55M9 10.2 6.45 7.65M4 13.6h10" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      `;
+
+      link.append(
+        icon,
+        info,
+        action
+      );
+      group.appendChild(link);
+    }
+
+    message.appendChild(group);
+  }
+
   function createMessage(
     role,
     text,
@@ -265,6 +435,15 @@
 
       message.appendChild(
         questionBox
+      );
+    }
+
+    if (
+      role === "assistant"
+    ) {
+      appendArtifactCards(
+        message,
+        options.artifacts
       );
     }
 
@@ -1075,6 +1254,162 @@
     return "실행은 끝났어. 결과는 캔버스 노드에서 확인할 수 있어.";
   }
 
+  function collectRunArtifacts(
+    run
+  ) {
+    const seen =
+      new Set();
+
+    return Object.values(
+      run?.nodes || {}
+    )
+      .map(
+        state =>
+          state?.result
+            ?.artifact ||
+          state?.result
+            ?.file ||
+          null
+      )
+      .filter(
+        artifact => {
+          if (
+            !artifact ||
+            typeof artifact !==
+              "object"
+          ) {
+            return false;
+          }
+
+          const key =
+            String(
+              artifact.id ||
+              artifact.downloadUrl ||
+              artifact.name ||
+              ""
+            );
+
+          if (
+            !key ||
+            seen.has(key)
+          ) {
+            return false;
+          }
+
+          seen.add(key);
+          return true;
+        }
+      );
+  }
+
+  function ensureArtifactFileNode(
+    sourceNodeId,
+    artifact
+  ) {
+    if (
+      !artifact ||
+      !state.canvas ||
+      typeof state.canvas.addNode !==
+        "function"
+    ) {
+      return null;
+    }
+
+    const artifactId =
+      String(
+        artifact.id || ""
+      );
+
+    if (!artifactId) {
+      return null;
+    }
+
+    const existing =
+      state.canvas
+        .getWorkflow?.()
+        ?.nodes
+        ?.find(
+          node =>
+            node?.data
+              ?.artifactId ===
+            artifactId
+        );
+
+    if (existing) {
+      return existing;
+    }
+
+    const source =
+      state.canvas
+        .getNode?.(
+          String(
+            sourceNodeId ||
+            ""
+          )
+        );
+
+    const generatedCount =
+      state.canvas
+        .getWorkflow?.()
+        ?.nodes
+        ?.filter(
+          node =>
+            node?.data
+              ?.generated ===
+              true
+        )
+        .length || 0;
+
+    return state.canvas.addNode(
+      "file",
+      {
+        expanded: false,
+        ...(source
+          ? {
+              x:
+                Number(
+                  source.x || 0
+                ) +
+                220,
+              y:
+                Number(
+                  source.y || 0
+                ) +
+                (
+                  generatedCount %
+                  3
+                ) *
+                54
+            }
+          : {}),
+        data: {
+          generated: true,
+          artifactId,
+          name:
+            artifact.name ||
+            "결과물",
+          mime:
+            artifact.mime ||
+            "application/octet-stream",
+          size:
+            Number(
+              artifact.size ||
+              0
+            ),
+          format:
+            artifact.format ||
+            "",
+          downloadUrl:
+            artifact.downloadUrl ||
+            "",
+          previewText:
+            artifact.previewText ||
+            ""
+        }
+      }
+    );
+  }
+
   async function finalizeRuntimeRun(
     run
   ) {
@@ -1141,7 +1476,11 @@
         message,
         {
           showCanvasView:
-            true
+            true,
+          artifacts:
+            collectRunArtifacts(
+              run
+            )
         }
       );
 
