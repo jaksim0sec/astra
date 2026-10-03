@@ -1854,30 +1854,13 @@
       String(id || "");
 
     if (
-      key === "__prepare__"
-    ) {
-      return {
-        type: "system",
-        icon: `
-          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-            <circle cx="10" cy="10" r="5.5" stroke="currentColor" stroke-width="1.45"/>
-            <circle cx="10" cy="10" r="1.45" fill="currentColor"/>
-          </svg>
-        `
-      };
-    }
-
-    if (
+      key === "__prepare__" ||
       key === "__finalize__"
     ) {
       return {
         type: "system",
-        icon: `
-          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-            <path d="M10 3.4c.4 3.2 1.55 4.35 4.75 4.75-3.2.4-4.35 1.55-4.75 4.75-.4-3.2-1.55-4.35-4.75-4.75C8.45 7.75 9.6 6.6 10 3.4Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>
-            <circle cx="14.8" cy="14.6" r="1.2" fill="currentColor"/>
-          </svg>
-        `
+        icon: "",
+        color: ""
       };
     }
 
@@ -1905,20 +1888,18 @@
           "string" &&
         definition.icon.trim()
           ? definition.icon
-          : `
-            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-              <circle cx="10" cy="10" r="5.5" stroke="currentColor" stroke-width="1.45"/>
-            </svg>
-          `
+          : "",
+      color:
+        String(
+          definition?.color ||
+          ""
+        )
     };
   }
 
   function runtimeStepMarkup() {
     return `
-      <span class="astra-runtime-step-mark" aria-hidden="true">
-        <span class="astra-runtime-step-icon"></span>
-        <span class="astra-runtime-step-status"></span>
-      </span>
+      <span class="astra-runtime-step-icon" aria-hidden="true"></span>
       <span class="astra-runtime-step-content">
         <span class="astra-runtime-step-label"></span>
         <span class="astra-runtime-step-detail"></span>
@@ -1978,7 +1959,8 @@
         new Map(),
       order: [],
       text: "",
-      finished: false
+      finished: false,
+      userToggled: false
     };
 
     state.runtimeActivity =
@@ -1987,6 +1969,9 @@
     summary?.addEventListener(
       "click",
       () => {
+        activity.userToggled =
+          true;
+
         const collapsed =
           row.classList.toggle(
             "is-collapsed"
@@ -2140,6 +2125,18 @@
       if (icon) {
         icon.innerHTML =
           presentation.icon;
+
+        icon.hidden =
+          !presentation.icon;
+      }
+
+      if (
+        presentation.color
+      ) {
+        step.style.setProperty(
+          "--runtime-node-color",
+          presentation.color
+        );
       }
 
       activity.steps.set(
@@ -2327,22 +2324,46 @@
 
     syncRuntimeActivityMeta();
 
-    setTimeout(
-      () => {
-        activity.row
-          ?.classList
-          .add(
-            "is-collapsed"
-          );
+    const shouldCollapse =
+      runtimeActivityCount(
+        activity
+      ) > 4;
 
-        activity.summary
-          ?.setAttribute(
-            "aria-expanded",
-            "false"
-          );
-      },
-      520
-    );
+    if (
+      !activity.userToggled &&
+      shouldCollapse
+    ) {
+      setTimeout(
+        () => {
+          activity.row
+            ?.classList
+            .add(
+              "is-collapsed"
+            );
+
+          activity.summary
+            ?.setAttribute(
+              "aria-expanded",
+              "false"
+            );
+        },
+        520
+      );
+    } else if (
+      !activity.userToggled
+    ) {
+      activity.row
+        ?.classList
+        .remove(
+          "is-collapsed"
+        );
+
+      activity.summary
+        ?.setAttribute(
+          "aria-expanded",
+          "true"
+        );
+    }
 
     state.runtimeActivity =
       null;
