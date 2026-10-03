@@ -463,10 +463,8 @@ function thinking(){
     "오블이 생각 중"
   );
 
-  showCanvasSpeech("",{
-    thinking:true,
-    hold:0
-  });
+  hideCanvasSpeech();
+  state.canvasMascot?.setThinking?.(true);
 
   setPhase("thinking");
   return row;
@@ -474,6 +472,7 @@ function thinking(){
 
 function settle(){
   settleChat();
+  state.canvasMascot?.setThinking?.(false);
 
   if(state.phase==="thinking"){
     setPhase("idle");
@@ -490,6 +489,7 @@ function speak(text,options={}){
 
   moveToEnd();
   settleChat();
+  state.canvasMascot?.setThinking?.(false);
 
   showCanvasSpeech(
     value,
@@ -509,6 +509,10 @@ function speak(text,options={}){
 
 function attachCanvasMascot(mascot){
   state.canvasMascot=mascot||null;
+
+  if(state.phase==="thinking"){
+    state.canvasMascot?.setThinking?.(true);
+  }
 
   if(
     state.canvasSpeech?.classList.contains(
