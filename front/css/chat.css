@@ -640,12 +640,17 @@
 .astra-runtime-activity {
   width: min(43.75rem, 94%);
   padding: 0;
-  color: var(--muted);
-  opacity: .82;
+  color:
+    color-mix(
+      in srgb,
+      var(--text) 84%,
+      transparent
+    );
+  opacity: .96;
 }
 
 .astra-runtime-activity-body {
-  width: min(34rem, 100%);
+  width: min(43.75rem, 100%);
 }
 
 .astra-runtime-activity-summary {
@@ -653,10 +658,10 @@
   -webkit-appearance: none;
   width: fit-content;
   max-width: 100%;
-  min-height: 1.9rem;
+  min-height: 2.05rem;
   display: flex;
   align-items: center;
-  gap: .42rem;
+  gap: .46rem;
   padding: .08rem 0;
   border: 0;
   outline: 0;
@@ -667,24 +672,24 @@
 }
 
 .astra-runtime-activity-spark {
-  width: .72rem;
-  height: .72rem;
-  flex: 0 0 .72rem;
+  width: .8rem;
+  height: .8rem;
+  flex: 0 0 .8rem;
   display: grid;
   place-items: center;
 }
 
 .astra-runtime-activity-spark::before {
   content: "";
-  width: .31rem;
-  height: .31rem;
+  width: .34rem;
+  height: .34rem;
   border:
-    .075rem solid
+    .08rem solid
     currentColor;
   border-right-color:
     transparent;
   border-radius: 50%;
-  opacity: .62;
+  opacity: .72;
 }
 
 .astra-runtime-activity:not(.is-complete)
@@ -701,7 +706,7 @@
   border: 0;
   background:
     currentColor;
-  opacity: .42;
+  opacity: .5;
 }
 
 .astra-runtime-activity-spark::after,
@@ -713,11 +718,11 @@
   color:
     color-mix(
       in srgb,
-      var(--text) 68%,
+      var(--text) 88%,
       transparent
     );
-  font-size: .72rem;
-  font-weight: 620;
+  font-size: .82rem;
+  font-weight: 650;
   letter-spacing: -.014em;
 }
 
@@ -725,22 +730,22 @@
   color:
     color-mix(
       in srgb,
-      var(--text) 43%,
+      var(--text) 62%,
       transparent
     );
-  font-size: .61rem;
-  font-weight: 500;
+  font-size: .69rem;
+  font-weight: 520;
   white-space: nowrap;
 }
 
 .astra-runtime-activity-chevron {
-  width: .82rem;
-  height: .82rem;
-  flex: 0 0 .82rem;
+  width: .88rem;
+  height: .88rem;
+  flex: 0 0 .88rem;
   color:
     color-mix(
       in srgb,
-      var(--text) 38%,
+      var(--text) 54%,
       transparent
     );
   transition:
@@ -755,12 +760,12 @@
 
 .astra-runtime-activity-steps {
   display: grid;
-  gap: .18rem;
-  max-height: 28rem;
+  gap: .24rem;
+  max-height: 32rem;
   padding:
-    .18rem
+    .22rem
     0
-    .22rem;
+    .28rem;
   overflow: hidden;
   opacity: 1;
   transition:
@@ -783,11 +788,11 @@
   min-width: 0;
   display: grid;
   grid-template-columns:
-    1.72rem
+    1.35rem
     minmax(0,1fr);
-  gap: .52rem;
-  align-items: center;
-  padding: .22rem 0;
+  gap: .58rem;
+  align-items: start;
+  padding: .24rem 0;
   opacity: 0;
   transform:
     translateY(.12rem);
@@ -798,91 +803,44 @@
 }
 
 .astra-runtime-step.is-visible {
-  opacity: .88;
+  opacity: .96;
   transform: translateY(0);
 }
 
-.astra-runtime-step-mark {
-  width: 1.72rem;
-  height: 1.72rem;
+.astra-runtime-step-icon {
+  width: 1.35rem;
+  height: 1.35rem;
   display: grid;
   place-items: center;
-  position: relative;
-  border-radius: .58rem;
+  margin-top: .03rem;
   color:
-    color-mix(
-      in srgb,
-      var(--text) 58%,
-      transparent
-    );
-  background:
-    color-mix(
-      in srgb,
-      var(--text) 5%,
-      transparent
+    var(
+      --runtime-node-color,
+      var(--sub)
     );
 }
 
-.astra-runtime-step-icon {
-  width: 1rem;
-  height: 1rem;
-  display: grid;
-  place-items: center;
+.astra-runtime-step-icon[hidden] {
+  visibility: hidden;
 }
 
 .astra-runtime-step-icon svg {
-  width: 1rem;
-  height: 1rem;
+  width: 1.18rem;
+  height: 1.18rem;
+  display: block;
   max-width: none;
 }
 
-.astra-runtime-step-status {
-  position: absolute;
-  right: -.06rem;
-  bottom: -.05rem;
-  width: .38rem;
-  height: .38rem;
-  border:
-    .095rem solid
-    var(--bg);
-  border-radius: 50%;
-  background:
-    color-mix(
-      in srgb,
-      var(--text) 45%,
-      var(--bg)
-    );
+.astra-runtime-step[data-node-type="system"] {
+  grid-template-columns:
+    0
+    minmax(0,1fr);
+  gap: 0;
 }
 
-.astra-runtime-step[data-status="running"]
-.astra-runtime-step-mark {
-  color:
-    color-mix(
-      in srgb,
-      var(--text) 75%,
-      transparent
-    );
-  background:
-    color-mix(
-      in srgb,
-      var(--text) 8%,
-      transparent
-    );
-}
-
-.astra-runtime-step[data-status="running"]
-.astra-runtime-step-status {
-  background:
-    color-mix(
-      in srgb,
-      var(--text) 72%,
-      var(--bg)
-    );
-  animation:
-    astra-runtime-status-pulse
-    1.05s
-    ease-in-out
-    infinite;
+.astra-runtime-step[data-node-type="system"]
+.astra-runtime-step-icon {
+  display: none;
 }
 
 .astra-runtime-step[data-status="running"]
@@ -895,7 +853,7 @@
 }
 
 .astra-runtime-step[data-status="done"] {
-  opacity: .5;
+  opacity: .72;
 }
 
 .astra-runtime-step[data-status="done"]
@@ -906,33 +864,23 @@
 }
 
 .astra-runtime-step[data-status="skipped"] {
-  opacity: .38;
+  opacity: .58;
 }
 
-.astra-runtime-step[data-status="failed"]
-.astra-runtime-step-mark {
+.astra-runtime-step[data-status="failed"] {
   color:
     color-mix(
       in srgb,
-      #d46f6f 65%,
-      var(--muted)
+      #d46f6f 72%,
+      var(--text)
     );
-}
-
-.astra-runtime-step[data-status="failed"]
-.astra-runtime-step-status {
-  background:
-    color-mix(
-      in srgb,
-      #d46f6f 70%,
-      var(--bg)
-    );
+  opacity: .9;
 }
 
 .astra-runtime-step-content {
   min-width: 0;
   display: grid;
-  gap: .05rem;
+  gap: .08rem;
 }
 
 .astra-runtime-step-label {
@@ -940,27 +888,27 @@
   color:
     color-mix(
       in srgb,
-      var(--text) 69%,
+      var(--text) 88%,
       transparent
     );
-  font-size: .7rem;
-  font-weight: 540;
-  line-height: 1.42;
-  letter-spacing: -.012em;
+  font-size: .9rem;
+  font-weight: 510;
+  line-height: 1.52;
+  letter-spacing: -.016em;
   overflow-wrap: anywhere;
 }
 
 .astra-runtime-step-detail {
-  max-width: 30rem;
+  max-width: 38rem;
   color:
     color-mix(
       in srgb,
-      var(--text) 42%,
+      var(--text) 62%,
       transparent
     );
-  font-size: .61rem;
-  font-weight: 440;
-  line-height: 1.42;
+  font-size: .72rem;
+  font-weight: 460;
+  line-height: 1.5;
   overflow-wrap: anywhere;
 }
 
