@@ -3189,16 +3189,6 @@
       return;
     }
 
-    let previewUrl = "";
-
-    if (
-      String(file.type || "").startsWith("image/") &&
-      typeof URL?.createObjectURL === "function"
-    ) {
-      previewUrl =
-        URL.createObjectURL(file);
-    }
-
     try {
       state.canvas.addNode(
         "file",
@@ -3211,8 +3201,7 @@
               "application/octet-stream",
             size: file.size || 0,
             lastModified:
-              file.lastModified || 0,
-            previewUrl
+              file.lastModified || 0
           }
         }
       );
@@ -3224,10 +3213,6 @@
         UI.setMode("canvas");
       }
     } catch (error) {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl);
-      }
-
       console.error(
         "File Node Error:",
         error
