@@ -3,7 +3,7 @@ import {randomUUID} from 'node:crypto';
 
 const STORE = new Map();
 const TTL_MS = 2 * 60 * 60 * 1000;
-const MAX_TEXT_CHARS = 600000;
+const MAX_TEXT_CHARS = 420000;
 
 const FORMAT_INFO = {
   PDF:  {ext: 'pdf',  mime: 'application/pdf'},
