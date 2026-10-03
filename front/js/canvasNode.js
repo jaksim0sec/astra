@@ -583,9 +583,6 @@
         const element = document.createElement('div');
         const runtimeState =
           state.runtimeNodes.get(node.id) || null;
-        const isImageFile =
-          node.type === 'file' &&
-          String(node.data?.mime || '').startsWith('image/');
         const classes = ['vc-node'];
 
         if (
@@ -598,7 +595,6 @@
           );
         }
         if (node.type === 'file') classes.push('vc-file-node');
-        if (isImageFile) classes.push('vc-image-file-node');
         if (node.id === state.selectedNode) classes.push('vc-selected');
         if (node.expanded) classes.push('vc-expanded');
         if (runtimeState?.status) {
@@ -618,12 +614,6 @@
         element.style.left = `${node.x}px`;
         element.style.top = `${node.y}px`;
         element.style.setProperty('--node-color', definition.color);
-        if (isImageFile && node.data?.previewUrl) {
-          element.style.setProperty(
-            '--vc-file-bg',
-            `url("${node.data.previewUrl}")`
-          );
-        }
         const fileName = node.type === 'file'
           ? node.data?.name || '이름 없는 파일'
           : definition.name;
