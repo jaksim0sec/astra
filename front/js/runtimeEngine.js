@@ -10,6 +10,34 @@
     return JSON.parse(JSON.stringify(value));
   }
 
+  function runtimeErrorState(
+    error
+  ) {
+    return {
+      message:
+        error?.message ||
+        String(error),
+      code:
+        typeof error?.code ===
+          "string"
+          ? error.code
+          : "",
+      status:
+        Number.isFinite(
+          Number(
+            error?.status
+          )
+        )
+          ? Number(
+              error.status
+            )
+          : null,
+      retryable:
+        error?.retryable ===
+          true
+    };
+  }
+
   function connectionKind(connection) {
     return connection?.data?.kind === "data"
       ? "data"
@@ -1078,11 +1106,10 @@
 
                   return result;
                 } catch (error) {
-                  const failure = {
-                    message:
-                      error?.message ||
-                      String(error)
-                  };
+                  const failure =
+                    runtimeErrorState(
+                      error
+                    );
 
                   setState(
                     nodeId,
@@ -1511,11 +1538,10 @@
                         nodeId
                       ]);
                     } catch (error) {
-                      const failure = {
-                        message:
-                          error?.message ||
-                          String(error)
-                      };
+                      const failure =
+                        runtimeErrorState(
+                          error
+                        );
 
                       setState(
                         nodeId,
@@ -1565,11 +1591,10 @@
                   const failedId =
                     nodeIds[0];
 
-                  const failure = {
-                    message:
-                      error?.message ||
-                      String(error)
-                  };
+                  const failure =
+                    runtimeErrorState(
+                      error
+                    );
 
                   setState(
                     failedId,
@@ -1709,11 +1734,10 @@
                 ]
               )
             ),
-          error: {
-            message:
-              error?.message ||
-              String(error)
-          }
+          error:
+            runtimeErrorState(
+              error
+            )
         };
 
         this.lastRun =
