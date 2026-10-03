@@ -835,6 +835,13 @@
   opacity: .76;
   stroke-width: .1375rem;
 }
+
+.vc-connection.vc-runtime-active {
+  stroke-dasharray:
+    624.9375rem 0;
+  opacity: .92;
+  stroke-width: .15rem;
+}
 .vc-connection-dot {
   fill:
     var(--bg);
@@ -1006,51 +1013,3 @@
     );
 }
 
-
-/* =========================================================
-   DEMO RUNTIME STATE
-   ========================================================= */
-.vc-node[data-runtime-status="waiting"] {
-  opacity: .72;
-}
-
-.vc-node[data-runtime-status="running"] {
-  border-color: var(--node-color);
-  box-shadow:
-    0 0 0 .0625rem
-    color-mix(
-      in srgb,
-      var(--node-color) 26%,
-      transparent
-    ),
-    0 0 1.35rem
-    color-mix(
-      in srgb,
-      var(--node-color) 12%,
-      transparent
-    );
-}
-
-.vc-node[data-runtime-status="success"] {
-  border-color:
-    color-mix(
-      in srgb,
-      var(--node-color) 62%,
-      #8ee6b7
-    );
-}
-
-.vc-node[data-runtime-status="skipped"] {
-  opacity: .46;
-}
-
-.vc-node[data-runtime-status="failed"] {
-  border-color: #e27070;
-  box-shadow:
-    0 0 0 .0625rem
-    color-mix(
-      in srgb,
-      #e27070 24%,
-      transparent
-    );
-}
