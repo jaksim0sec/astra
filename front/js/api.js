@@ -76,8 +76,32 @@
         : {})
     };
     if (body !== null) {
-      fetchOptions.body =
+      const serialized =
         JSON.stringify(body);
+
+      if (
+        serialized.length >
+        700000
+      ) {
+        const payloadError =
+          new Error(
+            "요청 데이터가 너무 큽니다."
+          );
+
+        payloadError.name =
+          "OvllApiError";
+        payloadError.code =
+          "CLIENT_PAYLOAD_TOO_LARGE";
+        payloadError.status =
+          413;
+        payloadError.retryable =
+          false;
+
+        throw payloadError;
+      }
+
+      fetchOptions.body =
+        serialized;
     }
     let response;
     try {
@@ -311,6 +335,90 @@
 
     return String(value)
       .slice(0, 4000);
+  }
+
+  function compactArtifactSources(
+    sources,
+    maxChars = 420000
+  ) {
+    const sourceList =
+      Array.isArray(sources)
+        ? sources.slice(0, 32)
+        : [];
+
+    const result = [];
+    let remaining =
+      Math.max(
+        8000,
+        Number(maxChars) ||
+        420000
+      );
+
+    for (
+      const source
+      of sourceList
+    ) {
+      if (
+        remaining < 1500
+      ) {
+        break;
+      }
+
+      let compact =
+        compactArtifactValue(
+          source
+        );
+
+      let serialized =
+        JSON.stringify(
+          compact
+        );
+
+      if (
+        serialized.length >
+        remaining
+      ) {
+        if (
+          typeof compact ===
+            "string"
+        ) {
+          compact =
+            clipPayloadText(
+              compact,
+              Math.max(
+                500,
+                remaining - 128
+              )
+            );
+        } else {
+          compact =
+            clipPayloadText(
+              serialized,
+              Math.max(
+                500,
+                Math.floor(
+                  remaining * .55
+                )
+              )
+            );
+        }
+
+        serialized =
+          JSON.stringify(
+            compact
+          );
+      }
+
+      result.push(
+        compact
+      );
+
+      remaining -=
+        serialized.length +
+        32;
+    }
+
+    return result;
   }
 
   function compactMemoryPayload(
@@ -886,20 +994,9 @@
             filename:
               input?.filename,
             sources:
-              (
-                Array.isArray(
-                  input?.sources
-                )
-                  ? input.sources
-                  : []
+              compactArtifactSources(
+                input?.sources
               )
-                .slice(0, 32)
-                .map(
-                  item =>
-                    compactArtifactValue(
-                      item
-                    )
-                )
           },
           signal:
             options.signal
