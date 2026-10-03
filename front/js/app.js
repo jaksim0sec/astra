@@ -1100,6 +1100,23 @@
 
     syncRuntimeActivityMeta();
 
+    setTimeout(
+      () => {
+        activity.row
+          ?.classList
+          .add(
+            "is-collapsed"
+          );
+
+        activity.summary
+          ?.setAttribute(
+            "aria-expanded",
+            "false"
+          );
+      },
+      520
+    );
+
     state.runtimeActivity =
       null;
   }
@@ -2091,6 +2108,26 @@
         event.status ===
           "SUCCESS"
       ) {
+        const artifact =
+          event.state
+            ?.result
+            ?.artifact ||
+          event.state
+            ?.result
+            ?.file;
+
+        if (
+          artifact &&
+          typeof artifact ===
+            "object" &&
+          artifact.downloadUrl
+        ) {
+          ensureArtifactFileNode(
+            event.nodeId,
+            artifact
+          );
+        }
+
         completeRuntimeStep(
           event.nodeId,
           {
@@ -2136,7 +2173,7 @@
     if (event.type === "run:finish") {
       clearRuntimeConnections();
       state.canvas
-        ?.showRuntimeNode?.(
+        ?.selectNode?.(
           event.pivot
         );
 
@@ -2247,31 +2284,186 @@
     const localExecutor =
       new Execution.LocalNodeExecutor();
 
+    function runtimeInputValues(
+      inputs
+    ) {
+      return Object.values(
+        inputs || {}
+      )
+        .flatMap(
+          value =>
+            Array.isArray(value)
+              ? value
+              : [value]
+        )
+        .map(
+          item =>
+            item?.value
+        )
+        .filter(
+          value =>
+            value !==
+              undefined
+        );
+    }
+
+    function beginMascotWorkSequence(
+      ids
+    ) {
+      const nodeIds =
+        Array.isArray(ids)
+          ? ids
+              .map(String)
+              .filter(Boolean)
+          : [];
+
+      let index = 0;
+      let timer = null;
+      let stopped = false;
+
+      const visit = () => {
+        if (
+          stopped ||
+          index >=
+            nodeIds.length
+        ) {
+          return;
+        }
+
+        Presence.workAtNode?.(
+          nodeIds[index],
+          true
+        );
+
+        index++;
+
+        if (
+          index <
+            nodeIds.length
+        ) {
+          timer =
+            setTimeout(
+              visit,
+              900
+            );
+        }
+      };
+
+      visit();
+
+      return () => {
+        stopped = true;
+        clearTimeout(
+          timer
+        );
+
+        Presence.workAtNode?.(
+          nodeIds[
+            Math.max(
+              0,
+              index - 1
+            )
+          ] || null,
+          false
+        );
+      };
+    }
+
     const runtimeExecutor = {
-      run(
+      async run(
         node,
         inputs,
         context
       ) {
-        return localExecutor.run(
-          node,
-          inputs,
-          context
+        Presence.workAtNode?.(
+          node?.id,
+          true
         );
+
+        try {
+          if (
+            node?.type ===
+              "createFile"
+          ) {
+            const params =
+              node?.data?.params ||
+              node?.params ||
+              {};
+
+            const response =
+              await API
+                .createArtifact({
+                  format:
+                    params.format ||
+                    "PDF",
+                  filename:
+                    params.filename ||
+                    "결과물",
+                  sources:
+                    runtimeInputValues(
+                      inputs
+                    )
+                });
+
+            const artifact =
+              response?.artifact;
+
+            if (!artifact) {
+              throw new Error(
+                "파일 생성 결과가 없습니다."
+              );
+            }
+
+            return {
+              outputs: {},
+              artifact,
+              report:
+                `${artifact.name} 생성 완료`
+            };
+          }
+
+          return await localExecutor.run(
+            node,
+            inputs,
+            context
+          );
+        } finally {
+          Presence.workAtNode?.(
+            node?.id,
+            false
+          );
+        }
       },
 
       async runGroup(
         group
       ) {
-        const response =
-          await API.executeGroup(
-            group
+        const stopMascot =
+          beginMascotWorkSequence(
+            group?.nodes?.map(
+              node => node.id
+            ) || []
           );
 
-        return {
-          results:
-            response.results
-        };
+        try {
+          const response =
+            await API.executeGroup(
+              group,
+              {
+                userRequest:
+                  state.lastUserRequest,
+                memory:
+                  state.conversationMemory
+              }
+            );
+
+          return {
+            results:
+              response.results
+          };
+        } finally {
+          stopMascot();
+        }
       }
     };
 
