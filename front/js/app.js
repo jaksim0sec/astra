@@ -893,6 +893,368 @@
     };
   }
 
+  function artifactCanPreview(
+    artifact
+  ) {
+    const format =
+      artifactFormat(
+        artifact
+      );
+
+    const mime =
+      String(
+        artifact?.mime ||
+        ""
+      ).toLowerCase();
+
+    return !!(
+      artifact?.previewUrl &&
+      (
+        format === "PDF" ||
+        mime.startsWith(
+          "image/"
+        ) ||
+        mime.startsWith(
+          "text/"
+        ) ||
+        [
+          "JSON",
+          "MD",
+          "CSV",
+          "HTML"
+        ].includes(format)
+      )
+    );
+  }
+
+  function openArtifactPreview(
+    artifact
+  ) {
+    if (
+      !artifactCanPreview(
+        artifact
+      )
+    ) {
+      return false;
+    }
+
+    document
+      .querySelector(
+        ".astra-artifact-preview-root"
+      )
+      ?.remove();
+
+    const visual =
+      artifactVisual(
+        artifact
+      );
+
+    const root =
+      document.createElement(
+        "div"
+      );
+
+    root.className =
+      "astra-artifact-preview-root";
+
+    const panel =
+      document.createElement(
+        "section"
+      );
+
+    panel.className =
+      "astra-artifact-preview-panel";
+
+    panel.setAttribute(
+      "role",
+      "dialog"
+    );
+
+    panel.setAttribute(
+      "aria-modal",
+      "true"
+    );
+
+    panel.setAttribute(
+      "aria-label",
+      `${artifact?.name || "결과물"} 미리보기`
+    );
+
+    panel.style.setProperty(
+      "--artifact-accent",
+      visual.color
+    );
+
+    const header =
+      document.createElement(
+        "header"
+      );
+
+    header.className =
+      "astra-artifact-preview-header";
+
+    const icon =
+      document.createElement(
+        "span"
+      );
+
+    icon.className =
+      "astra-artifact-preview-icon";
+
+    icon.innerHTML =
+      visual.icon;
+
+    const copy =
+      document.createElement(
+        "span"
+      );
+
+    copy.className =
+      "astra-artifact-preview-copy";
+
+    const title =
+      document.createElement(
+        "strong"
+      );
+
+    title.textContent =
+      String(
+        artifact?.name ||
+        "결과물"
+      );
+
+    const meta =
+      document.createElement(
+        "small"
+      );
+
+    meta.textContent =
+      `${artifactFormat(artifact)} · ${formatArtifactSize(artifact?.size)}`;
+
+    copy.append(
+      title,
+      meta
+    );
+
+    const actions =
+      document.createElement(
+        "span"
+      );
+
+    actions.className =
+      "astra-artifact-preview-actions";
+
+    const download =
+      document.createElement(
+        "a"
+      );
+
+    download.className =
+      "astra-artifact-preview-download";
+
+    download.href =
+      String(
+        artifact?.downloadUrl ||
+        "#"
+      );
+
+    download.download =
+      String(
+        artifact?.name ||
+        "result"
+      );
+
+    download.setAttribute(
+      "aria-label",
+      "다운로드"
+    );
+
+    download.innerHTML = `
+      <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <path d="M9 3.1v7m0 0 2.45-2.45M9 10.1 6.55 7.65M4.2 13.55h9.6" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `;
+
+    const close =
+      document.createElement(
+        "button"
+      );
+
+    close.type =
+      "button";
+
+    close.className =
+      "astra-artifact-preview-close";
+
+    close.setAttribute(
+      "aria-label",
+      "미리보기 닫기"
+    );
+
+    close.innerHTML = `
+      <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+        <path d="m5.3 5.3 7.4 7.4M12.7 5.3l-7.4 7.4" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+      </svg>
+    `;
+
+    actions.append(
+      download,
+      close
+    );
+
+    header.append(
+      icon,
+      copy,
+      actions
+    );
+
+    const body =
+      document.createElement(
+        "div"
+      );
+
+    body.className =
+      "astra-artifact-preview-body";
+
+    const mime =
+      String(
+        artifact?.mime ||
+        ""
+      ).toLowerCase();
+
+    if (
+      mime.startsWith(
+        "image/"
+      )
+    ) {
+      const image =
+        document.createElement(
+          "img"
+        );
+
+      image.src =
+        String(
+          artifact.previewUrl
+        );
+
+      image.alt =
+        String(
+          artifact?.name ||
+          "이미지 결과물"
+        );
+
+      body.classList.add(
+        "is-image"
+      );
+
+      body.appendChild(
+        image
+      );
+    } else {
+      const frame =
+        document.createElement(
+          "iframe"
+        );
+
+      frame.src =
+        String(
+          artifact.previewUrl
+        );
+
+      frame.title =
+        String(
+          artifact?.name ||
+          "결과물 미리보기"
+        );
+
+      body.appendChild(
+        frame
+      );
+    }
+
+    panel.append(
+      header,
+      body
+    );
+
+    root.appendChild(
+      panel
+    );
+
+    let closed = false;
+
+    const closePreview =
+      () => {
+        if (closed) return;
+        closed = true;
+
+        root.classList.remove(
+          "is-open"
+        );
+
+        document.removeEventListener(
+          "keydown",
+          keyHandler
+        );
+
+        setTimeout(
+          () => root.remove(),
+          180
+        );
+      };
+
+    const keyHandler =
+      event => {
+        if (
+          event.key ===
+          "Escape"
+        ) {
+          event.preventDefault();
+          closePreview();
+        }
+      };
+
+    close.addEventListener(
+      "click",
+      closePreview
+    );
+
+    root.addEventListener(
+      "click",
+      event => {
+        if (
+          event.target ===
+          root
+        ) {
+          closePreview();
+        }
+      }
+    );
+
+    document.addEventListener(
+      "keydown",
+      keyHandler
+    );
+
+    document.body.appendChild(
+      root
+    );
+
+    requestAnimationFrame(
+      () => {
+        root.classList.add(
+          "is-open"
+        );
+
+        close.focus({
+          preventScroll: true
+        });
+      }
+    );
+
+    return true;
+  }
+
   function appendArtifactCards(
     message,
     artifacts
@@ -945,10 +1307,42 @@
           "result"
         );
 
+      const canPreview =
+        artifactCanPreview(
+          artifact
+        );
+
       link.setAttribute(
         "aria-label",
-        `${artifact.name || "결과물"} 다운로드`
+        canPreview
+          ? `${artifact.name || "결과물"} 미리보기. 오른쪽 아이콘으로 다운로드`
+          : `${artifact.name || "결과물"} 다운로드`
       );
+
+      if (canPreview) {
+        link.classList.add(
+          "is-previewable"
+        );
+
+        link.addEventListener(
+          "click",
+          event => {
+            if (
+              event.target.closest(
+                ".astra-artifact-download"
+              )
+            ) {
+              return;
+            }
+
+            event.preventDefault();
+
+            openArtifactPreview(
+              artifact
+            );
+          }
+        );
+      }
 
       const icon =
         document.createElement(
@@ -2227,6 +2621,9 @@
             "",
           downloadUrl:
             artifact.downloadUrl ||
+            "",
+          previewUrl:
+            artifact.previewUrl ||
             "",
           previewText:
             artifact.previewText ||
