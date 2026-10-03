@@ -502,12 +502,38 @@
 
   function runtimeActivityMarkup() {
     return `
-      <span class="astra-runtime-activity-mark" aria-hidden="true">
-        <span></span>
+      <button
+        type="button"
+        class="astra-runtime-activity-summary"
+        aria-expanded="true"
+      >
+        <span class="astra-runtime-activity-spark" aria-hidden="true">
+          <span></span>
+        </span>
+        <span class="astra-runtime-activity-title">실행 과정</span>
+        <span class="astra-runtime-activity-meta">준비 중</span>
+        <svg class="astra-runtime-activity-chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M6.5 8 10 11.5 13.5 8" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="astra-runtime-activity-steps"></div>
+    `;
+  }
+
+  function runtimeStepMarkup() {
+    return `
+      <span class="astra-runtime-step-mark" aria-hidden="true">
+        <span class="astra-runtime-step-pulse"></span>
+        <svg class="astra-runtime-step-check" viewBox="0 0 18 18" fill="none">
+          <path d="m5.1 9.2 2.35 2.35 5.45-5.5" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <svg class="astra-runtime-step-error" viewBox="0 0 18 18" fill="none">
+          <path d="m6.2 6.2 5.6 5.6M11.8 6.2l-5.6 5.6" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+        </svg>
       </span>
-      <span class="astra-runtime-activity-label"></span>
-      <span class="astra-runtime-activity-dots" aria-hidden="true">
-        <span></span><span></span><span></span>
+      <span class="astra-runtime-step-content">
+        <span class="astra-runtime-step-label"></span>
+        <span class="astra-runtime-step-detail"></span>
       </span>
     `;
   }
@@ -515,9 +541,11 @@
   function beginRuntimeActivity(
     text = "실행 준비 중"
   ) {
-    finishRuntimeActivity(
-      { removeImmediately: true }
-    );
+    if (state.runtimeActivity) {
+      finishRuntimeActivity(
+        { removeImmediately: true }
+      );
+    }
 
     const row =
       document.createElement(
@@ -542,22 +570,239 @@
     row.appendChild(body);
     chatMessages.appendChild(row);
 
-    state.runtimeActivity = {
+    const summary =
+      body.querySelector(
+        ".astra-runtime-activity-summary"
+      );
+
+    const activity = {
       row,
-      label:
+      summary,
+      meta:
         body.querySelector(
-          ".astra-runtime-activity-label"
+          ".astra-runtime-activity-meta"
         ),
-      timer: null,
-      text: ""
+      stepsRoot:
+        body.querySelector(
+          ".astra-runtime-activity-steps"
+        ),
+      steps:
+        new Map(),
+      order: [],
+      text: "",
+      finished: false
     };
 
-    setRuntimeActivity(text, {
-      immediate: true
-    });
+    state.runtimeActivity =
+      activity;
+
+    summary?.addEventListener(
+      "click",
+      () => {
+        const collapsed =
+          row.classList.toggle(
+            "is-collapsed"
+          );
+
+        summary.setAttribute(
+          "aria-expanded",
+          String(!collapsed)
+        );
+      }
+    );
+
+    upsertRuntimeStep(
+      "__prepare__",
+      text,
+      "running"
+    );
 
     scrollChatToBottom();
     return row;
+  }
+
+  function normalizeCompletedStepText(
+    text
+  ) {
+    return String(text || "")
+      .replace(
+        /\s+(중|확인 중|판단 중|준비 중)$/,
+        match =>
+          match.includes("확인")
+            ? " 확인"
+            : match.includes("판단")
+              ? " 판단"
+              : match.includes("준비")
+                ? " 준비"
+                : ""
+      )
+      .trim();
+  }
+
+  function runtimeActivityCount(
+    activity
+  ) {
+    return activity.order
+      .filter(
+        id =>
+          id !== "__prepare__" &&
+          id !== "__finalize__"
+      )
+      .length;
+  }
+
+  function syncRuntimeActivityMeta() {
+    const activity =
+      state.runtimeActivity;
+
+    if (!activity) return;
+
+    const count =
+      runtimeActivityCount(
+        activity
+      );
+
+    const failed =
+      activity.order.some(
+        id =>
+          activity.steps
+            .get(id)
+            ?.dataset
+            ?.status ===
+            "failed"
+      );
+
+    if (activity.finished) {
+      activity.meta.textContent =
+        failed
+          ? `${count}단계 · 일부 실패`
+          : `${count}단계 완료`;
+      return;
+    }
+
+    const running =
+      activity.order.filter(
+        id =>
+          activity.steps
+            .get(id)
+            ?.dataset
+            ?.status ===
+            "running"
+      ).length;
+
+    activity.meta.textContent =
+      running
+        ? "진행 중"
+        : count
+          ? `${count}단계`
+          : "준비 중";
+  }
+
+  function upsertRuntimeStep(
+    id,
+    text,
+    status = "running",
+    detail = ""
+  ) {
+    const activity =
+      state.runtimeActivity ||
+      (
+        beginRuntimeActivity(),
+        state.runtimeActivity
+      );
+
+    if (!activity) return null;
+
+    const key =
+      String(id || "");
+
+    if (!key) return null;
+
+    let step =
+      activity.steps.get(
+        key
+      );
+
+    if (!step) {
+      step =
+        document.createElement(
+          "div"
+        );
+
+      step.className =
+        "astra-runtime-step";
+      step.innerHTML =
+        runtimeStepMarkup();
+      step.dataset.stepId =
+        key;
+
+      activity.steps.set(
+        key,
+        step
+      );
+      activity.order.push(
+        key
+      );
+      activity.stepsRoot
+        ?.appendChild(
+          step
+        );
+
+      requestAnimationFrame(
+        () =>
+          step.classList.add(
+            "is-visible"
+          )
+      );
+    }
+
+    const label =
+      step.querySelector(
+        ".astra-runtime-step-label"
+      );
+
+    const detailElement =
+      step.querySelector(
+        ".astra-runtime-step-detail"
+      );
+
+    const nextText =
+      status === "done"
+        ? normalizeCompletedStepText(
+            text
+          )
+        : String(text || "").trim();
+
+    if (label && nextText) {
+      label.textContent =
+        nextText;
+    }
+
+    const detailText =
+      String(detail || "")
+        .replace(
+          /\s+/g,
+          " "
+        )
+        .trim()
+        .slice(
+          0,
+          180
+        );
+
+    if (detailElement) {
+      detailElement.textContent =
+        detailText;
+      detailElement.hidden =
+        !detailText;
+    }
+
+    step.dataset.status =
+      status;
+
+    syncRuntimeActivityMeta();
+    scrollChatToBottom();
+    return step;
   }
 
   function setRuntimeActivity(
@@ -569,73 +814,58 @@
 
     if (!value) return;
 
-    const activity =
-      state.runtimeActivity ||
-      (
-        beginRuntimeActivity(
-          value
-        ),
-        state.runtimeActivity
+    const id =
+      String(
+        options.id ||
+        "__status__"
       );
 
-    if (
-      !activity ||
-      activity.text === value
-    ) {
-      return;
-    }
-
-    clearTimeout(
-      activity.timer
+    upsertRuntimeStep(
+      id,
+      value,
+      options.status ||
+        "running",
+      options.detail ||
+        ""
     );
+  }
 
-    const apply = () => {
-      activity.text = value;
+  function completeRuntimeStep(
+    id,
+    options = {}
+  ) {
+    const activity =
+      state.runtimeActivity;
 
-      if (activity.label) {
-        activity.label.textContent =
-          value;
-      }
+    if (!activity) return;
 
-      activity.row
-        ?.classList
-        .remove(
-          "is-changing"
-        );
-
-      activity.row
-        ?.classList
-        .add(
-          "is-entering"
-        );
-
-      requestAnimationFrame(() => {
-        activity.row
-          ?.classList
-          .remove(
-            "is-entering"
-          );
-      });
-
-      scrollChatToBottom();
-    };
-
-    if (options.immediate) {
-      apply();
-      return;
-    }
-
-    activity.row
-      ?.classList
-      .add(
-        "is-changing"
+    const key =
+      String(id || "");
+    const step =
+      activity.steps.get(
+        key
       );
 
-    activity.timer =
-      setTimeout(
-        apply,
-        115
+    if (!step) return;
+
+    const label =
+      step.querySelector(
+        ".astra-runtime-step-label"
       );
+
+    upsertRuntimeStep(
+      key,
+      options.text ||
+        label?.textContent ||
+        "",
+      options.failed
+        ? "failed"
+        : options.skipped
+          ? "skipped"
+          : "done",
+      options.detail ||
+        ""
+    );
   }
 
   function finishRuntimeActivity(
@@ -646,18 +876,41 @@
 
     if (!activity) return;
 
-    clearTimeout(
-      activity.timer
-    );
-
-    state.runtimeActivity =
-      null;
-
     if (
       options.removeImmediately
     ) {
       activity.row?.remove();
+      state.runtimeActivity =
+        null;
       return;
+    }
+
+    activity.finished =
+      true;
+
+    for (
+      const id of
+      activity.order
+    ) {
+      const step =
+        activity.steps.get(
+          id
+        );
+
+      if (
+        step?.dataset
+          ?.status ===
+          "running"
+      ) {
+        completeRuntimeStep(
+          id,
+          {
+            failed:
+              options.failed === true &&
+              id === "__finalize__"
+          }
+        );
+      }
     }
 
     activity.row
@@ -666,27 +919,10 @@
         "is-complete"
       );
 
-    const label =
-      activity.label;
+    syncRuntimeActivityMeta();
 
-    if (label) {
-      label.textContent =
-        options.failed
-          ? "실행 종료"
-          : "완료";
-    }
-
-    setTimeout(() => {
-      activity.row
-        ?.classList
-        .add(
-          "is-leaving"
-        );
-    }, 180);
-
-    setTimeout(() => {
-      activity.row?.remove();
-    }, 560);
+    state.runtimeActivity =
+      null;
   }
 
   function compactRuntimeSubject(
@@ -878,6 +1114,15 @@
           run
         );
     }
+
+    completeRuntimeStep(
+      "__finalize__",
+      {
+        failed:
+          run?.status ===
+            "FAILED"
+      }
+    );
 
     finishRuntimeActivity({
       failed:
@@ -1490,17 +1735,54 @@
         event.status ===
           "RUNNING"
       ) {
+        completeRuntimeStep(
+          "__prepare__"
+        );
+
         setRuntimeActivity(
           runtimeActivityText(
             event
-          )
+          ),
+          {
+            id:
+              event.nodeId
+          }
+        );
+      } else if (
+        event.status ===
+          "SUCCESS"
+      ) {
+        completeRuntimeStep(
+          event.nodeId,
+          {
+            detail:
+              event.report ||
+              ""
+          }
         );
       } else if (
         event.status ===
           "FAILED"
       ) {
-        setRuntimeActivity(
-          "실행 중 문제 확인 중"
+        completeRuntimeStep(
+          event.nodeId,
+          {
+            failed: true,
+            detail:
+              event.state?.error
+                ?.message ||
+              "실행 중 문제가 생겼어"
+          }
+        );
+      } else if (
+        event.status ===
+          "SKIPPED"
+      ) {
+        completeRuntimeStep(
+          event.nodeId,
+          {
+            skipped: true
+          }
         );
       }
 
@@ -1519,10 +1801,18 @@
           event.pivot
         );
 
+      completeRuntimeStep(
+        "__prepare__"
+      );
+
       setRuntimeActivity(
         event.status === "FAILED"
           ? "실행 결과 확인 중"
-          : "결과를 정리 중"
+          : "결과를 정리 중",
+        {
+          id:
+            "__finalize__"
+        }
       );
 
       console.info(
@@ -1588,7 +1878,7 @@
     }
   }
 
-  function handleCanvasNodeClick(payload) {
+  function handleCanvasNodeRun(payload) {
     const nodeId =
       String(
         payload?.id || ""
@@ -1659,7 +1949,7 @@
 
     canvas.on("change", handleCanvasChange);
     canvas.on("workflowApplied", handleCanvasWorkflowApplied);
-    canvas.on("nodeClick", handleCanvasNodeClick);
+    canvas.on("nodeRun", handleCanvasNodeRun);
 
     syncWorkflow();
 

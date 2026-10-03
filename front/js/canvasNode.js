@@ -24,6 +24,12 @@
         <path d="M5.5 6.5h9M8.1 6.5V5.2h3.8v1.3M7.2 8.4l.45 6.15h4.7l.45-6.15" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
         <path d="M9.2 9.6v3.2M10.8 9.6v3.2" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
       </svg>
+    `,
+    run: `
+      <svg viewBox="0 0 20 20" fill="none" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <path class="vc-run-spark-main" d="M9.95 3.25c.34 3.28 1.52 4.46 4.8 4.8-3.28.34-4.46 1.52-4.8 4.8-.34-3.28-1.52-4.46-4.8-4.8 3.28-.34 4.46-1.52 4.8-4.8Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>
+        <path class="vc-run-spark-small" d="M14.9 12.7c.16 1.55.72 2.1 2.25 2.25-1.53.16-2.09.72-2.25 2.25-.16-1.53-.71-2.09-2.25-2.25 1.54-.15 2.09-.7 2.25-2.25Z" fill="currentColor"/>
+      </svg>
     `
   };
   function svgEl(name, attrs = {}) {
@@ -719,6 +725,15 @@
             }
             ${renderRuntimeBadge(runtimeState)}
             <div class="vc-node-actions">
+              <button
+                type="button"
+                class="vc-node-action vc-node-run${runtimeState?.status === 'RUNNING' ? ' is-running' : ''}"
+                data-action="run"
+                aria-label="이 노드부터 실행"
+                title="실행"
+              >
+                ${icons.run}
+              </button>
               <button
                 type="button"
                 class="vc-node-action vc-node-toggle"
@@ -2911,6 +2926,20 @@
             element.dataset.nodeId
           );
         if (!node) return;
+        if (
+          action.dataset.action ===
+          'run'
+        ) {
+          emit(
+            'nodeRun',
+            {
+              id: node.id,
+              node: clone(node),
+              mode: 'spread'
+            }
+          );
+          return;
+        }
         if (
           action.dataset.action ===
           'toggle'
