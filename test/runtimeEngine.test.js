@@ -393,3 +393,245 @@ test("group transport failure blocks only its dependent chain", async () => {
   assert.equal(result.nodes.good.status, "SUCCESS");
   assert.equal(result.nodes.blocked.skipReason, "dependency_failed");
 });
+
+
+test("fork and merge boundaries split Gemini groups safely", async () => {
+  const calls = [];
+  const engine = new RuntimeEngine({
+    executor: {
+      async run(current) {
+        return {
+          outputs: {
+            result: current.id
+          }
+        };
+      },
+      async runGroup(group) {
+        const ids =
+          group.nodes.map(
+            item => item.id
+          );
+
+        calls.push(ids);
+
+        return {
+          results:
+            group.nodes.map(
+              item => ({
+                nodeId:
+                  item.id,
+                outputs: {
+                  result:
+                    item.id
+                },
+                decision:
+                  null,
+                report:
+                  item.id
+              })
+            )
+        };
+      }
+    }
+  });
+
+  const graph = workflow(
+    [
+      node("root", "research"),
+      node("fork", "organize"),
+      node("left", "write"),
+      node("right", "write"),
+      node("merge", "organize"),
+      node("tail", "write")
+    ],
+    [
+      edge("root-fork", "root", "fork"),
+      edge("fork-left", "fork", "left"),
+      edge("fork-right", "fork", "right"),
+      edge("left-merge", "left", "merge"),
+      edge("right-merge", "right", "merge"),
+      edge("merge-tail", "merge", "tail")
+    ]
+  );
+
+  const result =
+    await engine.run(
+      graph,
+      "root",
+      { mode: "spread" }
+    );
+
+  const callKeys =
+    calls.map(
+      ids => ids.join(",")
+    );
+
+  assert.equal(
+    callKeys.includes(
+      "root,fork"
+    ),
+    true
+  );
+  assert.equal(
+    callKeys.includes(
+      "merge,tail"
+    ),
+    true
+  );
+  assert.equal(
+    callKeys.includes("left"),
+    true
+  );
+  assert.equal(
+    callKeys.includes("right"),
+    true
+  );
+  assert.equal(
+    result.nodes.tail.status,
+    "SUCCESS"
+  );
+});
+
+test("local boundary nodes are never sent to Gemini groups", async () => {
+  const groupCalls = [];
+  const localCalls = [];
+
+  const engine = new RuntimeEngine({
+    executor: {
+      async run(current) {
+        localCalls.push(
+          current.id
+        );
+
+        return {
+          outputs: {
+            out: true,
+            result:
+              current.id
+          }
+        };
+      },
+      async runGroup(group) {
+        groupCalls.push(
+          group.nodes.map(
+            item => item.id
+          )
+        );
+
+        return {
+          results:
+            group.nodes.map(
+              item => ({
+                nodeId:
+                  item.id,
+                outputs: {
+                  result:
+                    item.id
+                },
+                decision:
+                  null,
+                report:
+                  item.id
+              })
+            )
+        };
+      }
+    }
+  });
+
+  const graph = workflow(
+    [
+      node("start", "start"),
+      node("research", "research"),
+      node("write", "write"),
+      node("file", "createFile")
+    ],
+    [
+      edge("sr", "start", "research", {
+        fromPort: "out"
+      }),
+      edge("rw", "research", "write"),
+      edge("wf", "write", "file")
+    ]
+  );
+
+  await engine.run(
+    graph,
+    "start",
+    { mode: "spread" }
+  );
+
+  assert.deepEqual(
+    groupCalls,
+    [["research", "write"]]
+  );
+  assert.deepEqual(
+    new Set(localCalls),
+    new Set(["start", "file"])
+  );
+});
+
+test("data-only linear dependencies can share one Gemini group", async () => {
+  const calls = [];
+
+  const engine = new RuntimeEngine({
+    executor: {
+      async run() {
+        throw new Error(
+          "unexpected local run"
+        );
+      },
+      async runGroup(group) {
+        calls.push(
+          group.nodes.map(
+            item => item.id
+          )
+        );
+
+        return {
+          results:
+            group.nodes.map(
+              item => ({
+                nodeId:
+                  item.id,
+                outputs: {
+                  result:
+                    item.id
+                },
+                decision:
+                  null,
+                report:
+                  item.id
+              })
+            )
+        };
+      }
+    }
+  });
+
+  const graph = workflow(
+    [
+      node("research", "research"),
+      node("organize", "organize")
+    ],
+    [
+      edge(
+        "data-edge",
+        "research",
+        "organize",
+        { kind: "data" }
+      )
+    ]
+  );
+
+  await engine.run(
+    graph,
+    "research",
+    { mode: "spread" }
+  );
+
+  assert.deepEqual(
+    calls,
+    [["research", "organize"]]
+  );
+});
