@@ -435,7 +435,6 @@
         );
 
       const nodeJobs = new Map();
-      const spreadJobs = new Map();
       const edgeRefs = new Map();
 
       const setState = (
@@ -759,48 +758,44 @@
           return job;
         };
 
-      const spreadFrom =
+      const collectSpreadScope =
         nodeId => {
-          if (spreadJobs.has(nodeId)) {
-            return spreadJobs.get(nodeId);
+          const scope = new Set();
+          const queue = [nodeId];
+
+          while (queue.length) {
+            const current =
+              queue.shift();
+
+            if (
+              !current ||
+              scope.has(current)
+            ) {
+              continue;
+            }
+
+            scope.add(current);
+
+            for (
+              const connection
+                of incoming.get(current) || []
+            ) {
+              queue.push(
+                connection.from.node
+              );
+            }
+
+            for (
+              const connection
+                of outgoing.get(current) || []
+            ) {
+              queue.push(
+                connection.to.node
+              );
+            }
           }
 
-          const job =
-            (async () => {
-              await resolveNode(nodeId);
-
-              if (
-                states.get(nodeId)?.status !==
-                "SUCCESS"
-              ) {
-                return;
-              }
-
-              const childEdges =
-                (outgoing.get(nodeId) || [])
-                  .filter(edgeIsActive);
-
-              const children =
-                [
-                  ...new Set(
-                    childEdges.map(
-                      connection =>
-                        connection.to.node
-                    )
-                  )
-                ];
-
-              await Promise.all(
-                children.map(
-                  childId =>
-                    spreadFrom(childId)
-                )
-              );
-            })();
-
-          spreadJobs.set(nodeId, job);
-
-          return job;
+          return [...scope];
         };
 
       this.running = true;
@@ -818,7 +813,15 @@
         if (mode === "target") {
           await resolveNode(pivot);
         } else {
-          await spreadFrom(pivot);
+          const spreadScope =
+            collectSpreadScope(pivot);
+
+          await Promise.all(
+            spreadScope.map(
+              nodeId =>
+                resolveNode(nodeId)
+            )
+          );
         }
 
         const snapshot =
