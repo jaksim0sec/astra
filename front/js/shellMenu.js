@@ -104,64 +104,57 @@ function icon(name){
   const icons={
     sidebar:`
       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <rect x="3" y="3.25" width="14" height="13.5" rx="3" stroke="currentColor" stroke-width="1.4"/>
-        <path d="M7.2 3.7v12.6" stroke="currentColor" stroke-width="1.4"/>
+        <rect x="3.2" y="3.5" width="13.6" height="13" rx="4" stroke="currentColor" stroke-width="1.55"/>
+        <path d="M7.55 4v12" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
       </svg>
     `,
     close:`
       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <path d="m6.2 6.2 7.6 7.6M13.8 6.2l-7.6 7.6" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+        <path d="m6.35 6.35 7.3 7.3M13.65 6.35l-7.3 7.3" stroke="currentColor" stroke-width="1.65" stroke-linecap="round"/>
       </svg>
     `,
     plus:`
       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <path d="M10 4.25v11.5M4.25 10h11.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+        <path d="M10 4.5v11M4.5 10h11" stroke="currentColor" stroke-width="1.65" stroke-linecap="round"/>
       </svg>
     `,
     search:`
       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <circle cx="8.8" cy="8.8" r="4.75" stroke="currentColor" stroke-width="1.45"/>
-        <path d="m12.45 12.45 3.2 3.2" stroke="currentColor" stroke-width="1.45" stroke-linecap="round"/>
+        <circle cx="8.65" cy="8.65" r="4.7" stroke="currentColor" stroke-width="1.55"/>
+        <path d="m12.25 12.25 3.35 3.35" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
       </svg>
     `,
     chevron:`
       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <path d="m7.25 8 2.75 2.75L12.75 8" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="m6.9 7.8 3.1 3.1 3.1-3.1" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `,
     chat:`
       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <path d="M4 4.3h12v8.8H8.1L4 16v-3.1V4.3Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>
-      </svg>
-    `,
-    context:`
-      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <circle cx="6.2" cy="7" r="2.1" stroke="currentColor" stroke-width="1.3"/>
-        <circle cx="13.8" cy="7" r="2.1" stroke="currentColor" stroke-width="1.3"/>
-        <path d="M4.5 14.8c.35-2.15 1.75-3.3 3.7-3.3h3.6c1.95 0 3.35 1.15 3.7 3.3" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/>
+        <path d="M4 5.1A2.1 2.1 0 0 1 6.1 3h7.8A2.1 2.1 0 0 1 16 5.1v6.1a2.1 2.1 0 0 1-2.1 2.1H8.2L4.35 16v-2.7A2.08 2.08 0 0 1 4 12.15V5.1Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
       </svg>
     `,
     download:`
       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <path d="M10 3.5v8m0 0 2.7-2.7M10 11.5 7.3 8.8M4 15.5h12" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M10 3.7v7.65m0 0 2.65-2.65M10 11.35 7.35 8.7M4.2 15.3h11.6" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `,
     upload:`
       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <path d="M10 12.5v-8m0 0 2.7 2.7M10 4.5 7.3 7.2M4 15.5h12" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M10 11.35V3.7m0 0 2.65 2.65M10 3.7 7.35 6.35M4.2 15.3h11.6" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `,
     user:`
       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <circle cx="10" cy="7.2" r="3" stroke="currentColor" stroke-width="1.35"/>
-        <path d="M4.8 16c.45-2.8 2.2-4.25 5.2-4.25S14.75 13.2 15.2 16" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
+        <circle cx="10" cy="7.05" r="3" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M4.8 16c.45-2.8 2.2-4.2 5.2-4.2s4.75 1.4 5.2 4.2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
     `,
     dots:`
       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <circle cx="5" cy="10" r="1.15" fill="currentColor"/>
-        <circle cx="10" cy="10" r="1.15" fill="currentColor"/>
-        <circle cx="15" cy="10" r="1.15" fill="currentColor"/>
+        <circle cx="5.2" cy="10" r="1.2" fill="currentColor"/>
+        <circle cx="10" cy="10" r="1.2" fill="currentColor"/>
+        <circle cx="14.8" cy="10" r="1.2" fill="currentColor"/>
       </svg>
     `
   };
@@ -206,15 +199,6 @@ root.innerHTML=`
           </span>
           <span class="ovll-sidebar-brand-name">ovll</span>
         </div>
-
-        <button
-          class="ovll-sidebar-icon-button"
-          data-sidebar-action="close"
-          type="button"
-          aria-label="사이드바 닫기"
-        >
-          ${icon("close")}
-        </button>
       </header>
 
       <div class="ovll-sidebar-primary">
@@ -274,11 +258,6 @@ root.innerHTML=`
         <div
           class="ovll-sidebar-sections"
           data-sidebar-sections
-        ></div>
-
-        <div
-          class="ovll-sidebar-contexts"
-          data-sidebar-contexts
         ></div>
       </div>
 
@@ -353,11 +332,6 @@ const panel=
 const sectionsRoot=
   root.querySelector(
     "[data-sidebar-sections]"
-  );
-
-const contextsRoot=
-  root.querySelector(
-    "[data-sidebar-contexts]"
   );
 
 const searchBox=
@@ -542,8 +516,7 @@ function setSearchOpen(
 }
 
 function renderInlineEditor(
-  parent,
-  type
+  parent
 ){
   const row =
     document.createElement(
@@ -559,14 +532,8 @@ function renderInlineEditor(
     );
 
   input.type="text";
-  input.maxLength=
-    type==="section"
-      ?60
-      :80;
-  input.placeholder=
-    type==="section"
-      ?"섹션 이름"
-      :"맥락 이름";
+  input.maxLength=60;
+  input.placeholder="섹션 이름";
   input.autocomplete="off";
 
   row.appendChild(input);
@@ -581,29 +548,9 @@ function renderInlineEditor(
         commit &&
         value
       ){
-        if(type==="section"){
-          Store.createSection(
-            value
-          );
-        }else{
-          const bundle =
-            Store.createContextBundle(
-              value
-            );
-
-          const active =
-            activeConversation();
-
-          if(active){
-            Store.assignContextBundle(
-              active.id,
-              bundle.id
-            );
-
-            global.AstraApp
-              ?.refreshConversationContext?.();
-          }
-        }
+        Store.createSection(
+          value
+        );
       }
 
       state.editing=null;
@@ -653,22 +600,16 @@ function renderInlineEditor(
   );
 }
 
-function startEditor(type){
+function startEditor(){
   if(state.editing){
     return;
   }
 
   state.editing=
-    type;
-
-  const target =
-    type==="section"
-      ?sectionsRoot
-      :contextsRoot;
+    "section";
 
   renderInlineEditor(
-    target,
-    type
+    sectionsRoot
   );
 }
 
@@ -952,7 +893,7 @@ function renderSections(
       "span"
     );
   label.textContent=
-    "섹션";
+    "대화";
 
   const add =
     document.createElement(
@@ -1010,114 +951,6 @@ function renderSections(
   }
 }
 
-function renderContexts(
-  snapshot
-){
-  contextsRoot
-    .replaceChildren();
-
-  const heading =
-    document.createElement(
-      "div"
-    );
-
-  heading.className=
-    "ovll-sidebar-group-head ovll-sidebar-context-head";
-
-  const label =
-    document.createElement(
-      "span"
-    );
-  label.textContent=
-    "맥락";
-
-  const add =
-    document.createElement(
-      "button"
-    );
-  add.type="button";
-  add.dataset.sidebarAction=
-    "new-context";
-  add.setAttribute(
-    "aria-label",
-    "새 맥락 묶음"
-  );
-  add.innerHTML=
-    icon("plus");
-
-  heading.append(
-    label,
-    add
-  );
-  contextsRoot.appendChild(
-    heading
-  );
-
-  const active =
-    snapshot.conversations
-      .find(
-        item =>
-          item.id===
-          snapshot.workspace
-            .activeConversationId
-      );
-
-  const activeContextId=
-    active
-      ?.contextBundleId ||
-    "";
-
-  for(
-    const bundle of
-    snapshot.contextBundles
-      .slice()
-      .sort(
-        (a,b)=>
-          Number(b.updatedAt)-
-          Number(a.updatedAt)
-      )
-  ){
-    const button =
-      document.createElement(
-        "button"
-      );
-
-    button.type="button";
-    button.className=
-      "ovll-sidebar-context";
-    button.dataset.contextId=
-      bundle.id;
-
-    if(
-      bundle.id===
-      activeContextId
-    ){
-      button.classList.add(
-        "is-active"
-      );
-    }
-
-    button.innerHTML=`
-      <span class="ovll-sidebar-context-icon">
-        ${icon("context")}
-      </span>
-      <span class="ovll-sidebar-context-title"></span>
-      <span class="ovll-sidebar-context-state">
-        ${bundle.id===activeContextId?"사용 중":""}
-      </span>
-    `;
-
-    button.querySelector(
-      ".ovll-sidebar-context-title"
-    ).textContent=
-      bundle.title;
-
-    contextsRoot.appendChild(
-      button
-    );
-  }
-}
-
 function render(){
   state.renderFrame=null;
 
@@ -1137,9 +970,6 @@ function render(){
     );
   }else{
     renderSections(
-      snapshot
-    );
-    renderContexts(
       snapshot
     );
   }
@@ -1329,33 +1159,6 @@ function handleClick(event){
     return;
   }
 
-  const context=
-    event.target.closest(
-      "[data-context-id]"
-    );
-
-  if(
-    context &&
-    root.contains(context)
-  ){
-    event.preventDefault();
-
-    const active=
-      activeConversation();
-
-    if(active){
-      Store.assignContextBundle(
-        active.id,
-        context.dataset.contextId
-      );
-
-      global.AstraApp
-        ?.refreshConversationContext?.();
-    }
-
-    return;
-  }
-
   const actionNode=
     event.target.closest(
       "[data-sidebar-action]"
@@ -1402,12 +1205,7 @@ function handleClick(event){
   }
 
   if(action==="new-section"){
-    startEditor("section");
-    return;
-  }
-
-  if(action==="new-context"){
-    startEditor("context");
+    startEditor();
     return;
   }
 
