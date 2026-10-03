@@ -24,8 +24,8 @@
   pointer-events: none;
 }
 #canvas-nodes {
-  --node-width: 11.875rem;
-  --node-radius: 1.25rem;
+  --node-width: 12.25rem;
+  --node-radius: 1.3rem;
   --node: var(--panel);
   --node-soft: var(--panel);
   position: absolute;
@@ -64,10 +64,10 @@
     );
   position: absolute;
   width: var(--node-width);
-  min-height: 3.125rem;
+  min-height: 3.35rem;
   padding:
-    .625rem
-    .75rem;
+    .68rem
+    .78rem;
   border: .09375rem solid color-mix(in srgb, var(--line) 90%, var(--node-state-color) 10%);
   border-radius:
     var(--node-radius);
@@ -171,24 +171,24 @@
    HEADER
    ========================================================= */
 .vc-node-head {
-  min-height: 1.75rem;
+  min-height: 1.9rem;
   display: flex;
   align-items: center;
-  gap: .5625rem;
+  gap: .6rem;
 }
 /* =========================================================
    ICON
    ========================================================= */
 .vc-node-icon {
   position: relative;
-  width: 1.75rem;
-  height: 1.75rem;
-  flex: 0 0 1.75rem;
+  width: 1.92rem;
+  height: 1.92rem;
+  flex: 0 0 1.92rem;
   display: flex;
   align-items: center;
   justify-content: center;
   border: 0;
-  border-radius: .625rem;
+  border-radius: .72rem;
   color:
     var(--node-color);
   background:
@@ -199,8 +199,8 @@
     transform .18s cubic-bezier(.22,.8,.25,1);
 }
 .vc-node-icon svg {
-  width: 1.125rem;
-  height: 1.125rem;
+  width: 1.24rem;
+  height: 1.24rem;
   display: block;
   max-width: none;
 }
@@ -223,8 +223,8 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--text);
-  font-size: .75rem;
-  font-weight: 750;
+  font-size: .8rem;
+  font-weight: 740;
   line-height: 1.2;
   letter-spacing: -.025em;
 }
@@ -240,15 +240,15 @@
 .vc-node-action {
   appearance: none;
   -webkit-appearance: none;
-  width: 1.75rem;
-  height: 1.75rem;
+  width: 1.82rem;
+  height: 1.82rem;
   display: grid;
   place-items: center;
   margin: 0;
   padding: 0;
   border: 0;
   outline: 0;
-  border-radius: .58rem;
+  border-radius: .64rem;
   color: var(--muted);
   background: transparent;
   cursor: pointer;
@@ -281,15 +281,15 @@
 }
 
 .vc-node-action svg {
-  width: .98rem;
-  height: .98rem;
+  width: 1.04rem;
+  height: 1.04rem;
   display: block;
 }
 
 .vc-node-run {
   appearance: none;
   -webkit-appearance: none;
-  height: 1.85rem;
+  height: 1.95rem;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
@@ -297,9 +297,9 @@
   margin-left: auto;
   padding:
     0
-    .68rem
+    .72rem
     0
-    .5rem;
+    .54rem;
   border:
     .0625rem solid
     color-mix(
@@ -322,8 +322,8 @@
       var(--panel)
     );
   cursor: pointer;
-  font-size: .58rem;
-  font-weight: 740;
+  font-size: .61rem;
+  font-weight: 720;
   line-height: 1;
   letter-spacing: -.012em;
   box-shadow:
@@ -345,9 +345,9 @@
 }
 
 .vc-node-run svg {
-  width: .92rem;
-  height: .92rem;
-  flex: 0 0 .92rem;
+  width: .98rem;
+  height: .98rem;
+  flex: 0 0 .98rem;
   overflow: visible;
 }
 
@@ -647,8 +647,8 @@
     0
     0;
   color: var(--sub);
-  font-size: .55rem;
-  font-weight: 720;
+  font-size: .58rem;
+  font-weight: 700;
   line-height: 1.1;
   letter-spacing: -.01em;
   white-space: nowrap;
@@ -684,8 +684,8 @@
   white-space: pre-wrap;
   overflow-wrap: anywhere;
   word-break: break-word;
-  font-size: .6rem;
-  font-weight: 550;
+  font-size: .64rem;
+  font-weight: 540;
   line-height: 1.4;
   letter-spacing: -.008em;
   scrollbar-width: thin;
@@ -754,8 +754,8 @@
   gap: .125rem;
 }
 .vc-file-title {
-  font-size: .625rem;
-  font-weight: 700;
+  font-size: .68rem;
+  font-weight: 680;
   line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
@@ -774,7 +774,7 @@
   align-items: center;
   gap: .375rem;
   margin-top: .625rem;
-  font-size: .5625rem;
+  font-size: .6rem;
   color: var(--sub);
 }
 .vc-file-meta span:first-child {
@@ -806,7 +806,7 @@
       transparent
     );
   text-decoration: none;
-  font-size: .56rem;
+  font-size: .59rem;
   font-weight: 650;
 }
 
@@ -903,54 +903,53 @@
 .vc-node-delete {
   display: none;
   flex-shrink: 0;
-  width: 100%;
-  height: 2.75em;
-  padding: 0;
-  margin-top: .75em;
+  width: fit-content;
+  min-height: 1.85rem;
+  padding: 0 .62rem;
+  margin-top: .72rem;
+  margin-left: auto;
   justify-content: center;
   align-items: center;
   text-align: center;
-  gap: 0;
-  border: 0;
-  border-radius: calc(var(--node-radius) - 1em);
-  color:
+  gap: .28rem;
+  border:
+    .0625rem solid
     color-mix(
       in srgb,
-      currentColor 55%,
+      var(--line) 86%,
       transparent
     );
-  background:
-    color-mix(
-      in srgb,
-      currentColor 5%,
-      transparent
-    );
-  font-size: .7em;
-  font-weight: 800;
-  line-height: 1em;
+  border-radius: 999px;
+  color: var(--muted);
+  background: transparent;
+  font-size: .57rem;
+  font-weight: 650;
+  line-height: 1;
   cursor: pointer;
-  opacity: .95;
-  filter: contrast(.95);
+  opacity: .8;
   transition:
-    all .25s ease;
+    color .16s ease,
+    background .16s ease,
+    border-color .16s ease,
+    transform .14s ease;
 }
 .vc-node:not(.vc-start-node).vc-expanded .vc-node-delete {
   display: flex;
 }
 .vc-node-delete:hover {
-  color: var(--node-color);
+  color: var(--text);
   opacity: 1;
-  filter: contrast(1);
+  border-color: var(--line-strong);
   background:
     color-mix(
       in srgb,
-      var(--node-color) 8%,
+      var(--text) 5%,
       transparent
     );
 }
 .vc-node-delete svg {
-  width: 1.75em;
-  height: 1.75em;
+  width: .92rem;
+  height: .92rem;
   display: block;
   max-width: none;
 }
