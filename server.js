@@ -2026,6 +2026,12 @@ app.get(
         });
     }
 
+    const inline =
+      String(
+        req.query?.inline ||
+        ''
+      ) === '1';
+
     res.set({
       'Content-Type':
         artifact.mime,
@@ -2034,10 +2040,15 @@ app.get(
           artifact.size
         ),
       'Content-Disposition':
-        "attachment; filename*=UTF-8''" +
+        (inline
+          ? 'inline'
+          : 'attachment') +
+        "; filename*=UTF-8''" +
         encodeURIComponent(
           artifact.name
         ),
+      'X-Content-Type-Options':
+        'nosniff',
       'Cache-Control':
         'private, no-store'
     });
