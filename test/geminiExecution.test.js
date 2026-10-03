@@ -1,0 +1,472 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+
+import {
+  createGeminiExecution,
+  DEFAULT_GEMINI_MODEL,
+  DEFAULT_GEMINI_FALLBACK_MODEL
+} from "../geminiExecution.js";
+
+function jsonResponse(
+  status,
+  payload,
+  headers = {}
+) {
+  const normalized =
+    Object.fromEntries(
+      Object.entries(headers)
+        .map(([key, value]) => [
+          key.toLowerCase(),
+          String(value)
+        ])
+    );
+
+  return {
+    ok:
+      status >= 200 &&
+      status < 300,
+    status,
+    headers: {
+      get(name) {
+        return (
+          normalized[
+            String(name)
+              .toLowerCase()
+          ] ?? null
+        );
+      }
+    },
+    async json() {
+      return payload;
+    },
+    async text() {
+      return JSON.stringify(
+        payload
+      );
+    }
+  };
+}
+
+function interaction(
+  results,
+  model =
+    DEFAULT_GEMINI_MODEL
+) {
+  return {
+    model,
+    status: "completed",
+    steps: [
+      {
+        type: "model_output",
+        content: [
+          {
+            type: "text",
+            text:
+              JSON.stringify({
+                results
+              })
+          }
+        ]
+      }
+    ],
+    usage: {
+      total_input_tokens: 12,
+      total_output_tokens: 8,
+      total_tokens: 20
+    }
+  };
+}
+
+function result(
+  nodeId,
+  options = {}
+) {
+  return {
+    nodeId,
+    outputs:
+      options.outputs ?? {
+        result: nodeId
+      },
+    decision:
+      options.decision ?? null,
+    report:
+      options.report ??
+      nodeId
+  };
+}
+
+function group(
+  nodes = [
+    {
+      id: "research",
+      type: "research",
+      params: {
+        topic: "test"
+      },
+      inputs: {}
+    }
+  ]
+) {
+  return {
+    nodes,
+    connections: []
+  };
+}
+
+test("defaults target free-tier Flash-Lite models", () => {
+  assert.equal(
+    DEFAULT_GEMINI_MODEL,
+    "gemini-3.5-flash-lite"
+  );
+  assert.equal(
+    DEFAULT_GEMINI_FALLBACK_MODEL,
+    "gemini-3.1-flash-lite"
+  );
+});
+
+test("executeGroup sends a stateless structured Interactions request", async () => {
+  const calls = [];
+
+  const execution =
+    createGeminiExecution({
+      apiKey: "test-key",
+      fetchImpl:
+        async (url, options) => {
+          calls.push({
+            url,
+            options
+          });
+
+          return jsonResponse(
+            200,
+            interaction([
+              result("research")
+            ])
+          );
+        },
+      sleepImpl:
+        async () => {}
+    });
+
+  const output =
+    await execution.executeGroup(
+      group()
+    );
+
+  assert.equal(
+    calls.length,
+    1
+  );
+
+  const request =
+    JSON.parse(
+      calls[0].options.body
+    );
+
+  assert.equal(
+    calls[0].url,
+    "https://generativelanguage.googleapis.com/v1beta/interactions"
+  );
+
+  assert.equal(
+    calls[0].options.headers[
+      "x-goog-api-key"
+    ],
+    "test-key"
+  );
+
+  assert.equal(
+    request.model,
+    "gemini-3.5-flash-lite"
+  );
+  assert.equal(
+    request.store,
+    false
+  );
+  assert.equal(
+    request.generation_config
+      .thinking_level,
+    "minimal"
+  );
+  assert.equal(
+    request.response_format.type,
+    "text"
+  );
+  assert.equal(
+    request.response_format
+      .mime_type,
+    "application/json"
+  );
+  assert.equal(
+    request.response_format
+      .schema.properties.results
+      .minItems,
+    1
+  );
+
+  assert.equal(
+    output.model,
+    "gemini-3.5-flash-lite"
+  );
+  assert.deepEqual(
+    output.usage,
+    {
+      inputTokens: 12,
+      outputTokens: 8,
+      totalTokens: 20
+    }
+  );
+  assert.equal(
+    output.results[0].nodeId,
+    "research"
+  );
+});
+
+test("semantic mismatch triggers one compact repair attempt", async () => {
+  let count = 0;
+  const requests = [];
+
+  const execution =
+    createGeminiExecution({
+      apiKey: "test-key",
+      fetchImpl:
+        async (
+          _url,
+          options
+        ) => {
+          count++;
+          requests.push(
+            JSON.parse(
+              options.body
+            )
+          );
+
+          if (count === 1) {
+            return jsonResponse(
+              200,
+              interaction([
+                result("wrong")
+              ])
+            );
+          }
+
+          return jsonResponse(
+            200,
+            interaction([
+              result("research")
+            ])
+          );
+        },
+      sleepImpl:
+        async () => {}
+    });
+
+  const output =
+    await execution.executeGroup(
+      group()
+    );
+
+  assert.equal(count, 2);
+  assert.match(
+    requests[1].input,
+    /REPAIR/
+  );
+  assert.equal(
+    output.results[0].nodeId,
+    "research"
+  );
+});
+
+test("429 honors Retry-After before retrying", async () => {
+  let count = 0;
+  const sleeps = [];
+
+  const execution =
+    createGeminiExecution({
+      apiKey: "test-key",
+      fetchImpl:
+        async () => {
+          count++;
+
+          if (count === 1) {
+            return jsonResponse(
+              429,
+              {
+                error: {
+                  message:
+                    "rate limited"
+                }
+              },
+              {
+                "retry-after": "2"
+              }
+            );
+          }
+
+          return jsonResponse(
+            200,
+            interaction([
+              result("research")
+            ])
+          );
+        },
+      sleepImpl:
+        async ms => {
+          sleeps.push(ms);
+        },
+      random:
+        () => 0
+    });
+
+  await execution.executeGroup(
+    group()
+  );
+
+  assert.equal(count, 2);
+  assert.deepEqual(
+    sleeps,
+    [2000]
+  );
+});
+
+test("unsupported primary model falls back to configured free-tier model", async () => {
+  const models = [];
+
+  const execution =
+    createGeminiExecution({
+      apiKey: "test-key",
+      fetchImpl:
+        async (
+          _url,
+          options
+        ) => {
+          const body =
+            JSON.parse(
+              options.body
+            );
+
+          models.push(
+            body.model
+          );
+
+          if (
+            body.model ===
+            DEFAULT_GEMINI_MODEL
+          ) {
+            return jsonResponse(
+              404,
+              {
+                error: {
+                  message:
+                    "model not found"
+                }
+              }
+            );
+          }
+
+          return jsonResponse(
+            200,
+            interaction(
+              [
+                result("research")
+              ],
+              DEFAULT_GEMINI_FALLBACK_MODEL
+            )
+          );
+        },
+      sleepImpl:
+        async () => {}
+    });
+
+  const output =
+    await execution.executeGroup(
+      group()
+    );
+
+  assert.deepEqual(
+    models,
+    [
+      DEFAULT_GEMINI_MODEL,
+      DEFAULT_GEMINI_FALLBACK_MODEL
+    ]
+  );
+
+  assert.equal(
+    output.model,
+    DEFAULT_GEMINI_FALLBACK_MODEL
+  );
+});
+
+test("oversized group is rejected before any Gemini request", async () => {
+  let called = false;
+
+  const execution =
+    createGeminiExecution({
+      apiKey: "test-key",
+      maxInputChars: 80,
+      fetchImpl:
+        async () => {
+          called = true;
+          throw new Error(
+            "should not fetch"
+          );
+        }
+    });
+
+  await assert.rejects(
+    execution.executeGroup(
+      group([
+        {
+          id: "write",
+          type: "write",
+          params: {
+            about:
+              "x".repeat(200)
+          },
+          inputs: {}
+        }
+      ])
+    ),
+    /too large/
+  );
+
+  assert.equal(
+    called,
+    false
+  );
+});
+
+test("judge result requires a boolean decision", async () => {
+  const execution =
+    createGeminiExecution({
+      apiKey: "test-key",
+      maxAttempts: 1,
+      fetchImpl:
+        async () =>
+          jsonResponse(
+            200,
+            interaction([
+              result("judge")
+            ])
+          ),
+      sleepImpl:
+        async () => {}
+    });
+
+  await assert.rejects(
+    execution.executeGroup(
+      group([
+        {
+          id: "judge",
+          type: "judge",
+          params: {
+            condition:
+              "is valid"
+          },
+          inputs: {}
+        }
+      ])
+    ),
+    /boolean decision/
+  );
+});
