@@ -319,10 +319,10 @@ function mount(world,canvas,options={}){
   let attentionUntil=0;
   let connectionClose=false;
   let lastIntentMove=0;
-  let lastWorkflowId=null;
-  let lastWorkflowAt=0;
+  let lastObservedId=null;
   let gazePriority=0;
   let gazeUntil=0;
+  let layoutAnchor=null;
   let moodTimer=null;
   let thinkingTimer=null;
   let connectionColor=false;
@@ -330,6 +330,7 @@ function mount(world,canvas,options={}){
 
   let blinkTimer=null;
   let viewportTimer=null;
+  let gazeTimer=null;
   let motionFrame=null;
   let busyFrame=null;
 
@@ -535,61 +536,65 @@ function mount(world,canvas,options={}){
     const view=
       viewport.getBoundingClientRect();
 
+    const composer=
+      document.querySelector(
+        "#composer-form"
+      )?.getBoundingClientRect();
+
+    const topbar=
+      document.querySelector(
+        "#topbar"
+      )?.getBoundingClientRect();
+
     const rect=
       node.getBoundingClientRect();
+
+    const safeTop=
+      Math.max(
+        view.top,
+        topbar?.bottom??view.top
+      )+8;
+
+    const safeBottom=
+      Math.min(
+        view.bottom,
+        composer?.top??view.bottom
+      )-8;
 
     return(
       rect.right>view.left&&
       rect.left<view.right&&
-      rect.bottom>view.top&&
-      rect.top<view.bottom
+      rect.bottom>safeTop&&
+      rect.top<safeBottom
     );
   }
 
   function interestingNode(){
-    const origin=
-      center(
-        orb.getBoundingClientRect()
+    const nodes=[
+      ...viewport.querySelectorAll(
+        ".vc-node"
+      )
+    ].filter(nodeVisible);
+
+    if(!nodes.length)
+      return null;
+
+    const currentIndex=
+      nodes.findIndex(
+        node=>
+          node.dataset.nodeId===
+          String(lastObservedId)
       );
 
-    let best=null;
-    let bestScore=Infinity;
-
-    for(
-      const node
-      of viewport.querySelectorAll(".vc-node")
-    ){
-      if(!nodeVisible(node))
-        continue;
-
-      const c=
-        center(
-          node.getBoundingClientRect()
-        );
-
-      let score=
-        Math.hypot(
-          c.x-origin.x,
-          c.y-origin.y
-        );
-
-      if(
-        node.dataset.nodeId===
-        String(lastWorkflowId)
-      ){
-        score*=.72;
-      }
-
-      if(score<bestScore){
-        bestScore=score;
-        best=node;
-      }
-    }
-
-    return best;
+    return nodes[
+      (currentIndex+1+nodes.length)%
+      nodes.length
+    ];
   }
 
   function restoreGaze(){
+    clearTimeout(gazeTimer);
+
     const now=performance.now();
 
     const active=
@@ -616,30 +621,6 @@ function mount(world,canvas,options={}){
       return;
     }
 
-    const recent=
-      lastWorkflowId&&
-      now-lastWorkflowAt<6500
-        ?nodeEl(lastWorkflowId)
-        :null;
-
-    if(
-      recent&&
-      nodeVisible(recent)
-    ){
-      const c=
-        center(
-          recent.getBoundingClientRect()
-        );
-
-      lookAt(
-        c.x,
-        c.y,
-        .15
-      );
-
-      return;
-    }
-
     const observed=
       interestingNode();
 
@@ -649,10 +630,28 @@ function mount(world,canvas,options={}){
           observed.getBoundingClientRect()
         );
 
+      lastObservedId=
+        observed.dataset.nodeId||null;
+
       lookAt(
         c.x,
         c.y,
-        .105
+        .11
+      );
+
+      gazeTimer=setTimeout(
+        ()=>{
+          if(
+            !drag&&
+            !motion&&
+            !connectionClose&&
+            !global.AstraApp?.isBusy?.()&&
+            performance.now()>=attentionUntil
+          ){
+            restoreGaze();
+          }
+        },
+        1800+Math.random()*1400
       );
 
       return;
@@ -1053,8 +1052,6 @@ function mount(world,canvas,options={}){
     }
 
     focusId=String(id);
-    lastWorkflowId=String(id);
-    lastWorkflowAt=now;
 
     gazePriority=priority;
     gazeUntil=now+duration;
@@ -1232,12 +1229,34 @@ function mount(world,canvas,options={}){
     const view=
       viewport.getBoundingClientRect();
 
+    const composer=
+      document.querySelector(
+        "#composer-form"
+      )?.getBoundingClientRect();
+
+    const topbar=
+      document.querySelector(
+        "#topbar"
+      )?.getBoundingClientRect();
+
     const rect=
       orb.getBoundingClientRect();
 
     const c=center(rect);
     const margin=
       rect.width/2+14;
+
+    const safeTop=
+      Math.max(
+        view.top,
+        topbar?.bottom??view.top
+      )+margin;
+
+    const safeBottom=
+      Math.min(
+        view.bottom,
+        composer?.top??view.bottom
+      )-margin;
 
     const sx=Math.max(
       view.left+margin,
@@ -1248,9 +1267,12 @@ function mount(world,canvas,options={}){
     );
 
     const sy=Math.max(
-      view.top+margin,
+      safeTop,
       Math.min(
-        view.bottom-margin,
+        Math.max(
+          safeTop,
+          safeBottom
+        ),
         c.y
       )
     );
@@ -1279,7 +1301,7 @@ function mount(world,canvas,options={}){
         duration:
           Math.min(
             520,
-            320+distance*.18
+            300+distance*.16
           )
       }
     );
@@ -1320,7 +1342,7 @@ function mount(world,canvas,options={}){
     viewportTimer=
       setTimeout(
         ensureVisible,
-        180
+        100
       );
   }
 
@@ -1372,7 +1394,6 @@ function mount(world,canvas,options={}){
 
       const target=
         (focusId&&nodeEl(focusId))||
-        (lastWorkflowId&&nodeEl(lastWorkflowId))||
         interestingNode();
 
       if(
@@ -1383,6 +1404,9 @@ function mount(world,canvas,options={}){
           center(
             target.getBoundingClientRect()
           );
+
+        lastObservedId=
+          target.dataset.nodeId||null;
 
         lookAt(
           c.x,
@@ -1822,11 +1846,8 @@ function mount(world,canvas,options={}){
           node.getBoundingClientRect()
         );
 
-      lastWorkflowId=
+      lastObservedId=
         String(event.id);
-
-      lastWorkflowAt=
-        performance.now();
 
       gazePriority=8;
       gazeUntil=
@@ -1958,8 +1979,53 @@ function mount(world,canvas,options={}){
   );
 
   bind(
+    "layoutStart",
+    ()=>{
+      stopMotion();
+      layoutAnchor=
+        center(
+          orb.getBoundingClientRect()
+        );
+    }
+  );
+
+  bind(
     "viewport",
     ()=>{
+      if(
+        layoutAnchor&&
+        !drag
+      ){
+        const point=
+          worldPoint(
+            layoutAnchor.x,
+            layoutAnchor.y
+          );
+
+        x=point.x;
+        y=point.y;
+        render();
+      }
+
+      scheduleVisible();
+    }
+  );
+
+  bind(
+    "layoutEnd",
+    ()=>{
+      layoutAnchor=null;
+
+      for(
+        const node
+        of viewport.querySelectorAll(
+          ".vc-node"
+        )
+      ){
+        if(pushFromNode(node))
+          break;
+      }
+
       scheduleVisible();
     }
   );
@@ -1970,6 +2036,15 @@ function mount(world,canvas,options={}){
       scheduleVisible();
     }
   );
+
+  const offUiViewport=
+    global.AstraUI?.on?.(
+      "viewport",
+      scheduleVisible
+    );
+
+  if(typeof offUiViewport==="function")
+    cleanup.push(offUiViewport);
 
   function scheduleBlink(){
     clearTimeout(
@@ -2091,6 +2166,10 @@ function mount(world,canvas,options={}){
 
       clearTimeout(
         viewportTimer
+      );
+
+      clearTimeout(
+        gazeTimer
       );
 
       clearTimeout(
