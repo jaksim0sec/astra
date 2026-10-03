@@ -18,9 +18,9 @@ function installStyle(){
   --body-color:#000;
   --eye-color:#fff;
 
-  --eye-w:.435rem;
-  --eye-h:.46rem;
-  --eye-radius:50%;
+  --eye-w:.455rem;
+  --eye-h:.475rem;
+  --eye-radius:.145rem;
 
   --ex:0rem;
   --ey:0rem;
@@ -104,52 +104,58 @@ function installStyle(){
 }
 
 .ovll-mascot[data-mood="idle"]{
-  --eye-w:.435rem;
-  --eye-h:.46rem;
-  --eye-radius:50%;
+  --eye-w:.455rem;
+  --eye-h:.475rem;
+  --eye-radius:.145rem;
 }
 
 .ovll-mascot[data-mood="thinking"]{
-  --eye-w:.52rem;
-  --eye-h:.16rem;
-  --eye-radius:999rem;
+  --eye-w:.505rem;
+  --eye-h:.22rem;
+  --eye-radius:.11rem;
 }
 
 .ovll-mascot[data-mood="focus"],
 .ovll-mascot[data-mood="attention"]{
-  --eye-w:.445rem;
-  --eye-h:.48rem;
-  --eye-radius:50%;
+  --eye-w:.465rem;
+  --eye-h:.49rem;
+  --eye-radius:.15rem;
 }
 
 .ovll-mascot[data-mood="curious"]{
-  --eye-w:.47rem;
-  --eye-h:.47rem;
+  --eye-w:.49rem;
+  --eye-h:.49rem;
+  --eye-radius:.15rem;
 }
 
 .ovll-mascot[data-mood="surprised"]{
-  --eye-w:.54rem;
-  --eye-h:.54rem;
+  --eye-w:.55rem;
+  --eye-h:.55rem;
+  --eye-radius:.17rem;
 }
 
 .ovll-mascot[data-mood="annoyed"]{
-  --eye-w:.55rem;
-  --eye-h:.12rem;
+  --eye-w:.54rem;
+  --eye-h:.16rem;
+  --eye-radius:.09rem;
 }
 
 .ovll-mascot[data-mood="success"]{
-  --eye-w:.48rem;
-  --eye-h:.34rem;
+  --eye-w:.5rem;
+  --eye-h:.35rem;
+  --eye-radius:.12rem;
 }
 
 .ovll-mascot[data-mood="working"]{
-  --eye-w:.36rem;
-  --eye-h:.51rem;
+  --eye-w:.4rem;
+  --eye-h:.52rem;
+  --eye-radius:.13rem;
 }
 
 .ovll-mascot[data-mood="bumped"]{
-  --eye-w:.5rem;
-  --eye-h:.18rem;
+  --eye-w:.51rem;
+  --eye-h:.2rem;
+  --eye-radius:.1rem;
 }
 
 :root.dark .ovll-mascot{
@@ -210,6 +216,10 @@ function installStyle(){
   animation:ovll-working 1.25s ease-in-out infinite;
 }
 
+.ovll-mascot.thinking{
+  animation:ovll-thinking 1.55s cubic-bezier(.22,.76,.2,1) infinite;
+}
+
 .ovll-mascot.pop{
   animation:ovll-pop .3s cubic-bezier(.18,.88,.25,1.2);
 }
@@ -230,6 +240,13 @@ function installStyle(){
 @keyframes ovll-working{
   0%,100%{filter:brightness(1)}
   50%{filter:brightness(.86)}
+}
+
+@keyframes ovll-thinking{
+  0%,100%{translate:0 0}
+  24%{translate:.025rem -.055rem}
+  52%{translate:-.02rem -.085rem}
+  76%{translate:.018rem -.035rem}
 }
 
 @keyframes ovll-pop{
@@ -305,6 +322,7 @@ function mount(world,canvas,options={}){
   let connectionClose=false;
   let lastIntentMove=0;
   let lastWorkflowId=null;
+  let lastWorkflowAt=0;
   let gazePriority=0;
   let gazeUntil=0;
   let moodTimer=null;
@@ -518,6 +536,49 @@ function mount(world,canvas,options={}){
     );
   }
 
+  function interestingNode(){
+    const origin=
+      center(
+        orb.getBoundingClientRect()
+      );
+
+    let best=null;
+    let bestScore=Infinity;
+
+    for(
+      const node
+      of viewport.querySelectorAll(".vc-node")
+    ){
+      if(!nodeVisible(node))
+        continue;
+
+      const c=
+        center(
+          node.getBoundingClientRect()
+        );
+
+      let score=
+        Math.hypot(
+          c.x-origin.x,
+          c.y-origin.y
+        );
+
+      if(
+        node.dataset.nodeId===
+        String(lastWorkflowId)
+      ){
+        score*=.72;
+      }
+
+      if(score<bestScore){
+        bestScore=score;
+        best=node;
+      }
+    }
+
+    return best;
+  }
+
   function restoreGaze(){
     const now=performance.now();
 
@@ -539,14 +600,15 @@ function mount(world,canvas,options={}){
       lookAt(
         c.x,
         c.y,
-        .195
+        .205
       );
 
       return;
     }
 
     const recent=
-      lastWorkflowId
+      lastWorkflowId&&
+      now-lastWorkflowAt<6500
         ?nodeEl(lastWorkflowId)
         :null;
 
@@ -562,7 +624,25 @@ function mount(world,canvas,options={}){
       lookAt(
         c.x,
         c.y,
-        .135
+        .15
+      );
+
+      return;
+    }
+
+    const observed=
+      interestingNode();
+
+    if(observed){
+      const c=
+        center(
+          observed.getBoundingClientRect()
+        );
+
+      lookAt(
+        c.x,
+        c.y,
+        .105
       );
 
       return;
@@ -964,6 +1044,7 @@ function mount(world,canvas,options={}){
 
     focusId=String(id);
     lastWorkflowId=String(id);
+    lastWorkflowAt=now;
 
     gazePriority=priority;
     gazeUntil=now+duration;
@@ -1224,6 +1305,58 @@ function mount(world,canvas,options={}){
     }
   }
 
+  function setThinking(active=true){
+    clearTimeout(moodTimer);
+
+    orb.classList.toggle(
+      "thinking",
+      !!active
+    );
+
+    orb.classList.remove(
+      "working"
+    );
+
+    if(active){
+      orb.dataset.mood="thinking";
+
+      const target=
+        (focusId&&nodeEl(focusId))||
+        (lastWorkflowId&&nodeEl(lastWorkflowId))||
+        interestingNode();
+
+      if(
+        target&&
+        nodeVisible(target)
+      ){
+        const c=
+          center(
+            target.getBoundingClientRect()
+          );
+
+        lookAt(
+          c.x,
+          c.y,
+          .17
+        );
+      }else{
+        eyes(
+          -.045,
+          -.02
+        );
+      }
+
+      return;
+    }
+
+    orb.dataset.mood="idle";
+    orb.style.setProperty(
+      "--eye-tilt",
+      "0deg"
+    );
+    restoreGaze();
+  }
+
   function scheduleThinking(
     delay=12000+Math.random()*7000
   ){
@@ -1244,29 +1377,16 @@ function mount(world,canvas,options={}){
         return;
       }
 
-      setMood(
-        "thinking",
-        2600
-      );
-
-      eyes(
-        -.055,
-        -.025
-      );
-
-      orb.style.setProperty(
-        "--eye-tilt",
-        "4deg"
-      );
+      setThinking(true);
 
       setTimeout(()=>{
         if(
-          orb.dataset.mood==="idle"&&
+          !global.AstraApp?.isBusy?.()&&
           !drag&&
           !motion&&
           !connectionClose
         ){
-          restoreGaze();
+          setThinking(false);
         }
 
         scheduleThinking();
@@ -1279,8 +1399,10 @@ function mount(world,canvas,options={}){
       performance.now();
 
     if(
-      orb.dataset.mood==="thinking"
+      orb.dataset.mood==="thinking"&&
+      !global.AstraApp?.isBusy?.()
     ){
+      orb.classList.remove("thinking");
       setMood("idle");
       restoreGaze();
     }
@@ -1653,6 +1775,9 @@ function mount(world,canvas,options={}){
       lastWorkflowId=
         String(event.id);
 
+      lastWorkflowAt=
+        performance.now();
+
       gazePriority=8;
       gazeUntil=
         performance.now()+260;
@@ -1825,21 +1950,17 @@ function mount(world,canvas,options={}){
 
     if(busy!==wasBusy){
       wasBusy=busy;
-      noteActivity();
+      lastActivity=
+        performance.now();
 
-      orb.classList.toggle(
-        "working",
-        busy
+      clearTimeout(
+        thinkingTimer
       );
 
-      setMood(
-        busy
-          ?"working"
-          :"idle"
-      );
+      setThinking(busy);
 
       if(!busy){
-        restoreGaze();
+        scheduleThinking();
       }
     }
 
@@ -1900,6 +2021,7 @@ function mount(world,canvas,options={}){
   return{
     element:orb,
     react,
+    setThinking,
 
     destroy(){
       stopMotion();
