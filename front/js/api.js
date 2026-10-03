@@ -86,27 +86,57 @@
         fetchOptions
       );
     } catch (error) {
-      throw new Error(
-        error?.message ||
-        "서버에 연결할 수 없습니다."
-      );
+      const networkError =
+        new Error(
+          "서버에 연결할 수 없습니다."
+        );
+      networkError.name =
+        "OvllApiError";
+      networkError.code =
+        "NETWORK_ERROR";
+      networkError.cause =
+        error;
+      throw networkError;
     }
     let data = null;
     try {
       data = await response.json();
     } catch {
-      throw new Error(
-        `HTTP ${response.status}`
-      );
+      const parseError =
+        new Error(
+          "서버 응답을 읽지 못했습니다."
+        );
+      parseError.name =
+        "OvllApiError";
+      parseError.code =
+        "INVALID_SERVER_RESPONSE";
+      parseError.status =
+        response.status;
+      throw parseError;
     }
     if (
       !response.ok ||
       data?.ok === false
     ) {
-      throw new Error(
-        data?.error ||
-        `HTTP ${response.status}`
-      );
+      const requestError =
+        new Error(
+          String(
+            data?.error ||
+            "요청을 처리하지 못했습니다."
+          )
+        );
+      requestError.name =
+        "OvllApiError";
+      requestError.code =
+        String(
+          data?.code ||
+          "API_REQUEST_FAILED"
+        );
+      requestError.status =
+        response.status;
+      requestError.retryable =
+        data?.retryable === true;
+      throw requestError;
     }
     return data;
   }
