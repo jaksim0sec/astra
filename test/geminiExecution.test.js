@@ -50,7 +50,8 @@ function jsonResponse(
 function interaction(
   results,
   model =
-    DEFAULT_GEMINI_MODEL
+    DEFAULT_GEMINI_MODEL,
+  refusal = null
 ) {
   return {
     model,
@@ -63,6 +64,7 @@ function interaction(
             type: "text",
             text:
               JSON.stringify({
+                refusal,
                 results
               })
           }
@@ -219,6 +221,59 @@ test("executeGroup sends a stateless structured Interactions request", async () 
   assert.equal(
     output.results[0].nodeId,
     "research"
+  );
+});
+
+test("explicit feasibility refusal stops execution without repair", async () => {
+  let count = 0;
+
+  const execution =
+    createGeminiExecution({
+      apiKey: "test-key",
+      fetchImpl:
+        async () => {
+          count++;
+
+          return jsonResponse(
+            200,
+            interaction(
+              [
+                result("research")
+              ],
+              DEFAULT_GEMINI_MODEL,
+              {
+                code:
+                  "UNEXECUTABLE_REQUEST",
+                message:
+                  "범위를 줄여서 다시 요청해줘."
+              }
+            )
+          );
+        },
+      sleepImpl:
+        async () => {}
+    });
+
+  await assert.rejects(
+    execution.executeGroup(
+      group()
+    ),
+    error => {
+      assert.equal(
+        error.code,
+        "GEMINI_REQUEST_REFUSED"
+      );
+      assert.match(
+        error.message,
+        /범위를 줄여서/
+      );
+      return true;
+    }
+  );
+
+  assert.equal(
+    count,
+    1
   );
 });
 
