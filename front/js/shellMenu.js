@@ -703,9 +703,6 @@ function renderSearchResults(
   sectionsRoot
     .replaceChildren();
 
-  contextsRoot
-    .replaceChildren();
-
   const title =
     document.createElement(
       "div"
