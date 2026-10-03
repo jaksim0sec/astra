@@ -929,6 +929,51 @@ function renderSections(
     snapshot.workspace
       .activeConversationId;
 
+  const useFlatDefault =
+    sections.length === 1 &&
+    String(
+      sections[0]?.title || ""
+    ).trim() === "대화";
+
+  if(useFlatDefault){
+    const list =
+      document.createElement(
+        "div"
+      );
+
+    list.className =
+      "ovll-sidebar-chat-list ovll-sidebar-chat-list-flat";
+
+    const conversations =
+      snapshot.conversations
+        .filter(
+          item =>
+            item.sectionId ===
+            sections[0].id
+        )
+        .slice()
+        .sort(
+          (a,b) =>
+            Number(b.updatedAt) -
+            Number(a.updatedAt)
+        );
+
+    for(const conversation of conversations){
+      list.appendChild(
+        conversationItem(
+          conversation,
+          activeId
+        )
+      );
+    }
+
+    sectionsRoot.appendChild(
+      list
+    );
+
+    return;
+  }
+
   for(const section of sections){
     const conversations=
       snapshot.conversations
