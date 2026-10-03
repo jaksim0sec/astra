@@ -218,11 +218,13 @@ svg {
    * The browser viewport itself stays stable.
    * Only this inner stage follows the available keyboard-safe height.
    */
+  /*
+   * Keyboard-safe layout follows the viewport immediately.
+   * Animating the real layout height causes the visible viewport and
+   * composer position to disagree while the keyboard is moving.
+   */
   transition:
-    height var(--app-resize-duration) var(--app-resize-ease),
     background-color .2s ease;
-
-  will-change: height;
 }
 
 html.viewport-shrinking {
