@@ -1277,3 +1277,64 @@
     );
 }
 
+
+
+/* =========================================================
+   Canvas motion polish
+   ========================================================= */
+
+#canvas-viewport {
+  cursor: grab;
+}
+
+#canvas-viewport.vc-panning {
+  cursor: grabbing;
+}
+
+.vc-node.vc-entering {
+  opacity: 0;
+  transform:
+    translateY(.28rem)
+    scale(.965);
+}
+
+.vc-node.vc-entering.vc-entered {
+  opacity: 1;
+  transform:
+    translateY(0)
+    scale(1);
+  transition:
+    opacity .24s ease,
+    transform .34s
+      cubic-bezier(.2,.82,.2,1),
+    box-shadow .18s ease,
+    border-color .18s ease,
+    background .18s ease;
+}
+
+.vc-node.vc-entering.vc-selected,
+.vc-node.vc-entering.vc-selected.vc-expanded {
+  transform:
+    translateY(.28rem)
+    scale(.965);
+}
+
+.vc-node.vc-entering.vc-entered.vc-selected,
+.vc-node.vc-entering.vc-entered.vc-selected.vc-expanded {
+  transform:
+    translateY(-.05rem)
+    scale(1);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vc-node.vc-entering,
+  .vc-node.vc-entering.vc-entered,
+  .vc-node.vc-entering.vc-selected,
+  .vc-node.vc-entering.vc-selected.vc-expanded,
+  .vc-node.vc-entering.vc-entered.vc-selected,
+  .vc-node.vc-entering.vc-entered.vc-selected.vc-expanded {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
