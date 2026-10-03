@@ -686,7 +686,16 @@
     const inputStyle = getComputedStyle(composerInput);
     const rootComputed = getComputedStyle(document.documentElement);
     const inputMinHeight = parseFloat(inputStyle.minHeight) || 38;
-    const baseComposerHeight = parseFloat(rootComputed.getPropertyValue("--composer-height")) || 88;
+    const composerHeightValue = rootComputed
+      .getPropertyValue("--composer-height")
+      .trim();
+    const composerHeightNumber = parseFloat(composerHeightValue);
+    const rootFontSize = parseFloat(rootComputed.fontSize) || 16;
+    const baseComposerHeight = Number.isFinite(composerHeightNumber)
+      ? composerHeightValue.endsWith("rem")
+        ? composerHeightNumber * rootFontSize
+        : composerHeightNumber
+      : 88;
     const formHeight = composerForm.getBoundingClientRect().height;
 
     rootStyle.setProperty("--composer-input-height", `${height}px`);
