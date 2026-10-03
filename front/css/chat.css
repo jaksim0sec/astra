@@ -39,7 +39,8 @@
 .astra-message-body {
   min-width: 0;
   color: var(--text);
-  font-size: .95rem;
+  font-size: .97rem;
+  font-weight: 510;
   line-height: 1.72;
   letter-spacing: -.018em;
   overflow-wrap: anywhere;
@@ -74,7 +75,8 @@
   border-radius: 1.1875rem 1.1875rem .375rem 1.1875rem;
   background: var(--text);
   color: var(--bg);
-  font-size: .885rem;
+  font-size: .905rem;
+  font-weight: 540;
   line-height: 1.62;
   white-space: pre-wrap;
 }
@@ -97,7 +99,8 @@
 .astra-message-body {
   max-width: min(43.75rem, 94%);
   padding: .0625rem 0;
-  font-size: .95rem;
+  font-size: .97rem;
+  font-weight: 510;
   line-height: 1.74;
   white-space: normal;
 }
