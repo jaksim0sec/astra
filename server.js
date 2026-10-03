@@ -87,7 +87,7 @@ const geminiExecution =
  * The frontend compares this server value with its locally stored version
  * before loading application assets.
  */
-const APP_VERSION = '2026.10.04.23';
+const APP_VERSION = '2026.10.04.24';
 
 /* =========================================================
    CANONICAL NODE DEFINITION
@@ -629,6 +629,12 @@ Do not emit an add followed by a delete of the same edge.
 
 SPECIAL NODES:
 - file: no inputs, one output file. It is a source. Never target file.
+- Existing file nodes may include a file object with source, name, mime, size, lastModified, contentAvailable, and contentTruncated. This is authoritative metadata for a real file already present on the user's canvas.
+- If exactly one existing uploaded file node exists, resolve generic references such as "이 파일", "업로드한 파일", "첨부한 거", "그 파일" to that node without asking the user to identify it again.
+- If file metadata already supplies the name or MIME type, never ask the user what the file is. Use the existing file node directly.
+- contentAvailable=true means runtime has readable uploaded text available for downstream nodes. Planning does not need the file text itself; connect the existing file node to the requested processing node.
+- contentAvailable=false does not prevent workflow editing. Still preserve and route the existing file node when the user's request is about that file; ask only if the missing content makes the requested final workflow genuinely impossible.
+- Never recreate an uploaded file node merely to rename or describe it. Existing file nodes are user-owned sources and should be preserved unless the user explicitly asks to remove them.
 - createFile: one input in, no outputs. It is an output node.
 - judge: inputs true and false, outputs true and false. Never use in or result on judge.
 - start exists in the canonical definitions but is not generatable by the planner.
@@ -1872,6 +1878,66 @@ function buildPlannerWorkflow(workflow) {
         ) {
           compact.params =
             params;
+        }
+
+        if (
+          node.type ===
+            'file' &&
+          node.file &&
+          typeof node.file ===
+            'object' &&
+          !Array.isArray(
+            node.file
+          )
+        ) {
+          compact.file = {
+            source:
+              String(
+                node.file.source ||
+                'upload'
+              ).slice(
+                0,
+                40
+              ),
+            name:
+              clipCompactText(
+                node.file.name,
+                240
+              ) ||
+              '파일',
+            mime:
+              clipCompactText(
+                node.file.mime,
+                160
+              ) ||
+              'application/octet-stream',
+            size:
+              Math.max(
+                0,
+                Number(
+                  node.file.size ||
+                  0
+                ) || 0
+              ),
+            lastModified:
+              Math.max(
+                0,
+                Number(
+                  node.file.lastModified ||
+                  0
+                ) || 0
+              ),
+            contentAvailable:
+              typeof node.file
+                .textPreview ===
+                'string' &&
+              !!node.file
+                .textPreview,
+            contentTruncated:
+              node.file
+                .textTruncated ===
+                true
+          };
         }
 
         return compact;
