@@ -1728,46 +1728,6 @@
           return job;
         };
 
-      const collectSpreadScope =
-        nodeId => {
-          const scope = new Set();
-          const queue = [nodeId];
-
-          while (queue.length) {
-            const current =
-              queue.shift();
-
-            if (
-              !current ||
-              scope.has(current)
-            ) {
-              continue;
-            }
-
-            scope.add(current);
-
-            for (
-              const connection
-                of incoming.get(current) || []
-            ) {
-              queue.push(
-                connection.from.node
-              );
-            }
-
-            for (
-              const connection
-                of outgoing.get(current) || []
-            ) {
-              queue.push(
-                connection.to.node
-              );
-            }
-          }
-
-          return [...scope];
-        };
-
       this.running = true;
 
       this.emit(
