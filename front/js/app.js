@@ -3947,9 +3947,9 @@
         <button id="canvas-node-builder-layout" type="button" aria-label="노드 정리하기" title="노드 정리하기">
           <span class="canvas-node-builder-layout-icon" aria-hidden="true">
             <svg viewBox="0 0 20 20" fill="none" preserveAspectRatio="xMidYMid meet">
-              <rect x="3.25" y="3.25" width="4.75" height="4.75" rx="1.4"></rect>
-              <rect x="12" y="3.25" width="4.75" height="4.75" rx="1.4"></rect>
-              <rect x="7.625" y="12" width="4.75" height="4.75" rx="1.4"></rect>
+              <rect x="3.25" y="3.25" width="4.75" height="4.75" rx="1.9"></rect>
+              <rect x="12" y="3.25" width="4.75" height="4.75" rx="1.9"></rect>
+              <rect x="7.625" y="12" width="4.75" height="4.75" rx="1.9"></rect>
               <path d="M8 5.625h4M5.625 8v2.125M14.375 8v2.125M8.625 12h2.75"></path>
             </svg>
           </span>
