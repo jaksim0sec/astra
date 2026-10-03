@@ -470,3 +470,77 @@ test("judge result requires a boolean decision", async () => {
     /boolean decision/
   );
 });
+
+
+test("non-judge results must expose the runtime result port", async () => {
+  const execution =
+    createGeminiExecution({
+      apiKey: "test-key",
+      maxAttempts: 1,
+      fetchImpl:
+        async () =>
+          jsonResponse(
+            200,
+            interaction([
+              result(
+                "research",
+                {
+                  outputs: {
+                    wrong: "value"
+                  }
+                }
+              )
+            ])
+          ),
+      sleepImpl:
+        async () => {}
+    });
+
+  await assert.rejects(
+    execution.executeGroup(
+      group()
+    ),
+    /required output port: result/
+  );
+});
+
+test("judge results must expose the selected branch output port", async () => {
+  const execution =
+    createGeminiExecution({
+      apiKey: "test-key",
+      maxAttempts: 1,
+      fetchImpl:
+        async () =>
+          jsonResponse(
+            200,
+            interaction([
+              result(
+                "judge",
+                {
+                  outputs: {},
+                  decision: true
+                }
+              )
+            ])
+          ),
+      sleepImpl:
+        async () => {}
+    });
+
+  await assert.rejects(
+    execution.executeGroup(
+      group([
+        {
+          id: "judge",
+          type: "judge",
+          params: {
+            condition:
+              "is valid"
+          },
+          inputs: {}
+        }
+      ])
+    ),
+    /required output port: true/
+  );
+});
