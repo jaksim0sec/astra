@@ -851,9 +851,289 @@
       );
   }
 
+  const pillGesture = {
+    active: false,
+    pointerId: null,
+    startX: 0,
+    startProgress: 0,
+    lastX: 0,
+    lastTime: 0,
+    velocityX: 0,
+    moved: false
+  };
+
+  let suppressModeClick =
+    false;
+
+  function resetPillGesture() {
+    pillGesture.active =
+      false;
+    pillGesture.pointerId =
+      null;
+    pillGesture.moved =
+      false;
+    pillGesture.velocityX =
+      0;
+
+    modeSwitch
+      .classList
+      .remove(
+        "is-dragging"
+      );
+  }
+
+  function beginPillGesture(
+    event
+  ) {
+    if (
+      state.destroyed ||
+      pillGesture.active
+    ) {
+      return;
+    }
+
+    if (
+      event.button !==
+        undefined &&
+      event.button !== 0
+    ) {
+      return;
+    }
+
+    stopTransition();
+
+    pillGesture.active =
+      true;
+    pillGesture.pointerId =
+      event.pointerId;
+    pillGesture.startX =
+      event.clientX;
+    pillGesture.startProgress =
+      clamp(
+        state.progress,
+        0,
+        1
+      );
+    pillGesture.lastX =
+      event.clientX;
+    pillGesture.lastTime =
+      performance.now();
+    pillGesture.velocityX =
+      0;
+    pillGesture.moved =
+      false;
+
+    modeSwitch
+      .classList
+      .add(
+        "is-dragging"
+      );
+
+    try {
+      modeSwitch
+        .setPointerCapture(
+          event.pointerId
+        );
+    } catch {}
+  }
+
+  function updatePillGesture(
+    event
+  ) {
+    if (
+      !pillGesture.active ||
+      event.pointerId !==
+        pillGesture.pointerId
+    ) {
+      return;
+    }
+
+    const dx =
+      event.clientX -
+      pillGesture.startX;
+
+    if (
+      !pillGesture.moved &&
+      Math.abs(dx) > 5
+    ) {
+      pillGesture.moved =
+        true;
+    }
+
+    if (
+      !pillGesture.moved
+    ) {
+      return;
+    }
+
+    event.preventDefault();
+
+    const width =
+      Math.max(
+        1,
+        modeSwitch
+          .getBoundingClientRect()
+          .width
+      );
+
+    const next =
+      clamp(
+        pillGesture.startProgress +
+        dx / width,
+        -.12,
+        1.12
+      );
+
+    const now =
+      performance.now();
+
+    const dt =
+      Math.max(
+        1,
+        now -
+        pillGesture.lastTime
+      );
+
+    const instantVelocity =
+      (
+        event.clientX -
+        pillGesture.lastX
+      ) / dt;
+
+    pillGesture.velocityX =
+      pillGesture.velocityX *
+        .7 +
+      instantVelocity *
+        .3;
+
+    pillGesture.lastX =
+      event.clientX;
+    pillGesture.lastTime =
+      now;
+
+    state.progress =
+      next;
+
+    render();
+  }
+
+  function finishPillGesture(
+    event
+  ) {
+    if (
+      !pillGesture.active ||
+      event.pointerId !==
+        pillGesture.pointerId
+    ) {
+      return;
+    }
+
+    const moved =
+      pillGesture.moved;
+
+    const velocity =
+      pillGesture.velocityX;
+
+    const progress =
+      clamp(
+        state.progress,
+        0,
+        1
+      );
+
+    try {
+      modeSwitch
+        .releasePointerCapture(
+          event.pointerId
+        );
+    } catch {}
+
+    resetPillGesture();
+
+    if (!moved) {
+      state.progress =
+        state.mode ===
+          "canvas"
+          ? 1
+          : 0;
+
+      render();
+      return;
+    }
+
+    suppressModeClick =
+      true;
+
+    event.preventDefault();
+
+    let target;
+
+    if (
+      velocity > .34
+    ) {
+      target = 1;
+    } else if (
+      velocity < -.34
+    ) {
+      target = 0;
+    } else {
+      target =
+        progress >= .5
+          ? 1
+          : 0;
+    }
+
+    setMode(
+      target === 1
+        ? "canvas"
+        : "chat"
+    );
+
+    setTimeout(
+      () => {
+        suppressModeClick =
+          false;
+      },
+      0
+    );
+  }
+
+  function cancelPillGesture(
+    event
+  ) {
+    if (
+      !pillGesture.active ||
+      (
+        event?.pointerId !==
+          undefined &&
+        event.pointerId !==
+          pillGesture.pointerId
+      )
+    ) {
+      return;
+    }
+
+    resetPillGesture();
+
+    state.progress =
+      state.mode ===
+        "canvas"
+        ? 1
+        : 0;
+
+    render();
+  }
+
   function handleModeClick(
     event
   ) {
+    if (
+      suppressModeClick ||
+      pillGesture.active
+    ) {
+      return;
+    }
+
     const button =
       event.target
         .closest(
@@ -882,6 +1162,51 @@
       );
     }
   }
+
+  listen(
+    modeSwitch,
+    "pointerdown",
+    beginPillGesture,
+    {
+      passive: true
+    }
+  );
+
+  listen(
+    modeSwitch,
+    "pointermove",
+    updatePillGesture,
+    {
+      passive: false
+    }
+  );
+
+  listen(
+    modeSwitch,
+    "pointerup",
+    finishPillGesture,
+    {
+      passive: false
+    }
+  );
+
+  listen(
+    modeSwitch,
+    "pointercancel",
+    cancelPillGesture,
+    {
+      passive: true
+    }
+  );
+
+  listen(
+    modeSwitch,
+    "lostpointercapture",
+    cancelPillGesture,
+    {
+      passive: true
+    }
+  );
 
   listen(
     modeSwitch,
