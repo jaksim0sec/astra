@@ -321,6 +321,89 @@
   margin-top: .75rem;
 }
 /* =========================================================
+   RUNTIME RESULT
+   ========================================================= */
+.vc-runtime-badge {
+  width: .75rem;
+  height: .75rem;
+  flex: 0 0 .75rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+}
+.vc-runtime-dot {
+  width: .42rem;
+  height: .42rem;
+  display: block;
+  border-radius: 999px;
+  background: var(--muted);
+}
+.vc-runtime-waiting .vc-runtime-dot {
+  background: #d9ad57;
+}
+.vc-runtime-running .vc-runtime-dot {
+  background: var(--node-color);
+  animation: vc-runtime-pulse 1s ease-in-out infinite;
+}
+.vc-runtime-success .vc-runtime-dot {
+  background: #41c98a;
+}
+.vc-runtime-failed .vc-runtime-dot {
+  background: #ef6a6a;
+}
+.vc-runtime-skipped .vc-runtime-dot {
+  background: var(--muted);
+}
+.vc-runtime-result {
+  margin-top: .75rem;
+  padding: .625rem;
+  border: .0625rem solid color-mix(in srgb, var(--line) 82%, var(--node-color) 18%);
+  border-radius: calc(var(--node-radius) - .65rem);
+  background: color-mix(in srgb, var(--soft) 80%, transparent);
+  cursor: default;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.vc-runtime-result-head {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  color: var(--sub);
+  font-size: .56rem;
+  font-weight: 750;
+  line-height: 1.2;
+}
+.vc-runtime-result-value {
+  width: 100%;
+  max-height: 13rem;
+  margin: .55rem 0 0;
+  padding: 0;
+  overflow: auto;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font: 500 .58rem/1.55 "Pretendard Variable", Pretendard, sans-serif;
+  letter-spacing: -.012em;
+  user-select: text;
+  -webkit-user-select: text;
+}
+.vc-node.vc-runtime-failed {
+  border-color: color-mix(in srgb, #ef6a6a 55%, var(--line));
+}
+@keyframes vc-runtime-pulse {
+  0%,
+  100% {
+    opacity: .38;
+    transform: scale(.82);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+/* =========================================================
    DESCRIPTION
    ========================================================= */
 .vc-slot-description {

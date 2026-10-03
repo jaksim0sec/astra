@@ -989,6 +989,8 @@
 
     if (event.type === "run:start") {
       clearRuntimeConnections();
+      state.canvas
+        ?.clearRuntimeNodeStates?.();
 
       console.info(
         "[ovll runtime] start",
@@ -1023,6 +1025,17 @@
     }
 
     if (event.type === "node:state") {
+      state.canvas
+        ?.setRuntimeNodeState?.(
+          event.nodeId,
+          event.state || {
+            status:
+              event.status,
+            report:
+              event.report || null
+          }
+        );
+
       console.info(
         "[ovll runtime] node",
         event
@@ -1033,6 +1046,10 @@
 
     if (event.type === "run:finish") {
       clearRuntimeConnections();
+      state.canvas
+        ?.showRuntimeNode?.(
+          event.pivot
+        );
 
       console.info(
         "[ovll runtime] finish",

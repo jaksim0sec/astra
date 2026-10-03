@@ -722,6 +722,8 @@
             runId,
             nodeId,
             status,
+            state:
+              clone(state),
             report:
               extra.report ||
               extra.result?.report ||

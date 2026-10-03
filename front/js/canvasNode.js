@@ -110,7 +110,8 @@
       destroyed: false,
       connectionFrame: null,
       lastNodeDragEndAt: 0,
-      runtimeConnections: new Set()
+      runtimeConnections: new Set(),
+      runtimeNodes: new Map()
     };
     const registry = new Map(
       Object.entries(definitions).map(([type, def]) => [
@@ -243,6 +244,103 @@
       }
       return out.join('');
     }
+    function runtimePayload(runtimeState) {
+      if (!runtimeState || typeof runtimeState !== 'object') {
+        return null;
+      }
+      if (runtimeState.status === 'FAILED') {
+        return runtimeState.error || {
+          message: '실행에 실패했습니다.'
+        };
+      }
+      const result = runtimeState.result;
+      if (!result || typeof result !== 'object') {
+        return runtimeState.report || null;
+      }
+      const payload = {};
+      if (
+        result.outputs &&
+        typeof result.outputs === 'object' &&
+        Object.keys(result.outputs).length
+      ) {
+        payload.outputs = result.outputs;
+      }
+      if (typeof result.decision === 'boolean') {
+        payload.decision = result.decision;
+      }
+      if (result.artifact != null) {
+        payload.artifact = result.artifact;
+      }
+      if (result.file != null) {
+        payload.file = result.file;
+      }
+      if (!Object.keys(payload).length && result.report != null) {
+        payload.report = result.report;
+      }
+      return Object.keys(payload).length
+        ? payload
+        : result;
+    }
+    function runtimeText(value) {
+      if (typeof value === 'string') {
+        return value;
+      }
+      try {
+        return JSON.stringify(value, null, 2);
+      } catch {
+        return String(value ?? '');
+      }
+    }
+    function runtimeStatusLabel(status) {
+      return ({
+        WAITING: '대기 중',
+        RUNNING: '실행 중',
+        SUCCESS: '실행 완료',
+        FAILED: '실행 실패',
+        SKIPPED: '건너뜀'
+      })[String(status || '').toUpperCase()] || '실행';
+    }
+    function renderRuntimeBadge(runtimeState) {
+      if (!runtimeState?.status) return '';
+      const status =
+        String(runtimeState.status).toLowerCase();
+      return `
+        <span
+          class="vc-runtime-badge vc-runtime-${escapeHtml(status)}"
+          title="${escapeHtml(runtimeStatusLabel(runtimeState.status))}"
+          aria-label="${escapeHtml(runtimeStatusLabel(runtimeState.status))}"
+        >
+          <span class="vc-runtime-dot"></span>
+        </span>
+      `;
+    }
+    function renderRuntimeState(runtimeState) {
+      if (!runtimeState?.status) return '';
+      const status =
+        String(runtimeState.status).toLowerCase();
+      const payload =
+        runtimePayload(runtimeState);
+      const text =
+        payload == null
+          ? ''
+          : runtimeText(payload);
+      return `
+        <div
+          class="vc-runtime-result vc-runtime-${escapeHtml(status)}"
+          data-action="runtime-result"
+        >
+          <div class="vc-runtime-result-head">
+            <span class="vc-runtime-dot"></span>
+            <span>${escapeHtml(runtimeStatusLabel(runtimeState.status))}</span>
+          </div>
+          ${
+            text
+              ? `<pre class="vc-runtime-result-value">${escapeHtml(text)}</pre>`
+              : ''
+          }
+        </div>
+      `;
+    }
     function renderPorts(node, ports, direction) {
       const cls = direction === 'input' ? 'vc-input' : 'vc-output';
       return (ports || []).map(port => `
@@ -279,6 +377,8 @@
         const definition = getDefinition(node.type);
         if (!definition) continue;
         const element = document.createElement('div');
+        const runtimeState =
+          state.runtimeNodes.get(node.id) || null;
         const isImageFile =
           node.type === 'file' &&
           String(node.data?.mime || '').startsWith('image/');
@@ -287,6 +387,11 @@
         if (isImageFile) classes.push('vc-image-file-node');
         if (node.id === state.selectedNode) classes.push('vc-selected');
         if (node.expanded) classes.push('vc-expanded');
+        if (runtimeState?.status) {
+          classes.push(
+            `vc-runtime-${String(runtimeState.status).toLowerCase()}`
+          );
+        }
         element.className = classes.join(' ');
         element.dataset.nodeId = node.id;
         element.style.left = `${node.x}px`;
@@ -329,6 +434,7 @@
                   </span>
                 `
             }
+            ${renderRuntimeBadge(runtimeState)}
             <div class="vc-node-actions">
               <button
                 type="button"
@@ -343,6 +449,7 @@
           </div>
           <div class="vc-node-body">
             ${renderSlotContent(node, definition)}
+            ${renderRuntimeState(runtimeState)}
           </div>
           <div class="vc-node-footer">
             <button
@@ -2454,6 +2561,9 @@
           ) ||
           event.target.closest(
             '.vc-slot-param'
+          ) ||
+          event.target.closest(
+            '.vc-runtime-result'
           )
         ) {
           event.stopPropagation();
@@ -3157,6 +3267,45 @@
         renderConnections();
         return api;
       },
+      setRuntimeNodeState(id, runtimeState) {
+        const nodeId = String(id || '');
+        if (!nodeId || !getNode(nodeId)) {
+          return api;
+        }
+        if (
+          !runtimeState ||
+          typeof runtimeState !== 'object'
+        ) {
+          state.runtimeNodes.delete(nodeId);
+        } else {
+          state.runtimeNodes.set(
+            nodeId,
+            clone(runtimeState)
+          );
+        }
+        renderNodes();
+        return api;
+      },
+      clearRuntimeNodeStates() {
+        state.runtimeNodes.clear();
+        renderNodes();
+        return api;
+      },
+      showRuntimeNode(id) {
+        const node =
+          getNode(String(id || ''));
+        if (!node) {
+          return api;
+        }
+        if (!node.expanded) {
+          setNodeExpanded(
+            node,
+            true
+          );
+        }
+        selectNode(node.id);
+        return api;
+      },
       isInteractionEnabled:
         () =>
           state.interactionEnabled,
@@ -3215,6 +3364,7 @@
         state.pinch = null;
         state.connectionDrag = null;
         state.runtimeConnections.clear();
+        state.runtimeNodes.clear();
         connectionElements
           .forEach(
             element =>
