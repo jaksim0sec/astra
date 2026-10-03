@@ -598,6 +598,10 @@
           const file = {
             kind:
               "workflow-file",
+            source:
+              node.data?.generated
+                ? "generated"
+                : "upload",
             id:
               String(
                 node.data?.fileId ||
@@ -616,8 +620,25 @@
               Number(
                 node.data?.size ||
                 0
+              ),
+            lastModified:
+              Number(
+                node.data?.lastModified ||
+                0
               )
           };
+
+          if (
+            typeof node.data?.textPreview ===
+              "string" &&
+            node.data.textPreview
+          ) {
+            file.text =
+              node.data.textPreview;
+            file.textTruncated =
+              node.data?.textTruncated ===
+                true;
+          }
 
           return {
             outputs: {
