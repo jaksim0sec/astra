@@ -16,25 +16,24 @@
   const icons = {
     toggle: `
       <svg viewBox="0 0 20 20" fill="none" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-        <path d="M6.25 8.25 10 12l3.75-3.75" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="m6.7 8 3.3 3.3L13.3 8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `,
     delete: `
       <svg viewBox="0 0 20 20" fill="none" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-        <path d="M5.5 6.5h9M8.1 6.5V5.2h3.8v1.3M7.2 8.4l.45 6.15h4.7l.45-6.15" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M9.2 9.6v3.2M10.8 9.6v3.2" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
+        <path d="M6 6.2h8M8 6.2V4.9h4v1.3M7.25 8.35l.5 6h4.5l.5-6" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `,
     run: `
       <svg viewBox="0 0 20 20" fill="none" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-        <path class="vc-run-spark-main" d="M9.95 3.25c.34 3.28 1.52 4.46 4.8 4.8-3.28.34-4.46 1.52-4.8 4.8-.34-3.28-1.52-4.46-4.8-4.8 3.28-.34 4.46-1.52 4.8-4.8Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>
-        <path class="vc-run-spark-small" d="M14.9 12.7c.16 1.55.72 2.1 2.25 2.25-1.53.16-2.09.72-2.25 2.25-.16-1.53-.71-2.09-2.25-2.25 1.54-.15 2.09-.7 2.25-2.25Z" fill="currentColor"/>
+        <path class="vc-run-spark-main" d="M9.55 4c.32 3.15 1.67 4.5 4.82 4.82-3.15.32-4.5 1.67-4.82 4.82-.32-3.15-1.67-4.5-4.82-4.82C7.88 8.5 9.23 7.15 9.55 4Z" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/>
+        <circle class="vc-run-spark-small" cx="15.1" cy="14.7" r="1.1" fill="currentColor"/>
       </svg>
     `,
     fileResult: `
       <svg viewBox="0 0 20 20" fill="none" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
-        <path d="M5.1 2.9h6.25l3.55 3.55v10.65H5.1V2.9Z" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/>
-        <path d="M11.2 2.9v3.8h3.7M7.5 11.1h5M7.5 13.55h3.7" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/>
+        <rect x="4.5" y="3" width="11" height="14" rx="3" stroke="currentColor" stroke-width="1.5"/>
+        <path d="M7.3 8h5.4M7.3 11h5.4M7.3 14h3.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
       </svg>
     `
   };
