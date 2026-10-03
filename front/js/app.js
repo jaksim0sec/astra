@@ -1107,10 +1107,7 @@
     state.canvas = canvas;
 
     const localExecutor =
-      new Execution.DemoNodeExecutor({
-        minDelay: 0,
-        maxDelay: 0
-      });
+      new Execution.LocalNodeExecutor();
 
     const runtimeExecutor = {
       run(
