@@ -3129,6 +3129,30 @@
       input.dataset.paramId
     ] = input.value;
 
+    if (
+      input.dataset.paramId ===
+        "request" &&
+      input.value.trim()
+    ) {
+      const definition =
+        getDefinition(
+          node.type
+        );
+
+      for (
+        const param
+        of definition?.params || []
+      ) {
+        if (
+          param?.legacy === true
+        ) {
+          delete node.data.params[
+            String(param.id)
+          ];
+        }
+      }
+    }
+
     if (node.expanded) {
       requestAnimationFrame(() => {
         const body =
