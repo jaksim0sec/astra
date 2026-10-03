@@ -353,10 +353,145 @@
         data: clone(input?.data || {})
       };
     }
+    function legacyRequestValue(
+      node,
+      values
+    ) {
+      if (
+        values.request
+      ) {
+        return String(
+          values.request
+        );
+      }
+
+      const text =
+        (...parts) =>
+          parts
+            .map(value =>
+              String(value || "")
+                .trim()
+            )
+            .filter(Boolean)
+            .join(" · ");
+
+      switch (node.type) {
+        case "research":
+          return text(
+            values.topic,
+            values.filter
+          );
+
+        case "organize":
+          return text(
+            values.criteria,
+            values.format
+          );
+
+        case "judge":
+          return values.condition
+            ? String(
+                values.condition
+              ) + "인지 판단해줘"
+            : "";
+
+        case "write":
+          return text(
+            values.about,
+            values.title,
+            values.length,
+            values.style
+          );
+
+        case "convert":
+          return String(
+            values.instruction ||
+            ""
+          );
+
+        case "createFile":
+          if (
+            values.filename ||
+            values.format
+          ) {
+            return (
+              text(
+                values.filename,
+                values.format
+              ) +
+              " 파일로 만들어줘"
+            );
+          }
+
+          return "";
+
+        default:
+          return "";
+      }
+    }
+
     function renderSlotContent(node, definition) {
       const out = [];
-      const values = node.data?.params || {};
-      for (const param of definition.params || []) {
+      const values =
+        node.data?.params ||
+        {};
+
+      const visibleParams =
+        (definition.params || [])
+          .filter(
+            param =>
+              param.hidden !== true
+          );
+
+      for (
+        const param
+        of visibleParams
+      ) {
+        const isRequest =
+          param.kind ===
+            "request" ||
+          param.id ===
+            "request";
+
+        const value =
+          isRequest
+            ? legacyRequestValue(
+                node,
+                values
+              )
+            : (
+                values[param.id] ??
+                ""
+              );
+
+        const maxLength =
+          Math.max(
+            1,
+            Number(
+              param.maxLength ||
+              1800
+            ) || 1800
+          );
+
+        if (isRequest) {
+          out.push(`
+            <div class="vc-request-group">
+              <div class="vc-request-label">
+                ${escapeHtml(param.name || "요청사항")}
+              </div>
+              <textarea
+                class="vc-slot-param vc-request-input"
+                data-param-id="${escapeHtml(param.id)}"
+                data-param-kind="request"
+                maxlength="${maxLength}"
+                placeholder="${escapeHtml(param.placeholder || "이 노드가 할 일을 편하게 적어줘")}"
+              >${escapeHtml(value)}</textarea>
+            </div>
+          `);
+
+          continue;
+        }
+
         out.push(`
           <div class="vc-param-group">
             <label class="vc-param-label">
@@ -365,11 +500,13 @@
             <textarea
               class="vc-slot-param"
               data-param-id="${escapeHtml(param.id)}"
-              placeholder="${escapeHtml(param.placeholder || '')}"
-            >${escapeHtml(values[param.id] ?? '')}</textarea>
+              maxlength="${maxLength}"
+              placeholder="${escapeHtml(param.placeholder || "")}"
+            >${escapeHtml(value)}</textarea>
           </div>
         `);
       }
+
       if (node.type === 'file') {
         const mime = node.data?.mime || '알 수 없는 형식';
         const size = Number(node.data?.size || 0);
@@ -410,15 +547,30 @@
           </div>
         `);
       }
-      if (definition.desc || definition.description) {
+
+      if (
+        (
+          definition.desc ||
+          definition.description
+        ) &&
+        !visibleParams.some(
+          param =>
+            param.kind ===
+              "request" ||
+            param.id ===
+              "request"
+        )
+      ) {
         out.push(`
           <div class="vc-slot-description">
             ${escapeHtml(definition.desc || definition.description || '')}
           </div>
         `);
       }
+
       return out.join('');
     }
+
     function runtimeStatusLabel(status) {
       return ({
         WAITING: '대기',
