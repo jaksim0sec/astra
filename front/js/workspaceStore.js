@@ -63,10 +63,41 @@ function normalizeMemory(value){
       ? value
       : {};
 
+  const clip = (
+    input,
+    max
+  ) => {
+    const text =
+      String(input || "")
+        .replace(/\s+/g," ")
+        .trim();
+
+    if(text.length <= max){
+      return text;
+    }
+
+    const tail =
+      Math.max(
+        100,
+        Math.floor(
+          max*.26
+        )
+      );
+
+    return (
+      text.slice(
+        0,
+        max-tail-3
+      )+
+      " … "+
+      text.slice(-tail)
+    ).slice(0,max);
+  };
+
   return {
-    flow:String(source.flow || "").slice(0,6000),
-    recent:String(source.recent || "").slice(0,6000),
-    detail:String(source.detail || "").slice(0,12000)
+    flow:clip(source.flow,700),
+    recent:clip(source.recent,1400),
+    detail:clip(source.detail,1900)
   };
 }
 
