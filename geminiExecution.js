@@ -8,7 +8,7 @@ export const DEFAULT_GEMINI_FALLBACK_MODEL =
   "gemini-3.1-flash-lite";
 
 const DEFAULT_MAX_GROUP_NODES = 6;
-const DEFAULT_MAX_INPUT_CHARS = 60000;
+const DEFAULT_MAX_INPUT_CHARS = 42000;
 const DEFAULT_MAX_ATTEMPTS = 3;
 
 const GEMINI_NODE_TYPES =
@@ -30,15 +30,15 @@ const THINKING_LEVELS =
 
 const NODE_INSTRUCTIONS = {
   research:
-    "Analyze the supplied material according to params.topic/filter. If no web or search tool is provided, use only supplied material and general model knowledge. Never fabricate citations or claim live browsing occurred. Put the node value on outputs.result.",
+    "Follow params.request as the primary natural-language research instruction. If request is empty, fall back to legacy topic/filter. Use supplied material and general model knowledge only unless actual search evidence is supplied. Never fabricate browsing or citations. Put the useful result on outputs.result.",
   organize:
-    "Transform the available input according to params.criteria and params.format. Preserve important facts and do not introduce unsupported claims. Put the node value on outputs.result.",
+    "Follow params.request as the primary natural-language organization instruction. If request is empty, fall back to legacy criteria/format. Preserve facts and structure the available input for the requested use. Put the result on outputs.result.",
   write:
-    "Produce directly usable content using params.title/style/length/about and available upstream material. Do not discuss how to write it unless requested by the node params. Put the node value on outputs.result.",
+    "Follow params.request as the primary natural-language writing instruction. If request is empty, fall back to legacy title/style/length/about. Produce directly usable content from upstream material and context. Put the result on outputs.result.",
   convert:
-    "Convert the available material according to params.instruction while preserving meaning unless the instruction explicitly requests transformation. Put the node value on outputs.result.",
+    "Follow params.request or legacy params.instruction to transform the available material while preserving meaning unless transformation is explicitly requested. Put the result on outputs.result.",
   judge:
-    "Evaluate params.condition against the available input. Set decision to a boolean. If decision is true, put useful branch data on outputs.true. If false, put it on outputs.false."
+    "Follow params.request as the primary natural-language decision criterion. If request is empty, fall back to legacy condition. Evaluate the available input, set decision to a boolean, and place useful branch data only on the selected true/false output."
 };
 
 const SYSTEM_INSTRUCTION = [
@@ -47,8 +47,9 @@ const SYSTEM_INSTRUCTION = [
   "Execute every supplied node exactly once and in the supplied order.",
   "Do not add, remove, reorder, rename, or skip nodes.",
   "Each node consumes its declared inputs plus outputs produced by earlier nodes in this same group when connected.",
-  "The supplied context contains the same continuity memory used by ovll's planner plus the latest user request. Use it only to preserve intent, references, tone, constraints, and previously established facts.",
-  "Never overwrite explicit node params or supplied node inputs merely because context says something broader.",
+  "The supplied context contains ovll's continuity memory plus the latest user request. Actively use it to resolve omitted subjects, short follow-ups, pronouns, prior choices, constraints, tone, and references such as 'that', 'the previous one', or 'continue'.",
+  "A node's params.request is its local primary instruction. Context supplies continuity and missing referents but must not contradict an explicit request or supplied node input.",
+  "If request is empty, use legacy params only as fallback and use context to recover the user's established intent.",
   "Before execution, run a strict feasibility gate on the user's actual requested outcome.",
   "Refuse only when the requested outcome is clearly impossible with the supplied nodes/tools/context, the requested scale is far beyond what one execution can meaningfully produce, or the request is so incoherent that no reasonable execution target exists.",
   "Do not refuse merely because the task is difficult, uncertain, underspecified, unusual, or missing external data. In those cases execute the useful supported portion and preserve limitations.",
@@ -61,7 +62,15 @@ const SYSTEM_INSTRUCTION = [
   "Keep report concise: normally one or two sentences. Preserve uncertainty and limitations. Never claim live browsing, tool use, citations, or external verification unless such evidence is explicitly supplied in the node input.",
   "Do not include chain-of-thought, hidden reasoning, markdown fences, or commentary.",
   "For judge nodes, make a boolean decision from the condition and available input. Do not decide graph traversal yourself.",
-  "If information is missing, use only reasonable transformations supported by supplied inputs, params, and general model knowledge. Do not invent external facts or pretend live research occurred."
+  "If information is missing, use only reasonable transformations supported by supplied inputs, params, and general model knowledge. Do not invent external facts or pretend live research occurred.",
+  "",
+  "NODE TYPE RULES:",
+  ...Object.entries(
+    NODE_INSTRUCTIONS
+  ).map(
+    ([type, instruction]) =>
+      type + ": " + instruction
+  )
 ].join("\n");
 
 const FINAL_RESPONSE_SYSTEM_INSTRUCTION = [
@@ -301,7 +310,7 @@ export function validateExecutionGroup(
             isPlainObject(
               rawNode.params
             )
-              ? clone(
+              ? compactExecutionValue(
                   rawNode.params
                 )
               : {},
@@ -309,7 +318,7 @@ export function validateExecutionGroup(
             isPlainObject(
               rawNode.inputs
             )
-              ? clone(
+              ? compactExecutionValue(
                   rawNode.inputs
                 )
               : {}
@@ -378,7 +387,7 @@ export function validateExecutionGroup(
         ""
       ).slice(
         0,
-        5000
+        6000
       ),
     memory:
       memorySource
@@ -387,17 +396,17 @@ export function validateExecutionGroup(
               String(
                 memorySource.flow ||
                 ""
-              ).slice(0, 3000),
+              ).slice(0, 700),
             recent:
               String(
                 memorySource.recent ||
                 ""
-              ).slice(0, 3000),
+              ).slice(0, 1400),
             detail:
               String(
                 memorySource.detail ||
                 ""
-              ).slice(0, 5000)
+              ).slice(0, 1900)
           }
         : null
   };
@@ -479,7 +488,8 @@ export function buildGroupResponseSchema(
                 : ["null"]
           },
           report: {
-            type: "string"
+            type: "string",
+            maxLength: 900
           }
         },
         required: [
@@ -506,7 +516,8 @@ export function buildGroupResponseSchema(
             type: "string"
           },
           message: {
-            type: "string"
+            type: "string",
+            maxLength: 320
           }
         },
         required: [
@@ -535,6 +546,89 @@ export function buildGroupResponseSchema(
   };
 }
 
+function compactExecutionValue(
+  value,
+  depth = 0
+) {
+  if (value == null) {
+    return value;
+  }
+
+  if (
+    typeof value === "string"
+  ) {
+    const max =
+      depth <= 1
+        ? 5200
+        : 3200;
+
+    if (
+      value.length <= max
+    ) {
+      return value;
+    }
+
+    const tail =
+      Math.max(
+        400,
+        Math.floor(
+          max * .24
+        )
+      );
+
+    return (
+      value.slice(
+        0,
+        max - tail - 5
+      ) +
+      "\n…\n" +
+      value.slice(-tail)
+    );
+  }
+
+  if (
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+
+  if (depth >= 5) {
+    return "[nested]";
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .slice(0, 18)
+      .map(
+        item =>
+          compactExecutionValue(
+            item,
+            depth + 1
+          )
+      );
+  }
+
+  if (isPlainObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value)
+        .slice(0, 24)
+        .map(
+          ([key, item]) => [
+            String(key).slice(0, 120),
+            compactExecutionValue(
+              item,
+              depth + 1
+            )
+          ]
+        )
+    );
+  }
+
+  return String(value)
+    .slice(0, 1200);
+}
+
 function compactPromptGroup(
   group
 ) {
@@ -552,13 +646,13 @@ function compactPromptGroup(
           type:
             node.type,
           params:
-            node.params,
+            compactExecutionValue(
+              node.params
+            ),
           inputs:
-            node.inputs,
-          instruction:
-            NODE_INSTRUCTIONS[
-              node.type
-            ]
+            compactExecutionValue(
+              node.inputs
+            )
         })
       ),
     connections:
@@ -609,7 +703,9 @@ export function buildInteractionRequest(
       SYSTEM_INSTRUCTION,
     generation_config: {
       thinking_level:
-        thinkingLevel
+        thinkingLevel,
+      max_output_tokens:
+        8192
     },
     response_format: {
       type: "text",
@@ -635,8 +731,8 @@ function compactFinalValue(
   if (
     typeof value === "string"
   ) {
-    return value.length > 12000
-      ? value.slice(0, 12000) +
+    return value.length > 8000
+      ? value.slice(0, 8000) +
           "\n…"
       : value;
   }
