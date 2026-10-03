@@ -76,7 +76,7 @@ const PORT = process.env.PORT || 3000;
  * The frontend compares this server value with its locally stored version
  * before loading application assets.
  */
-const APP_VERSION = '2026.10.03.16';
+const APP_VERSION = '2026.10.03.17';
 
 /* =========================================================
    CANONICAL NODE DEFINITION
