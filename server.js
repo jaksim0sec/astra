@@ -87,7 +87,7 @@ const geminiExecution =
  * The frontend compares this server value with its locally stored version
  * before loading application assets.
  */
-const APP_VERSION = '2026.10.04.20';
+const APP_VERSION = '2026.10.04.21';
 
 /* =========================================================
    CANONICAL NODE DEFINITION
@@ -794,53 +794,60 @@ function cloneWorkflow(workflow) {
     };
   }
 
-  return {
-    nodes: Array.isArray(workflow.nodes)
-      ? JSON.parse(JSON.stringify(workflow.nodes))
-      : [],
-    links: Array.isArray(workflow.links)
-      ? JSON.parse(JSON.stringify(workflow.links))
-      : [],
-    data: Array.isArray(workflow.data)
-      ? JSON.parse(JSON.stringify(workflow.data))
-      : []
-  };
-}
+  const nodes =
+    Array.isArray(workflow.nodes)
+      ? workflow.nodes.slice(0, 96)
+      : [];
 
-function clipCompactText(
-  value,
-  max
-) {
-  const text =
-    String(value ?? '')
-      .replace(/\s+/g, ' ')
-      .trim();
+  const links =
+    Array.isArray(workflow.links)
+      ? workflow.links.slice(0, 192)
+      : [];
+
+  const data =
+    Array.isArray(workflow.data)
+      ? workflow.data.slice(0, 192)
+      : [];
 
   if (
-    !Number.isFinite(max) ||
-    max <= 0 ||
-    text.length <= max
+    (
+      Array.isArray(workflow.nodes) &&
+      workflow.nodes.length > 96
+    ) ||
+    (
+      Array.isArray(workflow.links) &&
+      workflow.links.length > 192
+    ) ||
+    (
+      Array.isArray(workflow.data) &&
+      workflow.data.length > 192
+    )
   ) {
-    return text;
+    const error =
+      new Error(
+        '워크플로우가 너무 큽니다.'
+      );
+
+    error.status = 413;
+    error.retryable = false;
+
+    throw error;
   }
 
-  const tail =
-    Math.max(
-      80,
-      Math.floor(max * .28)
-    );
-
-  const head =
-    Math.max(
-      0,
-      max - tail - 3
-    );
-
-  return (
-    text.slice(0, head) +
-    ' … ' +
-    text.slice(-tail)
-  ).slice(0, max);
+  return {
+    nodes:
+      JSON.parse(
+        JSON.stringify(nodes)
+      ),
+    links:
+      JSON.parse(
+        JSON.stringify(links)
+      ),
+    data:
+      JSON.parse(
+        JSON.stringify(data)
+      )
+  };
 }
 
 function cleanParams(type, params, fillDefaults = false) {
@@ -1670,6 +1677,78 @@ function validateWorkflow(spec) {
    PROMPT BUILD
 ========================================================= */
 
+function plannerRequestFromLegacy(
+  type,
+  params
+) {
+  const source =
+    params &&
+    typeof params === 'object' &&
+    !Array.isArray(params)
+      ? params
+      : {};
+
+  const parts =
+    (...values) =>
+      values
+        .map(
+          value =>
+            clipCompactText(
+              value,
+              700
+            )
+        )
+        .filter(Boolean)
+        .join(' · ');
+
+  switch (type) {
+    case 'research':
+      return parts(
+        source.topic,
+        source.filter
+      );
+
+    case 'organize':
+      return parts(
+        source.criteria,
+        source.format
+      );
+
+    case 'judge':
+      return source.condition
+        ? clipCompactText(
+            source.condition,
+            900
+          ) + '인지 판단해줘'
+        : '';
+
+    case 'write':
+      return parts(
+        source.about,
+        source.title,
+        source.length,
+        source.style
+      );
+
+    case 'createFile':
+      return (
+        parts(
+          source.filename,
+          source.format
+        ) +
+        (
+          source.filename ||
+          source.format
+            ? ' 파일로 만들어줘'
+            : ''
+        )
+      );
+
+    default:
+      return '';
+  }
+}
+
 function buildPlannerWorkflow(workflow) {
   const source =
     cloneWorkflow(
@@ -1707,10 +1786,35 @@ function buildPlannerWorkflow(workflow) {
           node.params &&
           typeof node.params === 'object' &&
           !Array.isArray(node.params)
-            ? node.params
+            ? cleanParams(
+                node.type,
+                node.params,
+                false
+              )
             : {};
 
         const params = {};
+
+        if (
+          !rawParams.request
+        ) {
+          const legacyRequest =
+            plannerRequestFromLegacy(
+              node.type,
+              rawParams
+            );
+
+          if (legacyRequest) {
+            params.request =
+              clipCompactText(
+                legacyRequest,
+                node.type ===
+                  'createFile'
+                  ? 1200
+                  : 1800
+              );
+          }
+        }
 
         for (
           const [key, value]
@@ -1737,8 +1841,25 @@ function buildPlannerWorkflow(workflow) {
             continue;
           }
 
+          if (
+            param?.hidden === true
+          ) {
+            continue;
+          }
+
           params[key] =
-            value;
+            typeof value === 'string'
+              ? clipCompactText(
+                  value,
+                  Math.max(
+                    1,
+                    Number(
+                      param?.maxLength ||
+                      1800
+                    ) || 1800
+                  )
+                )
+              : value;
         }
 
         const compact = {
@@ -2451,15 +2572,19 @@ app.post(
   async (req, res) => {
     try {
       const text =
-        String(
-          req.body?.text ||
-          ''
-        ).trim();
+        clipCompactText(
+          req.body?.text,
+          6000
+        );
 
       const currentWorkflow =
         cloneWorkflow(
           req.body?.workflow
         );
+
+      validateWorkflow(
+        currentWorkflow
+      );
 
       const memory =
         normalizeMemory(
@@ -2503,7 +2628,9 @@ if (!text) {
       return res.status(
         error?.status === 429
           ? 429
-          : 500
+          : error?.status === 413
+            ? 413
+            : 500
       ).json({
         ok: false,
         error:
