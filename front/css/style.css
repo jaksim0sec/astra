@@ -32,24 +32,26 @@
   --viewport-height: 100dvh;
   --real-vh-unit: 1vh;
   --ease: cubic-bezier(.2, .82, .2, 1);
-  --radius-sm: .75rem;
-  --radius-md: .9375rem;
-  --radius-lg: 1.25rem;
-  --radius-xl: 1.375rem;
+  --radius-sm: .875rem;
+  --radius-md: 1.0625rem;
+  --radius-lg: 1.375rem;
+  --radius-xl: 1.5rem;
   --radius-round: 999px;
 
   --ui-line-width: 1px;
   --ui-line: var(--line);
   --ui-line-strong: var(--line-strong);
   --ui-radius-pill: 999px;
-  --ui-radius-panel: 1.125rem;
-  --ui-radius-item: .875rem;
+  --ui-radius-panel: 1.375rem;
+  --ui-radius-item: 1rem;
   --ui-glass: var(--panel-soft);
   --ui-glass-strong: var(--panel-strong);
-  --ui-control-shadow: var(--shadow-soft);
-  --ui-backdrop: blur(1.125rem) saturate(1.03);
+  --ui-control-surface: rgba(255, 255, 255, .82);
+  --ui-control-surface-strong: rgba(255, 255, 255, .92);
+  --ui-control-shadow: 0 .3rem 1rem rgba(0, 0, 0, .055);
+  --ui-backdrop: blur(1.35rem) saturate(1.08);
 
-  --app-resize-duration: .22s;
+  --app-resize-duration: .14s;
   --app-resize-ease: cubic-bezier(.2,.82,.2,1);
 
   --page-progress: 0;
@@ -75,6 +77,10 @@
 
   --shadow-soft:
     0 .25rem .875rem rgba(0, 0, 0, 0.14);
+
+  --ui-control-surface: rgba(29, 29, 29, .86);
+  --ui-control-surface-strong: rgba(34, 34, 34, .95);
+  --ui-control-shadow: 0 .32rem 1.05rem rgba(0, 0, 0, .20);
 }
 
 
@@ -90,26 +96,26 @@
 }
 
 html{
-  font-size:17px;
+  font-size:17.5px;
   -webkit-text-size-adjust:100%;
   text-size-adjust:100%;
 }
 
 @media (max-width:43.75rem){
   html{
-    font-size:16px;
+    font-size:16.75px;
   }
 }
 
 @media (max-width:26.25rem){
   html{
-    font-size:15.5px;
+    font-size:16.25px;
   }
 }
 
 @media (max-width:60rem){
   html.physical-landscape{
-    font-size:15px;
+    font-size:15.75px;
   }
 }
 
@@ -201,6 +207,8 @@ svg {
   background: var(--bg);
 
   transition:
+    top var(--app-resize-duration) var(--app-resize-ease),
+    height var(--app-resize-duration) var(--app-resize-ease),
     background-color .2s ease;
 }
 
@@ -219,21 +227,22 @@ svg {
    * Only this inner stage follows the available keyboard-safe height.
    */
   /*
-   * Keyboard-safe layout follows the viewport immediately.
-   * Animating the real layout height causes the visible viewport and
-   * composer position to disagree while the keyboard is moving.
+   * Keep viewport tracking fast enough to stay aligned with the browser,
+   * while softening the visible resize with the same short transition
+   * used by the fixed frame.
    */
   transition:
+    height var(--app-resize-duration) var(--app-resize-ease),
     background-color .2s ease;
 }
 
 html.viewport-shrinking {
-  --app-resize-duration: .18s;
+  --app-resize-duration: .12s;
   --app-resize-ease: cubic-bezier(.4,0,.2,1);
 }
 
 html.viewport-growing {
-  --app-resize-duration: .22s;
+  --app-resize-duration: .14s;
   --app-resize-ease: cubic-bezier(.2,.82,.2,1);
 }
 
