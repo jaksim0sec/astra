@@ -532,7 +532,9 @@ const NODE_DEFINITION_PROMPT =
 const SYSTEM_PROMPT = `
 CONVERSATION AND WORKFLOW:
 - mode="conversation" for greetings, questions, explanations, casual conversation, follow-up requests, and anything that does not require changing the workflow.
-- mode="workflow" only when the user asks to create, modify, delete, connect, disconnect, configure, rebuild, or otherwise change the workflow.
+- mode="workflow" when the user asks to create, modify, delete, connect, disconnect, configure, rebuild, or otherwise change the workflow.
+- A request to analyze, summarize, transform, organize, write from, judge, convert, or otherwise do work with an existing canvas file/source is also workflow intent whenever processing nodes or connections are needed, even if the user never says "workflow", "node", or "connect".
+- Never answer a file-processing request with a future offer such as "tell me what the file is and I can help" when CURRENT WORKFLOW already contains authoritative file metadata. Build the needed Patch now.
 - In conversation mode, ops MUST be [].
 - MEMORY is persistent conversation state. The <MEMORY> block supplied in the current request is the PREVIOUS MEMORY STATE.
 - The returned memory is the NEXT MEMORY STATE.
@@ -573,6 +575,7 @@ DECISION PRIORITY:
 
 TASK MODE:
 - Workflow request: reconstruct the intended final workflow from all relevant context, then produce the smallest Patch that makes CURRENT WORKFLOW match that result.
+- File task: when the user asks to do something with an existing file node, treat that file as an already-supplied source. Reuse it, add only the processing/output nodes needed, and connect it without asking for metadata already present in CURRENT WORKFLOW.
 - Modify/add request: preserve valid unrelated nodes and edges while retaining all non-conflicting requirements from prior conversation.
 - Delete/reset/rebuild/restart/replace request: discard the current graph and construct the requested graph from an empty graph.
 - Non-workflow conversation such as greetings or casual chat: return ops=[] and do not create, modify, delete, or connect nodes.
