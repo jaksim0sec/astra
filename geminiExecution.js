@@ -47,6 +47,8 @@ const SYSTEM_INSTRUCTION = [
   "Execute every supplied node exactly once and in the supplied order.",
   "Do not add, remove, reorder, rename, or skip nodes.",
   "Each node consumes its declared inputs plus outputs produced by earlier nodes in this same group when connected.",
+  "The supplied context contains the same continuity memory used by ovll's planner plus the latest user request. Use it only to preserve intent, references, tone, constraints, and previously established facts.",
+  "Never overwrite explicit node params or supplied node inputs merely because context says something broader.",
   "Follow each node type and params precisely.",
   "Return only the schema-conforming result.",
   "Keep outputs useful for the next node instead of explaining your process.",
@@ -347,7 +349,53 @@ export function validateExecutionGroup(
     }
   }
 
+  const contextSource =
+    isPlainObject(
+      input.context
+    )
+      ? input.context
+      : {};
+
+  const memorySource =
+    isPlainObject(
+      contextSource.memory
+    )
+      ? contextSource.memory
+      : null;
+
+  const context = {
+    userRequest:
+      String(
+        contextSource.userRequest ||
+        ""
+      ).slice(
+        0,
+        5000
+      ),
+    memory:
+      memorySource
+        ? {
+            flow:
+              String(
+                memorySource.flow ||
+                ""
+              ).slice(0, 3000),
+            recent:
+              String(
+                memorySource.recent ||
+                ""
+              ).slice(0, 3000),
+            detail:
+              String(
+                memorySource.detail ||
+                ""
+              ).slice(0, 5000)
+          }
+        : null
+  };
+
   const normalized = {
+    context,
     nodes,
     connections
   };
@@ -462,6 +510,11 @@ function compactPromptGroup(
   group
 ) {
   return {
+    context:
+      group.context || {
+        userRequest: "",
+        memory: null
+      },
     nodes:
       group.nodes.map(
         node => ({
