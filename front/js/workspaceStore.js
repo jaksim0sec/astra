@@ -1,0 +1,1177 @@
+(function(global){
+"use strict";
+
+const STORAGE_KEY = "ovll:workspace:v1";
+const SCHEMA_VERSION = 1;
+const events = new Map();
+
+function clone(value){
+  if(value === undefined) return undefined;
+  return JSON.parse(JSON.stringify(value));
+}
+
+function now(){
+  return Date.now();
+}
+
+function id(prefix){
+  return [
+    prefix,
+    now().toString(36),
+    Math.random().toString(36).slice(2,8)
+  ].join("-");
+}
+
+function emptyMemory(){
+  return {
+    flow:"",
+    recent:"",
+    detail:""
+  };
+}
+
+function emptyCanvas(){
+  return {
+    workflow:{
+      nodes:[],
+      connections:[]
+    },
+    viewport:{
+      scale:1,
+      offset:{
+        x:0,
+        y:0
+      }
+    }
+  };
+}
+
+function emptyConversationState(){
+  return {
+    mode:"chat",
+    messages:[],
+    canvas:emptyCanvas(),
+    lastUserRequest:""
+  };
+}
+
+function normalizeMemory(value){
+  const source =
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+      ? value
+      : {};
+
+  return {
+    flow:String(source.flow || "").slice(0,6000),
+    recent:String(source.recent || "").slice(0,6000),
+    detail:String(source.detail || "").slice(0,12000)
+  };
+}
+
+function normalizeMessage(value){
+  if(!value || typeof value !== "object"){
+    return null;
+  }
+
+  const role =
+    ["user","assistant","system"].includes(
+      String(value.role || "")
+    )
+      ? String(value.role)
+      : "assistant";
+
+  return {
+    id:String(
+      value.id ||
+      id("msg")
+    ),
+    role,
+    text:String(value.text || ""),
+    question:String(value.question || ""),
+    showCanvasView:
+      value.showCanvasView === true,
+    artifacts:
+      Array.isArray(value.artifacts)
+        ? value.artifacts
+            .filter(item =>
+              item &&
+              typeof item === "object"
+            )
+            .map(item => ({
+              id:String(item.id || ""),
+              name:String(item.name || "결과물"),
+              format:String(item.format || ""),
+              mime:String(item.mime || ""),
+              size:Number(item.size || 0),
+              downloadUrl:String(item.downloadUrl || ""),
+              previewText:String(item.previewText || "").slice(0,500)
+            }))
+        : [],
+    createdAt:
+      Number(value.createdAt) ||
+      now()
+  };
+}
+
+function normalizeConversationState(value){
+  const source =
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value)
+      ? value
+      : {};
+
+  const canvas =
+    source.canvas &&
+    typeof source.canvas === "object"
+      ? clone(source.canvas)
+      : emptyCanvas();
+
+  return {
+    mode:
+      source.mode === "canvas"
+        ? "canvas"
+        : "chat",
+    messages:
+      Array.isArray(source.messages)
+        ? source.messages
+            .map(normalizeMessage)
+            .filter(Boolean)
+        : [],
+    canvas,
+    lastUserRequest:
+      String(
+        source.lastUserRequest ||
+        ""
+      ).slice(0,12000)
+  };
+}
+
+function makeContext(title="기본 맥락"){
+  const time = now();
+
+  return {
+    id:id("ctx"),
+    title:String(title || "기본 맥락").slice(0,80),
+    memory:emptyMemory(),
+    notes:[],
+    createdAt:time,
+    updatedAt:time
+  };
+}
+
+function makeSection(title="대화",order=0){
+  const time = now();
+
+  return {
+    id:id("section"),
+    title:String(title || "대화").slice(0,60),
+    order:Number(order) || 0,
+    collapsed:false,
+    createdAt:time,
+    updatedAt:time
+  };
+}
+
+function makeConversation(
+  sectionId,
+  contextBundleId,
+  title="새 대화"
+){
+  const time = now();
+
+  return {
+    id:id("chat"),
+    sectionId:String(sectionId || ""),
+    contextBundleId:String(contextBundleId || ""),
+    title:String(title || "새 대화").slice(0,100),
+    pinned:false,
+    state:emptyConversationState(),
+    createdAt:time,
+    updatedAt:time
+  };
+}
+
+function createDefaultState(){
+  const section =
+    makeSection("대화",0);
+  const context =
+    makeContext("기본 맥락");
+  const conversation =
+    makeConversation(
+      section.id,
+      context.id,
+      "새 대화"
+    );
+  const time = now();
+
+  return {
+    schemaVersion:
+      SCHEMA_VERSION,
+    workspace:{
+      id:"local",
+      title:"ovll",
+      activeConversationId:
+        conversation.id,
+      createdAt:time,
+      updatedAt:time
+    },
+    sections:[section],
+    conversations:[conversation],
+    contextBundles:[context]
+  };
+}
+
+function normalizeState(raw){
+  const source =
+    raw &&
+    typeof raw === "object" &&
+    !Array.isArray(raw)
+      ? raw
+      : {};
+
+  const base =
+    createDefaultState();
+
+  const sections =
+    Array.isArray(source.sections)
+      ? source.sections
+          .filter(item =>
+            item &&
+            typeof item === "object"
+          )
+          .map((item,index) => ({
+            id:String(item.id || id("section")),
+            title:String(item.title || "섹션").slice(0,60),
+            order:
+              Number.isFinite(Number(item.order))
+                ? Number(item.order)
+                : index,
+            collapsed:
+              item.collapsed === true,
+            createdAt:
+              Number(item.createdAt) ||
+              now(),
+            updatedAt:
+              Number(item.updatedAt) ||
+              now()
+          }))
+      : [];
+
+  if(!sections.length){
+    sections.push(
+      base.sections[0]
+    );
+  }
+
+  const contextBundles =
+    Array.isArray(source.contextBundles)
+      ? source.contextBundles
+          .filter(item =>
+            item &&
+            typeof item === "object"
+          )
+          .map(item => ({
+            id:String(item.id || id("ctx")),
+            title:String(item.title || "맥락").slice(0,80),
+            memory:
+              normalizeMemory(
+                item.memory
+              ),
+            notes:
+              Array.isArray(item.notes)
+                ? item.notes
+                    .map(value =>
+                      String(value)
+                        .slice(0,3000)
+                    )
+                    .slice(0,50)
+                : [],
+            createdAt:
+              Number(item.createdAt) ||
+              now(),
+            updatedAt:
+              Number(item.updatedAt) ||
+              now()
+          }))
+      : [];
+
+  if(!contextBundles.length){
+    contextBundles.push(
+      base.contextBundles[0]
+    );
+  }
+
+  const sectionIds =
+    new Set(
+      sections.map(item => item.id)
+    );
+
+  const contextIds =
+    new Set(
+      contextBundles.map(item => item.id)
+    );
+
+  const conversations =
+    Array.isArray(source.conversations)
+      ? source.conversations
+          .filter(item =>
+            item &&
+            typeof item === "object"
+          )
+          .map(item => ({
+            id:String(item.id || id("chat")),
+            sectionId:
+              sectionIds.has(
+                String(item.sectionId || "")
+              )
+                ? String(item.sectionId)
+                : sections[0].id,
+            contextBundleId:
+              contextIds.has(
+                String(
+                  item.contextBundleId ||
+                  ""
+                )
+              )
+                ? String(item.contextBundleId)
+                : contextBundles[0].id,
+            title:
+              String(item.title || "새 대화")
+                .slice(0,100),
+            pinned:
+              item.pinned === true,
+            state:
+              normalizeConversationState(
+                item.state
+              ),
+            createdAt:
+              Number(item.createdAt) ||
+              now(),
+            updatedAt:
+              Number(item.updatedAt) ||
+              now()
+          }))
+      : [];
+
+  if(!conversations.length){
+    conversations.push(
+      makeConversation(
+        sections[0].id,
+        contextBundles[0].id,
+        "새 대화"
+      )
+    );
+  }
+
+  const conversationIds =
+    new Set(
+      conversations.map(item => item.id)
+    );
+
+  const requestedActive =
+    String(
+      source.workspace
+        ?.activeConversationId ||
+      ""
+    );
+
+  const activeConversationId =
+    conversationIds.has(
+      requestedActive
+    )
+      ? requestedActive
+      : conversations[0].id;
+
+  const time = now();
+
+  return {
+    schemaVersion:
+      SCHEMA_VERSION,
+    workspace:{
+      id:String(
+        source.workspace?.id ||
+        "local"
+      ),
+      title:String(
+        source.workspace?.title ||
+        "ovll"
+      ).slice(0,80),
+      activeConversationId,
+      createdAt:
+        Number(
+          source.workspace
+            ?.createdAt
+        ) ||
+        time,
+      updatedAt:
+        Number(
+          source.workspace
+            ?.updatedAt
+        ) ||
+        time
+    },
+    sections,
+    conversations,
+    contextBundles
+  };
+}
+
+function readStorage(){
+  try{
+    const raw =
+      localStorage.getItem(
+        STORAGE_KEY
+      );
+
+    if(!raw){
+      return createDefaultState();
+    }
+
+    return normalizeState(
+      JSON.parse(raw)
+    );
+  }catch(error){
+    console.warn(
+      "ovll workspace storage load failed:",
+      error
+    );
+
+    return createDefaultState();
+  }
+}
+
+let state =
+  readStorage();
+
+function emit(name,payload){
+  for(
+    const handler
+    of events.get(name) ||
+    []
+  ){
+    try{
+      handler(
+        payload,
+        api
+      );
+    }catch(error){
+      console.error(error);
+    }
+  }
+}
+
+function on(name,handler){
+  if(typeof handler !== "function"){
+    return () => {};
+  }
+
+  if(!events.has(name)){
+    events.set(
+      name,
+      new Set()
+    );
+  }
+
+  events.get(name)
+    .add(handler);
+
+  return () =>
+    events.get(name)
+      ?.delete(handler);
+}
+
+function persist(reason="update"){
+  state.workspace.updatedAt =
+    now();
+
+  try{
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify(state)
+    );
+  }catch(error){
+    console.error(
+      "ovll workspace storage save failed:",
+      error
+    );
+
+    emit(
+      "error",
+      {
+        type:"save",
+        error
+      }
+    );
+
+    return false;
+  }
+
+  emit(
+    "change",
+    {
+      reason,
+      state:getSnapshot()
+    }
+  );
+
+  return true;
+}
+
+function getSnapshot(){
+  return clone(state);
+}
+
+function getSection(sectionId){
+  return (
+    state.sections.find(
+      item =>
+        item.id ===
+        String(sectionId || "")
+    ) ||
+    null
+  );
+}
+
+function getConversation(conversationId){
+  return (
+    state.conversations.find(
+      item =>
+        item.id ===
+        String(
+          conversationId ||
+          ""
+        )
+    ) ||
+    null
+  );
+}
+
+function getContextBundle(contextId){
+  return (
+    state.contextBundles.find(
+      item =>
+        item.id ===
+        String(contextId || "")
+    ) ||
+    null
+  );
+}
+
+function getActiveConversation(){
+  return getConversation(
+    state.workspace
+      .activeConversationId
+  );
+}
+
+function getConversationMemory(
+  conversationId
+){
+  const conversation =
+    getConversation(
+      conversationId
+    );
+
+  const bundle =
+    getContextBundle(
+      conversation
+        ?.contextBundleId
+    );
+
+  return normalizeMemory(
+    bundle?.memory
+  );
+}
+
+function createSection(
+  title="새 섹션"
+){
+  const order =
+    state.sections.reduce(
+      (max,item) =>
+        Math.max(
+          max,
+          Number(item.order) || 0
+        ),
+      -1
+    ) + 1;
+
+  const section =
+    makeSection(
+      title,
+      order
+    );
+
+  state.sections.push(
+    section
+  );
+
+  persist(
+    "section:create"
+  );
+
+  return clone(section);
+}
+
+function renameSection(
+  sectionId,
+  title
+){
+  const section =
+    getSection(
+      sectionId
+    );
+
+  const value =
+    String(title || "")
+      .trim()
+      .slice(0,60);
+
+  if(
+    !section ||
+    !value
+  ){
+    return null;
+  }
+
+  section.title =
+    value;
+  section.updatedAt =
+    now();
+
+  persist(
+    "section:rename"
+  );
+
+  return clone(section);
+}
+
+function setSectionCollapsed(
+  sectionId,
+  collapsed
+){
+  const section =
+    getSection(
+      sectionId
+    );
+
+  if(!section){
+    return null;
+  }
+
+  section.collapsed =
+    !!collapsed;
+  section.updatedAt =
+    now();
+
+  persist(
+    "section:collapse"
+  );
+
+  return clone(section);
+}
+
+function createContextBundle(
+  title="새 맥락"
+){
+  const bundle =
+    makeContext(
+      title
+    );
+
+  state.contextBundles.push(
+    bundle
+  );
+
+  persist(
+    "context:create"
+  );
+
+  return clone(bundle);
+}
+
+function renameContextBundle(
+  contextId,
+  title
+){
+  const bundle =
+    getContextBundle(
+      contextId
+    );
+
+  const value =
+    String(title || "")
+      .trim()
+      .slice(0,80);
+
+  if(
+    !bundle ||
+    !value
+  ){
+    return null;
+  }
+
+  bundle.title =
+    value;
+  bundle.updatedAt =
+    now();
+
+  persist(
+    "context:rename"
+  );
+
+  return clone(bundle);
+}
+
+function createConversation(
+  options={}
+){
+  const requestedSection =
+    getSection(
+      options.sectionId
+    );
+
+  const section =
+    requestedSection ||
+    state.sections
+      .slice()
+      .sort(
+        (a,b) =>
+          a.order - b.order
+      )[0];
+
+  let context =
+    getContextBundle(
+      options.contextBundleId
+    );
+
+  if(!context){
+    context =
+      makeContext(
+        options.contextTitle ||
+        "기본 맥락"
+      );
+
+    state.contextBundles.push(
+      context
+    );
+  }
+
+  const conversation =
+    makeConversation(
+      section.id,
+      context.id,
+      options.title ||
+      "새 대화"
+    );
+
+  state.conversations.push(
+    conversation
+  );
+
+  if(
+    options.activate !== false
+  ){
+    state.workspace
+      .activeConversationId =
+      conversation.id;
+  }
+
+  persist(
+    "conversation:create"
+  );
+
+  return clone(conversation);
+}
+
+function activateConversation(
+  conversationId
+){
+  const conversation =
+    getConversation(
+      conversationId
+    );
+
+  if(!conversation){
+    return null;
+  }
+
+  state.workspace
+    .activeConversationId =
+    conversation.id;
+
+  conversation.updatedAt =
+    now();
+
+  persist(
+    "conversation:activate"
+  );
+
+  return clone(
+    conversation
+  );
+}
+
+function updateConversationTitle(
+  conversationId,
+  title
+){
+  const conversation =
+    getConversation(
+      conversationId
+    );
+
+  const value =
+    String(title || "")
+      .trim()
+      .replace(/\s+/g," ")
+      .slice(0,100);
+
+  if(
+    !conversation ||
+    !value
+  ){
+    return null;
+  }
+
+  conversation.title =
+    value;
+  conversation.updatedAt =
+    now();
+
+  persist(
+    "conversation:title"
+  );
+
+  return clone(conversation);
+}
+
+function moveConversation(
+  conversationId,
+  sectionId
+){
+  const conversation =
+    getConversation(
+      conversationId
+    );
+
+  const section =
+    getSection(
+      sectionId
+    );
+
+  if(
+    !conversation ||
+    !section
+  ){
+    return null;
+  }
+
+  conversation.sectionId =
+    section.id;
+  conversation.updatedAt =
+    now();
+
+  persist(
+    "conversation:move"
+  );
+
+  return clone(conversation);
+}
+
+function assignContextBundle(
+  conversationId,
+  contextId
+){
+  const conversation =
+    getConversation(
+      conversationId
+    );
+
+  const bundle =
+    getContextBundle(
+      contextId
+    );
+
+  if(
+    !conversation ||
+    !bundle
+  ){
+    return null;
+  }
+
+  conversation.contextBundleId =
+    bundle.id;
+  conversation.updatedAt =
+    now();
+
+  persist(
+    "conversation:context"
+  );
+
+  return clone(conversation);
+}
+
+function updateConversationState(
+  conversationId,
+  nextState,
+  memory
+){
+  const conversation =
+    getConversation(
+      conversationId
+    );
+
+  if(!conversation){
+    return null;
+  }
+
+  conversation.state =
+    normalizeConversationState(
+      nextState
+    );
+
+  conversation.updatedAt =
+    now();
+
+  if(memory !== undefined){
+    const bundle =
+      getContextBundle(
+        conversation
+          .contextBundleId
+      );
+
+    if(bundle){
+      bundle.memory =
+        normalizeMemory(
+          memory
+        );
+
+      bundle.updatedAt =
+        now();
+    }
+  }
+
+  persist(
+    "conversation:state"
+  );
+
+  return clone(conversation);
+}
+
+function deleteConversation(
+  conversationId
+){
+  const idValue =
+    String(
+      conversationId ||
+      ""
+    );
+
+  const index =
+    state.conversations.findIndex(
+      item =>
+        item.id === idValue
+    );
+
+  if(index < 0){
+    return false;
+  }
+
+  state.conversations.splice(
+    index,
+    1
+  );
+
+  if(!state.conversations.length){
+    const section =
+      state.sections[0] ||
+      makeSection("대화",0);
+
+    if(!state.sections.length){
+      state.sections.push(
+        section
+      );
+    }
+
+    const context =
+      makeContext(
+        "기본 맥락"
+      );
+
+    state.contextBundles.push(
+      context
+    );
+
+    state.conversations.push(
+      makeConversation(
+        section.id,
+        context.id,
+        "새 대화"
+      )
+    );
+  }
+
+  if(
+    state.workspace
+      .activeConversationId ===
+      idValue
+  ){
+    state.workspace
+      .activeConversationId =
+      state.conversations
+        .slice()
+        .sort(
+          (a,b) =>
+            b.updatedAt -
+            a.updatedAt
+        )[0].id;
+  }
+
+  persist(
+    "conversation:delete"
+  );
+
+  return true;
+}
+
+function search(
+  query
+){
+  const value =
+    String(query || "")
+      .trim()
+      .toLocaleLowerCase();
+
+  const items =
+    state.conversations
+      .slice()
+      .sort(
+        (a,b) =>
+          Number(b.updatedAt) -
+          Number(a.updatedAt)
+      );
+
+  if(!value){
+    return clone(items);
+  }
+
+  return clone(
+    items.filter(
+      conversation => {
+        const section =
+          getSection(
+            conversation.sectionId
+          );
+
+        const context =
+          getContextBundle(
+            conversation
+              .contextBundleId
+          );
+
+        const messages =
+          conversation
+            .state
+            ?.messages ||
+          [];
+
+        const haystack = [
+          conversation.title,
+          section?.title,
+          context?.title,
+          context?.memory?.flow,
+          context?.memory?.recent,
+          context?.memory?.detail,
+          ...messages.map(
+            item =>
+              item.text
+          )
+        ]
+          .join("\n")
+          .toLocaleLowerCase();
+
+        return haystack.includes(
+          value
+        );
+      }
+    )
+  );
+}
+
+function exportJSON(){
+  return JSON.stringify(
+    getSnapshot(),
+    null,
+    2
+  );
+}
+
+function importJSON(
+  text
+){
+  const parsed =
+    typeof text === "string"
+      ? JSON.parse(text)
+      : text;
+
+  state =
+    normalizeState(
+      parsed
+    );
+
+  persist(
+    "workspace:import"
+  );
+
+  return getSnapshot();
+}
+
+function reset(){
+  state =
+    createDefaultState();
+
+  persist(
+    "workspace:reset"
+  );
+
+  return getSnapshot();
+}
+
+const api = {
+  schemaVersion:
+    SCHEMA_VERSION,
+  storageKey:
+    STORAGE_KEY,
+  getSnapshot,
+  getSection,
+  getConversation,
+  getActiveConversation,
+  getContextBundle,
+  getConversationMemory,
+  createSection,
+  renameSection,
+  setSectionCollapsed,
+  createContextBundle,
+  renameContextBundle,
+  createConversation,
+  activateConversation,
+  updateConversationTitle,
+  moveConversation,
+  assignContextBundle,
+  updateConversationState,
+  deleteConversation,
+  search,
+  exportJSON,
+  importJSON,
+  reset,
+  on
+};
+
+global.OvllWorkspaceStore =
+  Object.freeze(api);
+
+})(window);
