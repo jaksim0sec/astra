@@ -431,11 +431,33 @@
   pointer-events: none;
 }
 
+#composer::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  right: 0;
+  bottom: -.5rem;
+  left: 0;
+  height: 6.25rem;
+  background:
+    linear-gradient(
+      to bottom,
+      transparent 0%,
+      color-mix(in srgb, var(--bg) 24%, transparent) 34%,
+      color-mix(in srgb, var(--bg) 68%, transparent) 72%,
+      color-mix(in srgb, var(--bg) 88%, transparent) 100%
+    );
+  filter: blur(.15rem);
+  pointer-events: none;
+}
+
 /* =========================================================
    COMPOSER FORM
    ========================================================= */
 
 #composer-form {
+  position: relative;
+  z-index: 1;
   width: min(45rem, 100%);
   min-height: 3.375rem;
   margin: 0 auto;
@@ -730,7 +752,7 @@
     var(--safe-bottom) +
     var(--bottom-dock-lift) +
     var(--composer-form-height) +
-    .75rem
+    1.25rem
   );
   pointer-events: none;
 }
@@ -931,7 +953,7 @@
       var(--safe-bottom) +
       var(--bottom-dock-lift) +
       var(--composer-form-height) +
-      .75rem
+      1.25rem
     );
   }
 
@@ -1039,10 +1061,6 @@
 /* =========================================================
    COMPOSER ATTACH FIX
    ========================================================= */
-
-#composer-form {
-  position: relative;
-}
 
 #composer-attach {
   display: grid !important;
@@ -1299,7 +1317,7 @@
       var(--safe-bottom) +
       var(--bottom-dock-lift) +
       var(--composer-form-height) +
-      .75rem
+      1.25rem
     );
   }
 }
