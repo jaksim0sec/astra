@@ -1104,8 +1104,8 @@
 
 #composer-attach svg {
   display: block;
-  width: 1.1875rem;
-  height: 1.1875rem;
+  width: 1.31rem;
+  height: 1.31rem;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.7;
@@ -1233,11 +1233,11 @@
    ========================================================= */
 
 #composer-submit svg {
-  width: 1.125rem;
-  height: 1.125rem;
+  width: 1.3rem;
+  height: 1.3rem;
   fill: none;
   stroke: currentColor;
-  stroke-width: 1.75;
+  stroke-width: 1.72;
   stroke-linecap: round;
   stroke-linejoin: round;
 }
