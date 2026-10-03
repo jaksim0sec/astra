@@ -850,6 +850,31 @@ function updateConversationTitle(
   return clone(conversation);
 }
 
+function setConversationPinned(
+  conversationId,
+  pinned
+){
+  const conversation =
+    getConversation(
+      conversationId
+    );
+
+  if(!conversation){
+    return null;
+  }
+
+  conversation.pinned =
+    !!pinned;
+
+  persist(
+    "conversation:pin"
+  );
+
+  return clone(
+    conversation
+  );
+}
+
 function moveConversation(
   conversationId,
   sectionId
@@ -1161,6 +1186,7 @@ const api = {
   createConversation,
   activateConversation,
   updateConversationTitle,
+  setConversationPinned,
   moveConversation,
   assignContextBundle,
   updateConversationState,
