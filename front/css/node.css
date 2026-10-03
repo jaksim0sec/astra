@@ -1285,11 +1285,10 @@
 .vc-request-group {
   width: 100%;
   display: grid;
-  gap: .38rem;
+  gap: 0;
   padding:
-    .58rem
-    .64rem
-    .62rem;
+    .66rem
+    .68rem;
   border:
     .0625rem solid
     color-mix(
@@ -1336,21 +1335,8 @@
     );
 }
 
-.vc-request-label {
-  color:
-    color-mix(
-      in srgb,
-      var(--node-color) 52%,
-      var(--sub)
-    );
-  font-size: .57rem;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: -.006em;
-}
-
 .vc-request-input {
-  min-height: 2.85rem;
+  min-height: 2.7rem;
   max-height: 9rem;
   padding: 0;
   color: var(--text);
