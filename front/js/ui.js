@@ -626,6 +626,14 @@
     mode,
     options = {}
   ) {
+    if (
+      pageGesture?.active
+    ) {
+      resetPageGesture(
+        false
+      );
+    }
+
     const target =
       mode === "canvas"
         ? "canvas"
@@ -849,6 +857,376 @@
           syncViewport();
         }
       );
+  }
+
+  const pageGesture = {
+    active: false,
+    touchId: null,
+    startX: 0,
+    startY: 0,
+    lastX: 0,
+    lastTime: 0,
+    velocityX: 0,
+    horizontal: false
+  };
+
+  function getTouchById(
+    touches,
+    id
+  ) {
+    for (
+      let index = 0;
+      index < touches.length;
+      index += 1
+    ) {
+      if (
+        touches[index]
+          .identifier === id
+      ) {
+        return touches[index];
+      }
+    }
+
+    return null;
+  }
+
+  function pointInsideGestureBlocker(
+    target
+  ) {
+    if (
+      !target ||
+      typeof target.closest !==
+        "function"
+    ) {
+      return false;
+    }
+
+    if (
+      target.closest(
+        [
+          "#topbar",
+          "#composer",
+          "#mode-switch",
+          ".astra-message-canvas-link",
+          ".astra-message-action",
+          ".ovll-error-notice",
+          "input",
+          "textarea",
+          "select",
+          "button",
+          "a",
+          "[contenteditable='true']"
+        ].join(",")
+      )
+    ) {
+      return true;
+    }
+
+    let node =
+      target;
+
+    while (
+      node &&
+      node !== chatPage
+    ) {
+      if (
+        node instanceof
+          HTMLElement
+      ) {
+        const style =
+          global.getComputedStyle(
+            node
+          );
+
+        if (
+          node.scrollWidth >
+            node.clientWidth + 2 &&
+          (
+            style.overflowX ===
+              "auto" ||
+            style.overflowX ===
+              "scroll"
+          )
+        ) {
+          return true;
+        }
+      }
+
+      node =
+        node.parentElement;
+    }
+
+    return false;
+  }
+
+  function resetPageGesture(
+    restore = true
+  ) {
+    pageGesture.active =
+      false;
+    pageGesture.touchId =
+      null;
+    pageGesture.horizontal =
+      false;
+    pageGesture.velocityX =
+      0;
+
+    workspace
+      .classList
+      .remove(
+        "is-dragging"
+      );
+
+    if (restore) {
+      state.progress =
+        state.mode ===
+          "canvas"
+          ? 1
+          : 0;
+
+      render();
+    }
+  }
+
+  function beginPageGesture(
+    event
+  ) {
+    if (
+      state.destroyed ||
+      state.mode !== "chat" ||
+      pageGesture.active ||
+      pillGesture.active ||
+      !event.touches ||
+      event.touches.length !== 1
+    ) {
+      return;
+    }
+
+    const target =
+      event.target;
+
+    if (
+      !chatPage.contains(
+        target
+      ) ||
+      pointInsideGestureBlocker(
+        target
+      )
+    ) {
+      return;
+    }
+
+    stopTransition();
+
+    const touch =
+      event.touches[0];
+
+    pageGesture.active =
+      true;
+    pageGesture.touchId =
+      touch.identifier;
+    pageGesture.startX =
+      touch.clientX;
+    pageGesture.startY =
+      touch.clientY;
+    pageGesture.lastX =
+      touch.clientX;
+    pageGesture.lastTime =
+      performance.now();
+    pageGesture.velocityX =
+      0;
+    pageGesture.horizontal =
+      false;
+
+    state.progress = 0;
+  }
+
+  function updatePageGesture(
+    event
+  ) {
+    if (
+      !pageGesture.active ||
+      state.mode !== "chat"
+    ) {
+      return;
+    }
+
+    const touch =
+      getTouchById(
+        event.touches,
+        pageGesture.touchId
+      );
+
+    if (!touch) {
+      return;
+    }
+
+    const dx =
+      touch.clientX -
+      pageGesture.startX;
+
+    const dy =
+      touch.clientY -
+      pageGesture.startY;
+
+    const absX =
+      Math.abs(dx);
+
+    const absY =
+      Math.abs(dy);
+
+    if (
+      !pageGesture.horizontal &&
+      Math.max(
+        absX,
+        absY
+      ) < 8
+    ) {
+      return;
+    }
+
+    if (
+      !pageGesture.horizontal
+    ) {
+      if (
+        absY >= absX ||
+        dx >= 0
+      ) {
+        resetPageGesture(
+          false
+        );
+
+        return;
+      }
+
+      pageGesture.horizontal =
+        true;
+
+      workspace
+        .classList
+        .add(
+          "is-dragging"
+        );
+
+      emit(
+        "gesturestart",
+        {
+          x:
+            pageGesture.startX,
+          y:
+            pageGesture.startY,
+          mode:
+            "chat"
+        }
+      );
+    }
+
+    event.preventDefault();
+
+    const next =
+      clamp(
+        -dx /
+          Math.max(
+            1,
+            state.viewportWidth
+          ),
+        0,
+        1
+      );
+
+    const now =
+      performance.now();
+
+    const dt =
+      Math.max(
+        1,
+        now -
+        pageGesture.lastTime
+      );
+
+    const instant =
+      (
+        touch.clientX -
+        pageGesture.lastX
+      ) / dt;
+
+    pageGesture.velocityX =
+      pageGesture.velocityX *
+        .72 +
+      instant *
+        .28;
+
+    pageGesture.lastX =
+      touch.clientX;
+    pageGesture.lastTime =
+      now;
+
+    state.progress =
+      next;
+
+    render();
+  }
+
+  function finishPageGesture() {
+    if (
+      !pageGesture.active
+    ) {
+      return;
+    }
+
+    const horizontal =
+      pageGesture.horizontal;
+
+    const velocity =
+      pageGesture.velocityX;
+
+    const progress =
+      clamp(
+        state.progress,
+        0,
+        1
+      );
+
+    resetPageGesture(
+      false
+    );
+
+    if (!horizontal) {
+      state.progress = 0;
+      render();
+      return;
+    }
+
+    const openCanvas =
+      velocity < -.34 ||
+      progress >= .42;
+
+    if (openCanvas) {
+      setMode(
+        "canvas"
+      );
+
+      return;
+    }
+
+    state.mode =
+      "chat";
+
+    snapTo(
+      0
+    );
+  }
+
+  function cancelPageGesture() {
+    if (
+      !pageGesture.active
+    ) {
+      return;
+    }
+
+    resetPageGesture(
+      true
+    );
   }
 
   const pillGesture = {
@@ -1162,6 +1540,46 @@
       );
     }
   }
+
+  listen(
+    workspace,
+    "touchstart",
+    beginPageGesture,
+    {
+      passive: true,
+      capture: true
+    }
+  );
+
+  listen(
+    workspace,
+    "touchmove",
+    updatePageGesture,
+    {
+      passive: false,
+      capture: true
+    }
+  );
+
+  listen(
+    workspace,
+    "touchend",
+    finishPageGesture,
+    {
+      passive: true,
+      capture: true
+    }
+  );
+
+  listen(
+    workspace,
+    "touchcancel",
+    cancelPageGesture,
+    {
+      passive: true,
+      capture: true
+    }
+  );
 
   listen(
     modeSwitch,
