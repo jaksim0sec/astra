@@ -214,11 +214,13 @@ svg {
 
   background: var(--bg);
 
+  /*
+   * Viewport height follows visualViewport immediately.
+   * Smoothness is handled by the compositor-only follower in ui.js,
+   * avoiding delayed height transitions that snap at keyboard close.
+   */
   transition:
-    height var(--app-resize-duration) var(--app-resize-ease),
     background-color .2s ease;
-
-  will-change: height;
 }
 
 html.viewport-shrinking {
