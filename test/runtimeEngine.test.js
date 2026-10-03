@@ -4,8 +4,11 @@ import assert from "node:assert/strict";
 globalThis.window = globalThis;
 await import("../front/js/runtimeEngine.js");
 
-const { RuntimeEngine, normalizeWorkflow } =
-  globalThis.OvllExecutionEngine;
+const {
+  RuntimeEngine,
+  LocalNodeExecutor,
+  normalizeWorkflow
+} = globalThis.OvllExecutionEngine;
 
 function node(id, type = "step") {
   return { id, type, data: {} };
@@ -633,5 +636,21 @@ test("data-only linear dependencies can share one Gemini group", async () => {
   assert.deepEqual(
     calls,
     [["research", "organize"]]
+  );
+});
+
+
+test("local executor refuses Gemini-capable nodes", async () => {
+  const executor =
+    new LocalNodeExecutor();
+
+  await assert.rejects(
+    executor.run(
+      node(
+        "research",
+        "research"
+      )
+    ),
+    /server group/
   );
 });
