@@ -255,3 +255,141 @@ test("dependency edges emit balanced active and inactive events", async () => {
     [["ab", true], ["ab", false]]
   );
 });
+
+
+test("linear Gemini nodes execute in one group call", async () => {
+  const groupCalls = [];
+  const runCalls = [];
+  const engine = new RuntimeEngine({
+    executor: {
+      async run(current) {
+        runCalls.push(current.id);
+        return { outputs: { result: current.id } };
+      },
+      async runGroup(group) {
+        groupCalls.push(group.nodes.map(item => item.id));
+        return {
+          results: group.nodes.map(item => ({
+            nodeId: item.id,
+            outputs: { result: item.id },
+            decision: null,
+            report: item.id
+          }))
+        };
+      }
+    }
+  });
+  const graph = workflow(
+    [
+      node("research", "research"),
+      node("organize", "organize"),
+      node("write", "write")
+    ],
+    [
+      edge("ro", "research", "organize"),
+      edge("ow", "organize", "write")
+    ]
+  );
+
+  const result = await engine.run(graph, "research", { mode: "spread" });
+
+  assert.deepEqual(groupCalls, [["research", "organize", "write"]]);
+  assert.deepEqual(runCalls, []);
+  assert.equal(result.nodes.research.status, "SUCCESS");
+  assert.equal(result.nodes.organize.status, "SUCCESS");
+  assert.equal(result.nodes.write.status, "SUCCESS");
+});
+
+test("judge is isolated from adjacent Gemini groups", async () => {
+  const groupCalls = [];
+  const engine = new RuntimeEngine({
+    executor: {
+      async run() {
+        throw new Error("unexpected single run");
+      },
+      async runGroup(group) {
+        const ids = group.nodes.map(item => item.id);
+        groupCalls.push(ids);
+        return {
+          results: group.nodes.map(item => ({
+            nodeId: item.id,
+            outputs:
+              item.type === "judge"
+                ? { true: item.id }
+                : { result: item.id },
+            decision:
+              item.type === "judge"
+                ? true
+                : null,
+            report: item.id
+          }))
+        };
+      }
+    }
+  });
+  const graph = workflow(
+    [
+      node("research", "research"),
+      node("judge", "judge"),
+      node("write", "write")
+    ],
+    [
+      edge("rj", "research", "judge"),
+      edge("jw", "judge", "write", { fromPort: "true" })
+    ]
+  );
+
+  await engine.run(graph, "research", { mode: "spread" });
+
+  assert.deepEqual(
+    groupCalls,
+    [["research"], ["judge"], ["write"]]
+  );
+});
+
+test("group transport failure blocks only its dependent chain", async () => {
+  const groupCalls = [];
+  const engine = new RuntimeEngine({
+    executor: {
+      async run(current) {
+        return { outputs: { result: current.id } };
+      },
+      async runGroup(group) {
+        const ids = group.nodes.map(item => item.id);
+        groupCalls.push(ids);
+        if (ids.includes("bad")) {
+          throw new Error("group failed");
+        }
+        return {
+          results: group.nodes.map(item => ({
+            nodeId: item.id,
+            outputs: { result: item.id },
+            decision: null,
+            report: item.id
+          }))
+        };
+      }
+    }
+  });
+  const graph = workflow(
+    [
+      node("root", "start"),
+      node("bad", "research"),
+      node("blocked", "write"),
+      node("good", "organize")
+    ],
+    [
+      edge("rb", "root", "bad", { fromPort: "out" }),
+      edge("bb", "bad", "blocked"),
+      edge("rg", "root", "good", { fromPort: "out" })
+    ]
+  );
+
+  const result = await engine.run(graph, "root", { mode: "spread" });
+
+  assert.equal(result.status, "FAILED");
+  assert.equal(result.nodes.bad.status, "FAILED");
+  assert.equal(result.nodes.blocked.status, "SKIPPED");
+  assert.equal(result.nodes.good.status, "SUCCESS");
+  assert.equal(result.nodes.blocked.skipReason, "dependency_failed");
+});
