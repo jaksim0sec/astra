@@ -624,7 +624,7 @@
       `;
     }
 
-    function renderPorts(node, ports, direction) {    function renderPorts(node, ports, direction) {
+    function renderPorts(node, ports, direction) {
       const cls = direction === 'input' ? 'vc-input' : 'vc-output';
       return (ports || []).map(port => `
         <div

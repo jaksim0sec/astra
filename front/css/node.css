@@ -474,7 +474,7 @@
   border-bottom: 0;
 }
 
-.vc-node.vc-runtime-failed {.vc-node.vc-runtime-failed {
+.vc-node.vc-runtime-failed {
   border-color: color-mix(in srgb, #ef6a6a 55%, var(--line));
 }
 @keyframes vc-runtime-pulse {

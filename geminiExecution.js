@@ -1611,8 +1611,6 @@ export function createGeminiExecution(
 
   async function executeGroup(
     input
-  ) {  async function executeGroup(
-    input
   ) {
     if (!apiKey) {
       throw new GeminiExecutionError(
