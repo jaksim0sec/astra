@@ -105,6 +105,39 @@
     return null;
   }
 
+  function clipMemoryField(
+    value,
+    max
+  ) {
+    const text =
+      String(value || "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    if (
+      text.length <= max
+    ) {
+      return text;
+    }
+
+    const tail =
+      Math.max(
+        100,
+        Math.floor(
+          max * .26
+        )
+      );
+
+    return (
+      text.slice(
+        0,
+        max - tail - 3
+      ) +
+      " … " +
+      text.slice(-tail)
+    ).slice(0, max);
+  }
+
   function normalizeMemory(memory) {
     if (
       !memory ||
@@ -116,17 +149,20 @@
 
     return {
       flow:
-        typeof memory.flow === "string"
-          ? memory.flow.trim()
-          : "",
+        clipMemoryField(
+          memory.flow,
+          700
+        ),
       recent:
-        typeof memory.recent === "string"
-          ? memory.recent.trim()
-          : "",
+        clipMemoryField(
+          memory.recent,
+          1400
+        ),
       detail:
-        typeof memory.detail === "string"
-          ? memory.detail.trim()
-          : ""
+        clipMemoryField(
+          memory.detail,
+          1900
+        )
     };
   }
 
@@ -2409,22 +2445,28 @@
       node?.data?.params ||
       {};
 
+    const request =
+      params.request;
+
     switch (type) {
       case "research":
         return `${compactRuntimeSubject(
+          request ||
           params.topic,
           "자료"
         )} 탐색 중`;
 
       case "organize":
         return `${compactRuntimeSubject(
+          request ||
           params.format ||
           params.criteria,
           "자료"
-        )}로 정리 중`;
+        )} 정리 중`;
 
       case "write":
         return `${compactRuntimeSubject(
+          request ||
           params.title ||
           params.about,
           "결과"
@@ -2432,18 +2474,21 @@
 
       case "convert":
         return `${compactRuntimeSubject(
+          request ||
           params.instruction,
           "결과"
         )} 변환 중`;
 
       case "judge":
         return `${compactRuntimeSubject(
+          request ||
           params.condition,
           "조건"
         )} 판단 중`;
 
       case "createFile":
         return `${compactRuntimeSubject(
+          request ||
           params.filename,
           "결과물"
         )} 생성 중`;
@@ -3832,6 +3877,140 @@
       };
     }
 
+    function resolveArtifactRequest(
+      params
+    ) {
+      const source =
+        params &&
+        typeof params ===
+          "object"
+          ? params
+          : {};
+
+      const request =
+        String(
+          source.request ||
+          ""
+        )
+          .replace(/\s+/g, " ")
+          .trim()
+          .slice(0, 1200);
+
+      const aliases = [
+        ["PDF", /(?:\.pdf\b|\bpdf\b)/i],
+        ["DOCX", /(?:\.docx\b|\bdocx\b|\bword\b|워드)/i],
+        ["XLSX", /(?:\.xlsx\b|\bxlsx\b|\bexcel\b|엑셀)/i],
+        ["CSV", /(?:\.csv\b|\bcsv\b)/i],
+        ["JSON", /(?:\.json\b|\bjson\b)/i],
+        ["HTML", /(?:\.html?\b|\bhtml\b)/i],
+        ["RTF", /(?:\.rtf\b|\brtf\b)/i],
+        ["MD", /(?:\.md\b|\bmarkdown\b|마크다운)/i],
+        ["TXT", /(?:\.txt\b|\btxt\b|텍스트 파일)/i]
+      ];
+
+      let format =
+        String(
+          source.format ||
+          ""
+        )
+          .trim()
+          .toUpperCase();
+
+      if (
+        request
+      ) {
+        const matched =
+          aliases.find(
+            ([, pattern]) =>
+              pattern.test(
+                request
+              )
+          );
+
+        if (matched) {
+          format =
+            matched[0];
+        }
+      }
+
+      if (
+        !aliases.some(
+          ([value]) =>
+            value === format
+        )
+      ) {
+        format = "PDF";
+      }
+
+      let filename =
+        String(
+          source.filename ||
+          ""
+        )
+          .trim();
+
+      const extensionMatch =
+        request.match(
+          /([^\n"'“”\\/]{1,80})\.(pdf|docx|xlsx|csv|txt|md|json|html?|rtf)\b/i
+        );
+
+      if (extensionMatch) {
+        filename =
+          extensionMatch[1]
+            .replace(
+              /^(?:파일명|이름)\s*(?:은|는|:)?\s*/i,
+              ""
+            )
+            .trim();
+
+        const ext =
+          extensionMatch[2]
+            .toUpperCase();
+
+        format =
+          ext === "HTM"
+            ? "HTML"
+            : ext;
+      } else if (
+        !filename &&
+        request
+      ) {
+        const named =
+          request.match(
+            /(?:파일명|이름)\s*(?:은|는|:)?\s*["'“]?([^"'”\n,]{1,64})/i
+          );
+
+        if (named) {
+          filename =
+            named[1]
+              .replace(
+                /\s*(?:파일)?(?:로|으로)?\s*(?:만들어|생성).*$/i,
+                ""
+              )
+              .trim();
+        }
+      }
+
+      filename =
+        (filename || "결과물")
+          .replace(
+            /\.(pdf|docx|xlsx|csv|txt|md|json|html?|rtf)$/i,
+            ""
+          )
+          .replace(
+            /[\\/:*?"<>|\u0000-\u001f]/g,
+            "_"
+          )
+          .trim()
+          .slice(0, 100) ||
+        "결과물";
+
+      return {
+        format,
+        filename
+      };
+    }
+
     const runtimeExecutor = {
       async run(
         node,
@@ -3853,15 +4032,20 @@
               node?.params ||
               {};
 
+            const artifactRequest =
+              resolveArtifactRequest(
+                params
+              );
+
             const response =
               await API
                 .createArtifact({
                   format:
-                    params.format ||
-                    "PDF",
+                    artifactRequest
+                      .format,
                   filename:
-                    params.filename ||
-                    "결과물",
+                    artifactRequest
+                      .filename,
                   sources:
                     runtimeInputValues(
                       inputs
