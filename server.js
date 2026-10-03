@@ -87,7 +87,7 @@ const geminiExecution =
  * The frontend compares this server value with its locally stored version
  * before loading application assets.
  */
-const APP_VERSION = '2026.10.04.19';
+const APP_VERSION = '2026.10.04.20';
 
 /* =========================================================
    CANONICAL NODE DEFINITION
@@ -121,8 +121,8 @@ const defaultNodeDef = {
 
   research: {
     name: '조사하기',
-    desc: '필요한 정보를 찾아 수집합니다.',
-    llmdesc: '추가적으로 필요한 "외부" 정보를 조사함. 입력 자료가 있으면 이를 참고하여 추가 조사가 가능.',
+    desc: '찾아볼 내용을 자연스럽게 요청합니다.',
+    llmdesc: '입력 자료와 대화 맥락을 바탕으로 request에 적힌 조사 목표를 수행함. request가 없을 때만 legacy topic/filter를 사용함.',
     tag: 'RESEARCH',
     color: '#4F8EF7',
     icon: `
@@ -133,16 +133,26 @@ const defaultNodeDef = {
     `,
     params: [
       {
+        id: 'request',
+        name: '요청사항',
+        kind: 'request',
+        placeholder: '예: 최근 3년 생성형 AI 시장 흐름과 주요 기업을 조사해줘',
+        default: '',
+        maxLength: 1800
+      },
+      {
         id: 'topic',
         name: '주제',
-        placeholder: '조사할 주제',
-        default: '생성형 AI 시장'
+        hidden: true,
+        legacy: true,
+        maxLength: 700
       },
       {
         id: 'filter',
         name: '조건',
-        placeholder: '조사 조건',
-        default: '최근 3년'
+        hidden: true,
+        legacy: true,
+        maxLength: 500
       }
     ],
     inputs: [
@@ -169,8 +179,8 @@ const defaultNodeDef = {
 
   organize: {
     name: '정리하기',
-    desc: '자료를 기준에 따라 구조화합니다.',
-    llmdesc: '입력된 자료를 기준에 따라 정리/구조화함',
+    desc: '자료를 원하는 모습으로 정리합니다.',
+    llmdesc: '입력 자료를 request에 적힌 목적과 형태에 맞게 정리함. request가 없을 때만 legacy criteria/format을 사용함.',
     tag: 'ORGANIZE',
     color: '#E9A63A',
     icon: `
@@ -180,16 +190,26 @@ const defaultNodeDef = {
     `,
     params: [
       {
+        id: 'request',
+        name: '요청사항',
+        kind: 'request',
+        placeholder: '예: 핵심 수치와 기업별 특징을 비교하기 쉽게 정리해줘',
+        default: '',
+        maxLength: 1800
+      },
+      {
         id: 'criteria',
         name: '정리 기준',
-        placeholder: '정리할 기준',
-        default: '시장 규모 / 주요 기업'
+        hidden: true,
+        legacy: true,
+        maxLength: 700
       },
       {
         id: 'format',
         name: '출력 형식',
-        placeholder: '예: 표, 목록, 문단',
-        default: '표'
+        hidden: true,
+        legacy: true,
+        maxLength: 300
       }
     ],
     inputs: [
@@ -216,8 +236,8 @@ const defaultNodeDef = {
 
   judge: {
     name: '평가하기',
-    desc: '조건을 판단하고 참 또는 거짓 경로로 데이터를 전달합니다.',
-    llmdesc: '참자료→참출구, 거짓자료→거짓출구로 자료, 실행 흐름이 연결됨. condition가 참이면 참출구만, 아니면 거짓출구만 열리며 동시에 두개가 열리는 상황은 없음.',
+    desc: '자료를 원하는 기준으로 판단합니다.',
+    llmdesc: 'request에 적힌 판단 기준으로 입력을 평가하고 true/false 한 경로만 엶. request가 없을 때만 legacy condition을 사용함.',
     tag: 'JUDGE',
     color: '#8B6BE8',
     icon: `
@@ -228,10 +248,19 @@ const defaultNodeDef = {
     `,
     params: [
       {
+        id: 'request',
+        name: '요청사항',
+        kind: 'request',
+        placeholder: '예: 신뢰할 만한 근거가 충분한지 판단해줘',
+        default: '',
+        maxLength: 1800
+      },
+      {
         id: 'condition',
         name: '조건',
-        placeholder: '판단 조건',
-        default: '일치도 ≥ 70%'
+        hidden: true,
+        legacy: true,
+        maxLength: 900
       }
     ],
     inputs: [
@@ -274,8 +303,8 @@ const defaultNodeDef = {
 
   write: {
     name: '작성하기',
-    desc: '주어진 정보를 글 형태로 작성합니다.',
-    llmdesc: '입력된 자료를 바탕으로 문서를 작성함. 제목 분량 스타일 내용을 통해 특성을 조정함. 정리가 필요한 경우 작성후 정리 보다 정리후 작성이 바람직함.',
+    desc: '원하는 결과물을 자연어로 작성 요청합니다.',
+    llmdesc: '입력 자료와 맥락을 바탕으로 request에 적힌 최종 글을 직접 작성함. request가 없을 때만 legacy title/length/style/about을 사용함.',
     tag: 'WRITE',
     color: '#D96F83',
     icon: `
@@ -285,28 +314,40 @@ const defaultNodeDef = {
     `,
     params: [
       {
+        id: 'request',
+        name: '요청사항',
+        kind: 'request',
+        placeholder: '예: 고등학생도 이해하기 쉽게 5문단 정도의 보고서로 써줘',
+        default: '',
+        maxLength: 1800
+      },
+      {
         id: 'title',
         name: '제목',
-        placeholder: '문서 제목',
-        default: 'AI 기술 보고서'
+        hidden: true,
+        legacy: true,
+        maxLength: 300
       },
       {
         id: 'length',
         name: '분량',
-        placeholder: '예: 2페이지',
-        default: '2페이지'
+        hidden: true,
+        legacy: true,
+        maxLength: 200
       },
       {
         id: 'style',
         name: '스타일',
-        placeholder: '예: 전문적, 간결한',
-        default: '전문적'
+        hidden: true,
+        legacy: true,
+        maxLength: 300
       },
       {
         id: 'about',
         name: '내용',
-        placeholder: '예: 관련 데이터에 대하여 서술',
-        default: ''
+        hidden: true,
+        legacy: true,
+        maxLength: 1200
       }
     ],
     inputs: [
@@ -358,8 +399,8 @@ const defaultNodeDef = {
 
   createFile: {
     name: '생성하기',
-    desc: '완성된 결과물을 파일로 생성합니다.',
-    llmdesc: '입력된 결과물을 지정한 파일 형식으로 내보내는 최종 출력 노드임. 파일 형식과 파일명을 지정하여 결과 파일을 생성함. 질문에 대한 답변과 같은 단순 자연어 결과는 굳이 필요없음.',
+    desc: '원하는 파일 결과를 자연스럽게 요청합니다.',
+    llmdesc: '입력 결과를 request에 적힌 파일명/형식으로 내보내는 최종 출력 노드임. request가 없을 때만 legacy format/filename을 사용함.',
     tag: 'OUTPUT',
     color: '#0EA5A4',
     icon: `
@@ -369,16 +410,26 @@ const defaultNodeDef = {
     `,
     params: [
       {
+        id: 'request',
+        name: '요청사항',
+        kind: 'request',
+        placeholder: '예: 결과를 AI시장보고서.pdf 파일로 만들어줘',
+        default: '',
+        maxLength: 1200
+      },
+      {
         id: 'format',
         name: '파일 형식',
-        placeholder: '예: PDF, DOCX',
-        default: 'PDF'
+        hidden: true,
+        legacy: true,
+        maxLength: 40
       },
       {
         id: 'filename',
         name: '파일명',
-        placeholder: '저장할 파일 이름',
-        default: '결과물'
+        hidden: true,
+        legacy: true,
+        maxLength: 160
       }
     ],
     inputs: [
@@ -444,7 +495,19 @@ function buildNodeDefinitionPrompt() {
 
       const params =
         (def.params || [])
-          .map(param => param.id)
+          .filter(
+            param =>
+              param.hidden !== true
+          )
+          .map(
+            param =>
+              param.id +
+              (
+                param.kind === 'request'
+                  ? ':natural'
+                  : ''
+              )
+          )
           .join(',') || '-';
 
       return [
@@ -475,13 +538,15 @@ CONVERSATION AND WORKFLOW:
 - The returned memory is the NEXT MEMORY STATE.
 - Build NEXT MEMORY from PREVIOUS MEMORY + LATEST_USER_REQUEST + the actual user-facing response you generate in message/question.
 - Finish the user-facing message and question first, then construct memory from the completed turn. Never describe a response that has not been generated yet.
-- Preserve the previous memory and update only what the complete current turn adds, changes, or corrects.
-- flow = broad ongoing subject and direction. Keep existing thread and add newly introduced meaningful topics. Write dense content with important nouns facts actions and context. Minimize filler words particles and punctuation. Never reduce flow to a category or single word.
-- recent = latest local context. Combine latest user request needed preceding context and actual response meaning in one dense sentence. Keep concrete nouns facts actions and references needed for the next turn. Minimize filler particles and punctuation. Never use future statements such as "설명할 것이다".
-- detail = cumulative important facts topics decisions requirements preferences and established information. Preserve previous detail and add new meaningful information. Keep concrete content and keywords. Minimize filler particles and punctuation.
-- Every non-empty memory field must be one compact information-dense sentence. Maximize useful facts keywords entities actions and relationships. Minimize unnecessary particles repetition explanation and punctuation. Do not use labels isolated keywords or shallow summaries.
-- During ordinary conversation, flow normally continues, recent is refreshed, and detail is preserved or expanded when the turn adds meaningful information.
-- Never clear unrelated memory just because it was not mentioned in the latest request.
+- Preserve previous memory aggressively. Update only what the completed turn adds, changes, resolves, or explicitly replaces.
+- Resolve short follow-ups, pronouns, omitted subjects, "그거/아까/계속" and similar references from MEMORY + CURRENT WORKFLOW before deciding intent.
+- flow = broad ongoing subject and direction. Preserve the active project/thread, current objective, and meaningful subtopics. Dense factual sentence, not a category label.
+- recent = near-term continuity. Preserve the latest 2-3-turn dependencies when they are still needed: what the user just changed, what remains unresolved, and what the assistant actually did or answered.
+- detail = durable state. Preserve named entities, explicit constraints, design/behavior choices, decisions, preferences, unresolved requirements, and facts likely to matter later.
+- Compression may remove filler and repetition, but must not remove referents or constraints needed to understand the next short follow-up.
+- Every non-empty memory field must be one compact information-dense sentence. Prefer concrete nouns, values, actions, relationships, and constraints over prose.
+- During ordinary conversation, flow normally continues, recent is refreshed without erasing still-needed local context, and detail changes only when durable information changes.
+- Never clear unrelated memory merely because it was not repeated in the latest request.
 - Never invent information. When uncertain, preserve the previous state.
 - Never turn MEMORY into a transcript.
 - Before returning memory, verify that the broader conversation context, important previously discussed topics, latest request, and actual response are still represented where relevant.
@@ -570,11 +635,13 @@ SPECIAL NODES:
 
 PARAMS:
 Only use parameter IDs defined for the exact node type.
-For add and modify, paramsJson MUST be a valid JSON object encoded as a string.
+For AI action nodes, request is the primary public parameter. Put the user's goal, constraints, desired style/shape, and other meaningful instructions into one concise natural-language request instead of splitting them into rigid option fields.
+Legacy hidden params may exist in CURRENT WORKFLOW for compatibility. Do not generate or modify legacy hidden params when request is available.
+For add and modify, paramsJson MUST be a valid JSON object encoded as a string. Prefer {"request":"..."} for nodes that expose request.
+Keep request concise and self-contained. Do not copy the full conversation into a node.
 Use {} when the node has no parameters.
 Never invent parameter IDs.
-For add, user-specified values override canonical defaults.
-For modify, only the specified parameter values need to be included; do not erase unrelated existing parameters unless the user explicitly asks to clear them.
+For modify, include only values that actually change.
 
 PATCH OPERATIONS:
 - a = add node: id=temporary ID, type=canonical type, paramsJson=JSON object string
@@ -665,7 +732,8 @@ const PLANNER_SCHEMA = {
             type: 'string'
           },
           paramsJson: {
-            type: 'string'
+            type: 'string',
+            maxLength: 2400
           },
           source: {
             type: 'string'
@@ -689,9 +757,9 @@ const PLANNER_SCHEMA = {
       type: 'object',
       additionalProperties: false,
       properties: {
-        flow: {type: 'string', maxLength: 600},
-        recent: {type: 'string', maxLength: 1200},
-        detail: {type: 'string', maxLength: 1600}
+        flow: {type: 'string', maxLength: 700},
+        recent: {type: 'string', maxLength: 1400},
+        detail: {type: 'string', maxLength: 1900}
       },
       required: ['flow', 'recent', 'detail']
     }
@@ -739,26 +807,179 @@ function cloneWorkflow(workflow) {
   };
 }
 
+function clipCompactText(
+  value,
+  max
+) {
+  const text =
+    String(value ?? '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  if (
+    !Number.isFinite(max) ||
+    max <= 0 ||
+    text.length <= max
+  ) {
+    return text;
+  }
+
+  const tail =
+    Math.max(
+      80,
+      Math.floor(max * .28)
+    );
+
+  const head =
+    Math.max(
+      0,
+      max - tail - 3
+    );
+
+  return (
+    text.slice(0, head) +
+    ' … ' +
+    text.slice(-tail)
+  ).slice(0, max);
+}
+
 function cleanParams(type, params, fillDefaults = false) {
   const def = getNodeDefinition(type);
   if (!def) throw new Error(`존재하지 않는 노드 타입: ${type}`);
+
   let source = {};
+
   if (params != null) {
-    if (typeof params !== 'object' || Array.isArray(params)) throw new Error(`${type}.params는 JSON 객체여야 합니다.`);
+    if (
+      typeof params !== 'object' ||
+      Array.isArray(params)
+    ) {
+      throw new Error(
+        `${type}.params는 JSON 객체여야 합니다.`
+      );
+    }
+
     source = params;
   }
-  const allowed = new Map((def.params || []).map(param => [String(param.id), param]));
-  const unknown = Object.keys(source).filter(key => !allowed.has(key));
-  if (unknown.length) throw new Error(`${type}.params에 허용되지 않은 파라미터가 있습니다: ${unknown.join(', ')}`);
+
+  const allowed =
+    new Map(
+      (def.params || [])
+        .map(param => [
+          String(param.id),
+          param
+        ])
+    );
+
+  const unknown =
+    Object.keys(source)
+      .filter(
+        key =>
+          !allowed.has(key)
+      );
+
+  if (unknown.length) {
+    throw new Error(
+      `${type}.params에 허용되지 않은 파라미터가 있습니다: ${unknown.join(', ')}`
+    );
+  }
+
   const result = {};
+
+  const assign = (
+    id,
+    value,
+    param
+  ) => {
+    if (
+      typeof value !== 'string'
+    ) {
+      if (
+        value == null
+      ) {
+        return;
+      }
+
+      value =
+        String(value);
+    }
+
+    const maxLength =
+      Math.max(
+        1,
+        Number(
+          param?.maxLength ||
+          1800
+        ) || 1800
+      );
+
+    result[id] =
+      clipCompactText(
+        value,
+        maxLength
+      );
+  };
+
   if (fillDefaults) {
-    for (const [id, param] of allowed) {
-      if (Object.prototype.hasOwnProperty.call(source, id)) result[id] = source[id];
-      else if (Object.prototype.hasOwnProperty.call(param, 'default')) result[id] = param.default;
+    for (
+      const [id, param]
+      of allowed
+    ) {
+      if (
+        Object.prototype
+          .hasOwnProperty.call(
+            source,
+            id
+          )
+      ) {
+        assign(
+          id,
+          source[id],
+          param
+        );
+      } else if (
+        Object.prototype
+          .hasOwnProperty.call(
+            param,
+            'default'
+          )
+      ) {
+        assign(
+          id,
+          param.default,
+          param
+        );
+      }
     }
   } else {
-    for (const key of Object.keys(source)) result[key] = source[key];
+    for (
+      const key
+      of Object.keys(source)
+    ) {
+      assign(
+        key,
+        source[key],
+        allowed.get(key)
+      );
+    }
   }
+
+  if (
+    result.request
+      ?.trim()
+  ) {
+    for (
+      const [id, param]
+      of allowed
+    ) {
+      if (
+        param?.legacy === true
+      ) {
+        delete result[id];
+      }
+    }
+  }
+
   return result;
 }
 
@@ -869,15 +1090,22 @@ function normalizeMemory(memory) {
       ? memory
       : {};
 
-  const clip = (value, max) =>
-    String(value ?? '')
-      .trim()
-      .slice(0, max);
-
   return {
-    flow: clip(source.flow, 600),
-    recent: clip(source.recent, 1200),
-    detail: clip(source.detail, 1600)
+    flow:
+      clipCompactText(
+        source.flow,
+        700
+      ),
+    recent:
+      clipCompactText(
+        source.recent,
+        1400
+      ),
+    detail:
+      clipCompactText(
+        source.detail,
+        1900
+      )
   };
 }
 
@@ -1662,9 +1890,10 @@ function buildUserPrompt(
     ),
     '</CURRENT_WORKFLOW>',
     '<LATEST_USER_REQUEST>',
-    String(
-      text || ''
-    ).trim(),
+    clipCompactText(
+      text,
+      6000
+    ),
     '</LATEST_USER_REQUEST>'
   ].join('\n');
 }
