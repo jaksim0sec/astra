@@ -448,16 +448,38 @@
 }
 
 .ovll-sidebar-search input {
+  appearance: none;
+  -webkit-appearance: none;
   width: 100%;
   min-width: 0;
   height: 1.7rem;
+  margin: 0;
   padding: 0;
   border: 0;
+  border-radius: 0;
   outline: 0;
+  box-shadow: none;
   color: var(--text);
   background: transparent;
+  font: inherit;
   font-size: .78rem;
   font-weight: 520;
+  line-height: 1.4;
+}
+
+.ovll-sidebar-search input::-webkit-search-decoration,
+.ovll-sidebar-search input::-webkit-search-cancel-button,
+.ovll-sidebar-search input::-webkit-search-results-button,
+.ovll-sidebar-search input::-webkit-search-results-decoration {
+  display: none;
+  -webkit-appearance: none;
+}
+
+.ovll-sidebar-search input::-ms-clear,
+.ovll-sidebar-search input::-ms-reveal {
+  display: none;
+  width: 0;
+  height: 0;
 }
 
 .ovll-sidebar-search input::placeholder {
@@ -514,17 +536,17 @@
 }
 
 .ovll-sidebar-group-head {
-  min-height: 2.15rem;
+  min-height: 2.45rem;
   display: flex;
   align-items: center;
-  gap: .42rem;
+  gap: .44rem;
   padding:
-    .22rem
-    .55rem;
-  color: var(--muted);
-  font-size: .68rem;
-  font-weight: 680;
-  letter-spacing: .018em;
+    .3rem
+    .6rem;
+  color: var(--sub);
+  font-size: .82rem;
+  font-weight: 710;
+  letter-spacing: -.012em;
 }
 
 .ovll-sidebar-group-head small {
@@ -1025,4 +1047,9 @@
   .ovll-sidebar-section-chevron {
     transition: none !important;
   }
+}
+
+
+.ovll-sidebar-chat-list-flat {
+  margin-top: .08rem;
 }
