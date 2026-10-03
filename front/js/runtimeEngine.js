@@ -450,6 +450,117 @@
     };
   }
 
+  function resolveNaturalFileRequest(
+    params
+  ) {
+    const source =
+      params &&
+      typeof params === "object"
+        ? params
+        : {};
+
+    const request =
+      String(
+        source.request ||
+        ""
+      )
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 1200);
+
+    const formats = [
+      ["PDF", /(?:\.pdf\b|\bpdf\b)/i],
+      ["DOCX", /(?:\.docx\b|\bdocx\b|\bword\b|워드)/i],
+      ["XLSX", /(?:\.xlsx\b|\bxlsx\b|\bexcel\b|엑셀)/i],
+      ["CSV", /(?:\.csv\b|\bcsv\b)/i],
+      ["JSON", /(?:\.json\b|\bjson\b)/i],
+      ["HTML", /(?:\.html?\b|\bhtml\b)/i],
+      ["RTF", /(?:\.rtf\b|\brtf\b)/i],
+      ["MD", /(?:\.md\b|\bmarkdown\b|마크다운)/i],
+      ["TXT", /(?:\.txt\b|\btxt\b|텍스트 파일)/i]
+    ];
+
+    let format =
+      String(
+        source.format ||
+        ""
+      )
+        .trim()
+        .toUpperCase();
+
+    if (request) {
+      const match =
+        formats.find(
+          ([, pattern]) =>
+            pattern.test(
+              request
+            )
+        );
+
+      if (match) {
+        format = match[0];
+      }
+    }
+
+    if (
+      !formats.some(
+        ([value]) =>
+          value === format
+      )
+    ) {
+      format = "PDF";
+    }
+
+    let filename =
+      String(
+        source.filename ||
+        ""
+      ).trim();
+
+    const namedFile =
+      request.match(
+        /([^\n"'“”\\/]{1,80})\.(pdf|docx|xlsx|csv|txt|md|json|html?|rtf)\b/i
+      );
+
+    if (namedFile) {
+      filename =
+        namedFile[1]
+          .replace(
+            /^(?:파일명|이름)\s*(?:은|는|:)?\s*/i,
+            ""
+          )
+          .trim();
+
+      const ext =
+        namedFile[2]
+          .toUpperCase();
+
+      format =
+        ext === "HTM"
+          ? "HTML"
+          : ext;
+    }
+
+    filename =
+      (filename || "결과물")
+        .replace(
+          /\.(pdf|docx|xlsx|csv|txt|md|json|html?|rtf)$/i,
+          ""
+        )
+        .replace(
+          /[\\/:*?"<>|\u0000-\u001f]/g,
+          "_"
+        )
+        .trim()
+        .slice(0, 100) ||
+      "결과물";
+
+    return {
+      filename,
+      format
+    };
+  }
+
   class LocalNodeExecutor {
     async run(
       node,
@@ -520,13 +631,13 @@
         }
 
         case "createFile": {
-          const filename =
-            params.filename ||
-            "결과물";
-
-          const format =
-            params.format ||
-            "PDF";
+          const {
+            filename,
+            format
+          } =
+            resolveNaturalFileRequest(
+              params
+            );
 
           return {
             outputs: {},
@@ -587,8 +698,8 @@
           1000,
           Number(
             options.maxGroupInputChars ??
-            60000
-          ) || 60000
+            42000
+          ) || 42000
         );
     }
 
