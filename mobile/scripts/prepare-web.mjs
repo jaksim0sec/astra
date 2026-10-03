@@ -32,9 +32,15 @@ const targetDir =
     "www"
   );
 
+const DEFAULT_API_ORIGIN =
+  "https://astra-ep6m.onrender.com";
+
 function normalizeApiOrigin(value) {
   const raw =
-    String(value || "")
+    String(
+      value ||
+      DEFAULT_API_ORIGIN
+    )
       .trim()
       .replace(/\/+$/, "");
 

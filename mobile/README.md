@@ -16,7 +16,13 @@ cd mobile
 npm install
 ```
 
-백엔드 주소는 HTTPS origin만 지정한다.
+기본 백엔드는 현재 배포 서버를 사용한다.
+
+```text
+https://astra-ep6m.onrender.com
+```
+
+다른 서버로 빌드할 때만 HTTPS origin을 덮어쓴다.
 
 ```bash
 export OVLL_API_ORIGIN=https://your-ovll-server.example
@@ -39,9 +45,10 @@ npm run ios:open
 ## 프론트 변경 후
 
 ```bash
-export OVLL_API_ORIGIN=https://your-ovll-server.example
 npm run sync
 ```
+
+다른 백엔드를 사용할 때만 `OVLL_API_ORIGIN`을 지정한다.
 
 `npm run sync`는 `../front`를 새로 복사한 뒤 Capacitor native project와 동기화한다.
 
