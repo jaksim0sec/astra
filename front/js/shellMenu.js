@@ -143,16 +143,6 @@ function icon(name){
         <path d="M4 5.1A2.1 2.1 0 0 1 6.1 3h7.8A2.1 2.1 0 0 1 16 5.1v6.1a2.1 2.1 0 0 1-2.1 2.1H8.2L4.35 16v-2.7A2.08 2.08 0 0 1 4 12.15V5.1Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
       </svg>
     `,
-    download:`
-      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <path d="M10 3.7v7.65m0 0 2.65-2.65M10 11.35 7.35 8.7M4.2 15.3h11.6" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    `,
-    upload:`
-      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <path d="M10 11.35V3.7m0 0 2.65 2.65M10 3.7 7.35 6.35M4.2 15.3h11.6" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    `,
     user:`
       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
         <circle cx="10" cy="7.05" r="3" stroke="currentColor" stroke-width="1.5"/>
@@ -254,7 +244,8 @@ root.innerHTML=`
             ${icon("search")}
           </span>
           <input
-            type="search"
+            type="text"
+            inputmode="search"
             placeholder="대화 검색"
             autocomplete="off"
             spellcheck="false"
@@ -281,26 +272,6 @@ root.innerHTML=`
       </div>
 
       <footer class="ovll-sidebar-footer">
-        <div class="ovll-sidebar-local-tools">
-          <button
-            type="button"
-            data-sidebar-action="export"
-            title="JSON 내보내기"
-            aria-label="JSON 내보내기"
-          >
-            ${icon("download")}
-          </button>
-          <button
-            type="button"
-            data-sidebar-action="import"
-            title="JSON 불러오기"
-            aria-label="JSON 불러오기"
-          >
-            ${icon("upload")}
-          </button>
-          <span>로컬 저장</span>
-        </div>
-
         <button
           type="button"
           class="ovll-sidebar-account"
@@ -313,20 +284,11 @@ root.innerHTML=`
             <strong>로그인</strong>
             <small>기기 간 동기화 준비</small>
           </span>
-          <span class="ovll-sidebar-account-more">
-            ${icon("dots")}
-          </span>
         </button>
       </footer>
     </div>
   </aside>
 
-  <input
-    type="file"
-    accept="application/json,.json"
-    data-sidebar-import
-    hidden
-  >
 `;
 
 appStage.appendChild(
@@ -361,11 +323,6 @@ const searchBox=
 const searchInput=
   searchBox?.querySelector(
     "input"
-  );
-
-const importInput=
-  root.querySelector(
-    "[data-sidebar-import]"
   );
 
 function formatTime(timestamp){
@@ -451,12 +408,6 @@ async function openConversation(
 
   if(!id) return;
 
-  await saveCurrentConversation();
-
-  Store.activateConversation(
-    id
-  );
-
   await global.AstraApp
     ?.openConversation?.(
       id
@@ -464,7 +415,6 @@ async function openConversation(
 
   closeOnSmallScreen();
 }
-
 async function createConversation(
   sectionId=currentSectionId()
 ){
@@ -725,38 +675,17 @@ function conversationItem(
     );
   }
 
-  const more =
-    document.createElement(
-      "button"
-    );
-
-  more.type="button";
-  more.className=
-    "ovll-sidebar-chat-more";
-  more.dataset.sidebarAction=
-    "conversation-menu";
-  more.dataset.conversationId=
-    conversation.id;
-  more.setAttribute(
-    "aria-label",
-    (conversation.title || "대화") + " 메뉴"
-  );
-  more.innerHTML=
-    icon("dots");
-
   button.append(
     iconNode,
     copy
   );
 
-  item.append(
-    button,
-    more
+  item.appendChild(
+    button
   );
 
   return item;
 }
-
 function compareConversations(
   a,
   b
@@ -1354,73 +1283,6 @@ function toggle(){
   );
 }
 
-function downloadWorkspace(){
-  const blob=
-    new Blob(
-      [
-        Store.exportJSON()
-      ],
-      {
-        type:
-          "application/json"
-      }
-    );
-
-  const url=
-    URL.createObjectURL(
-      blob
-    );
-
-  const link=
-    document.createElement(
-      "a"
-    );
-
-  link.href=url;
-  link.download=
-    `ovll-workspace-${new Date().toISOString().slice(0,10)}.json`;
-
-  document.body
-    .appendChild(link);
-
-  link.click();
-  link.remove();
-
-  setTimeout(
-    ()=>URL.revokeObjectURL(url),
-    1000
-  );
-}
-
-async function importWorkspaceFile(
-  file
-){
-  if(!file){
-    return;
-  }
-
-  const text=
-    await file.text();
-
-  await saveCurrentConversation();
-
-  Store.importJSON(
-    text
-  );
-
-  const active=
-    Store.getActiveConversation();
-
-  if(active){
-    await global.AstraApp
-      ?.openConversation?.(
-        active.id
-      );
-  }
-
-  scheduleRender();
-}
-
 function handleClick(event){
   if(
     state.conversationMenu &&
@@ -1483,13 +1345,6 @@ function handleClick(event){
     return;
   }
 
-  if(action==="conversation-menu"){
-    openConversationMenu(
-      actionNode.dataset.conversationId,
-      actionNode
-    );
-    return;
-  }
 
   if(action==="conversation-pin"){
     const conversation=
@@ -1559,15 +1414,7 @@ function handleClick(event){
     return;
   }
 
-  if(action==="export"){
-    downloadWorkspace();
-    return;
-  }
 
-  if(action==="import"){
-    importInput?.click();
-    return;
-  }
 
   if(action==="login"){
     emit(
@@ -2024,9 +1871,7 @@ listen(
     state.longPress.conversationId=
       item.dataset.conversationId;
     state.longPress.target=
-      item.querySelector(
-        ".ovll-sidebar-chat-more"
-      );
+      item;
 
     state.longPress.timer=
       setTimeout(
@@ -2123,9 +1968,7 @@ listen(
 
     openConversationMenu(
       item.dataset.conversationId,
-      item.querySelector(
-        ".ovll-sidebar-chat-more"
-      )
+      item
     );
   }
 );
@@ -2138,27 +1981,6 @@ listen(
       event.target.value
         .trim();
     scheduleRender();
-  }
-);
-
-listen(
-  importInput,
-  "change",
-  event=>{
-    const file=
-      event.target
-        .files?.[0];
-
-    event.target.value="";
-
-    void importWorkspaceFile(
-      file
-    ).catch(error=>{
-      console.error(
-        "ovll workspace import failed:",
-        error
-      );
-    });
   }
 );
 
