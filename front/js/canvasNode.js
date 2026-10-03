@@ -2031,6 +2031,8 @@
       if (
         global.matchMedia?.('(prefers-reduced-motion: reduce)').matches
       ) {
+        emit('layoutStart');
+
         applyWorkflowIR(
           workflow,
           {
@@ -2038,6 +2040,8 @@
             center: true
           }
         );
+
+        emit('layoutEnd');
         return api;
       }
 
@@ -2045,6 +2049,8 @@
         cancelAnimationFrame(layoutAnimationFrame);
         layoutAnimationFrame = null;
       }
+
+      emit('layoutStart');
 
       const startPositions = new Map(
         state.nodes.map(node => [
@@ -2198,6 +2204,7 @@
 
         render();
         emit('change', getWorkflow());
+        emit('layoutEnd');
       }
 
       layoutAnimationFrame =
