@@ -49,6 +49,11 @@ const SYSTEM_INSTRUCTION = [
   "Each node consumes its declared inputs plus outputs produced by earlier nodes in this same group when connected.",
   "The supplied context contains the same continuity memory used by ovll's planner plus the latest user request. Use it only to preserve intent, references, tone, constraints, and previously established facts.",
   "Never overwrite explicit node params or supplied node inputs merely because context says something broader.",
+  "Before execution, run a strict feasibility gate on the user's actual requested outcome.",
+  "Refuse only when the requested outcome is clearly impossible with the supplied nodes/tools/context, the requested scale is far beyond what one execution can meaningfully produce, or the request is so incoherent that no reasonable execution target exists.",
+  "Do not refuse merely because the task is difficult, uncertain, underspecified, unusual, or missing external data. In those cases execute the useful supported portion and preserve limitations.",
+  "For a normal run set refusal to null.",
+  "For a refusal set refusal.code to UNEXECUTABLE_REQUEST and refusal.message to one short user-facing explanation in the user's language. Still return one placeholder result per supplied node, in the exact same order, with empty outputs, a boolean decision for judge nodes, null decision for other nodes, and a short report. Do not pretend the work completed.",
   "Follow each node type and params precisely.",
   "Return only the schema-conforming result.",
   "Keep outputs useful for the next node instead of explaining your process.",
@@ -68,8 +73,11 @@ const FINAL_RESPONSE_SYSTEM_INSTRUCTION = [
   "Preserve useful names, numbers, constraints, caveats, and uncertainty from the execution results.",
   "If the run partially failed, clearly distinguish completed results from failures without fabricating the missing part.",
   "Use the user's language when it can be inferred from userRequest or memory. Otherwise use the dominant language of the node params and reports.",
+  "Synthesize the outcome. Do not narrate every node, enumerate the whole execution trace, or repeat all intermediate outputs.",
+  "If files or artifacts were produced, mention them briefly at most once. Do not restate the full file contents unless the user explicitly asked for the contents in chat.",
+  "Default to a compact answer of roughly 2 to 6 sentences or a short list. Expand only when the user's task genuinely requires a detailed deliverable.",
   "Prefer a direct natural answer first, then concise supporting detail.",
-  "Plain text only. Short paragraphs and '- ' bullets are allowed. Do not emit raw JSON, Markdown tables, or fenced code unless the user's task itself requires code."
+  "Light Markdown is allowed and preferred when it improves readability: short headings, bullets, bold, inline code, and fenced code for code tasks. Do not emit raw JSON or Markdown tables unless the user's task itself requires them."
 ].join("\n");
 
 const FINAL_RESPONSE_SCHEMA = {
@@ -488,6 +496,26 @@ export function buildGroupResponseSchema(
   return {
     type: "object",
     properties: {
+      refusal: {
+        type: [
+          "object",
+          "null"
+        ],
+        properties: {
+          code: {
+            type: "string"
+          },
+          message: {
+            type: "string"
+          }
+        },
+        required: [
+          "code",
+          "message"
+        ],
+        additionalProperties:
+          false
+      },
       results: {
         type: "array",
         minItems: count,
@@ -499,6 +527,7 @@ export function buildGroupResponseSchema(
       }
     },
     required: [
+      "refusal",
       "results"
     ],
     additionalProperties:
@@ -911,6 +940,34 @@ export function validateGroupResults(
   payload,
   nodes
 ) {
+  if (
+    isPlainObject(
+      payload?.refusal
+    )
+  ) {
+    const message =
+      String(
+        payload.refusal.message ||
+        ""
+      )
+        .replace(/[\u0000-\u001f]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 320);
+
+    throw new GeminiExecutionError(
+      message ||
+      "이 요청은 현재 실행 구조로 처리하기 어렵습니다.",
+      {
+        code:
+          "GEMINI_REQUEST_REFUSED",
+        semantic: false,
+        retryable: false,
+        fallbackEligible: false
+      }
+    );
+  }
+
   if (
     !isPlainObject(payload) ||
     !Array.isArray(
