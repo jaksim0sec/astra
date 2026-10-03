@@ -699,6 +699,7 @@
     const formHeight = composerForm.getBoundingClientRect().height;
 
     rootStyle.setProperty("--composer-input-height", `${height}px`);
+    rootStyle.setProperty("--composer-form-height", `${formHeight}px`);
     rootStyle.setProperty("--composer-live-height", `${Math.max(baseComposerHeight, formHeight)}px`);
 
     composerForm.classList.toggle("is-expanded", height > inputMinHeight + 1);
