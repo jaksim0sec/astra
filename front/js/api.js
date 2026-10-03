@@ -471,25 +471,42 @@
         )
           ? workflow.nodes
               .slice(0, 96)
-              .map(node => ({
-                id:
-                  String(
-                    node?.id ||
-                    ""
-                  )
-                    .slice(0, 180),
-                type:
-                  String(
-                    node?.type ||
-                    ""
-                  )
-                    .slice(0, 80),
-                params:
-                  compactPayloadValue(
-                    node?.params ||
-                    {}
-                  )
-              }))
+              .map(node => {
+                const item = {
+                  id:
+                    String(
+                      node?.id ||
+                      ""
+                    )
+                      .slice(0, 180),
+                  type:
+                    String(
+                      node?.type ||
+                      ""
+                    )
+                      .slice(0, 80),
+                  params:
+                    compactPayloadValue(
+                      node?.params ||
+                      {}
+                    )
+                };
+
+                if (
+                  item.type ===
+                    "file" &&
+                  node?.file &&
+                  typeof node.file ===
+                    "object"
+                ) {
+                  item.file =
+                    compactPayloadValue(
+                      node.file
+                    );
+                }
+
+                return item;
+              })
           : [],
       links:
         Array.isArray(
