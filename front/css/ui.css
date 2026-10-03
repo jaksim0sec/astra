@@ -48,11 +48,11 @@
   border: .0625rem solid var(--line);
   border-radius: 50%;
   clip-path: circle(50%);
-  background: var(--panel-soft);
+  background: var(--ui-control-surface);
   color: var(--text);
-  backdrop-filter: blur(1.375rem) saturate(1.08);
-  -webkit-backdrop-filter: blur(1.375rem) saturate(1.08);
-  box-shadow: var(--shadow-soft);
+  backdrop-filter: var(--ui-backdrop);
+  -webkit-backdrop-filter: var(--ui-backdrop);
+  box-shadow: var(--ui-control-shadow);
   pointer-events: auto;
   touch-action: manipulation;
 }
@@ -83,10 +83,10 @@
   grid-template-columns: 1fr 1fr;
   border: .0625rem solid var(--line);
   border-radius: 62.4375rem;
-  background: var(--panel-soft);
-  backdrop-filter: blur(1.375rem) saturate(1.08);
-  -webkit-backdrop-filter: blur(1.375rem) saturate(1.08);
-  box-shadow: var(--shadow-soft);
+  background: var(--ui-control-surface);
+  backdrop-filter: var(--ui-backdrop);
+  -webkit-backdrop-filter: var(--ui-backdrop);
+  box-shadow: var(--ui-control-shadow);
   overflow: hidden;
   pointer-events: none;
   touch-action: none;
@@ -104,8 +104,8 @@
   height: var(--top-control-inner-height);
   border: .0625rem solid var(--line);
   border-radius: 62.4375rem;
-  background: var(--panel-strong);
-  box-shadow: 0 .125rem .5rem rgba(0, 0, 0, .035);
+  background: var(--ui-control-surface-strong);
+  box-shadow: 0 .1rem .4rem rgba(0, 0, 0, .035);
   transform: translate3d(calc(var(--page-progress) * 100%), 0, 0);
   transition: transform .52s var(--ease);
   pointer-events: none;
@@ -473,17 +473,17 @@
   align-items: center;
   gap: .5625rem;
   border: .0625rem solid var(--line);
-  border-radius: 1.25rem;
-  background: var(--panel-soft);
-  backdrop-filter: blur(1.125rem) saturate(1.03);
-  -webkit-backdrop-filter: blur(1.125rem) saturate(1.03);
-  box-shadow: var(--shadow-soft);
+  border-radius: 1.5rem;
+  background: var(--ui-control-surface);
+  backdrop-filter: var(--ui-backdrop);
+  -webkit-backdrop-filter: var(--ui-backdrop);
+  box-shadow: var(--ui-control-shadow);
   pointer-events: auto;
   transition: border-color .16s ease, background-color .16s ease, box-shadow .16s ease;
 }
 
 #composer-form.is-expanded {
-  border-radius: 1.25rem;
+  border-radius: 1.5rem;
 }
 
 #composer-form:focus-within {
@@ -509,7 +509,7 @@
   resize: none;
   background: transparent;
   color: var(--text);
-  font-size: .8125rem;
+  font-size: .875rem;
   font-weight: 450;
   line-height: 1.375rem;
   letter-spacing: -.015em;
@@ -653,7 +653,7 @@
   #composer-input {
     height: 2.3125rem;
     min-height: 2.3125rem;
-    font-size: .875rem;
+    font-size: .9375rem;
   }
 
   #composer-submit {
@@ -678,7 +678,7 @@
   }
 
   #mode-switch button {
-    font-size: .6875rem;
+    font-size: .95rem;
   }
 
   #composer {
@@ -762,22 +762,22 @@
 #canvas-node-builder-layout,
 #canvas-node-builder-toggle {
   min-width: 0;
-  height: 2.5rem;
+  height: 2.625rem;
   padding: 0 .875rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: .4rem;
   border: .0625rem solid var(--line);
-  border-radius: 62.4375rem;
-  background: var(--panel-soft);
+  border-radius: var(--ui-radius-pill);
+  background: var(--ui-control-surface);
   color: var(--text);
-  backdrop-filter: blur(1.25rem) saturate(1.06);
-  -webkit-backdrop-filter: blur(1.25rem) saturate(1.06);
-  box-shadow: var(--shadow-soft);
+  backdrop-filter: var(--ui-backdrop);
+  -webkit-backdrop-filter: var(--ui-backdrop);
+  box-shadow: var(--ui-control-shadow);
   pointer-events: auto;
   cursor: pointer;
-  font-size: .75rem;
+  font-size: .8125rem;
   font-weight: 750;
   letter-spacing: -.01em;
   transition: background .18s ease, border-color .18s ease, transform .16s ease;
@@ -842,10 +842,10 @@
   padding: .75rem;
   overflow-y: auto;
   border: .0625rem solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--panel-soft);
-  backdrop-filter: blur(1.5rem) saturate(1.08);
-  -webkit-backdrop-filter: blur(1.5rem) saturate(1.08);
+  border-radius: var(--radius-xl);
+  background: var(--ui-control-surface);
+  backdrop-filter: var(--ui-backdrop);
+  -webkit-backdrop-filter: var(--ui-backdrop);
   box-shadow: var(--shadow);
   opacity: 0;
   visibility: hidden;
@@ -869,13 +869,13 @@
   gap: .75rem;
   padding: .125rem .1875rem .625rem;
   color: var(--text);
-  font-size: .75rem;
+  font-size: .8125rem;
   font-weight: 800;
 }
 
 .canvas-node-builder-hint {
   color: var(--muted);
-  font-size: .625rem;
+  font-size: .6875rem;
   font-weight: 500;
   white-space: nowrap;
 }
@@ -894,8 +894,8 @@
   align-items: center;
   gap: .5rem;
   border: .0625rem solid var(--line);
-  border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--panel) 82%, transparent);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--panel) 88%, transparent);
   color: var(--text);
   text-align: left;
   cursor: pointer;
@@ -933,7 +933,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: .6875rem;
+  font-size: .75rem;
   font-weight: 700;
 }
 
