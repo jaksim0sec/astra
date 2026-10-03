@@ -5,7 +5,7 @@
 :root {
   --sidebar-width: 17.5rem;
   --sidebar-edge-gap: 2.75rem;
-  --sidebar-item-radius: .65rem;
+  --sidebar-item-radius: .82rem;
 }
 
 #ovll-shell-menu {
@@ -33,12 +33,12 @@
       .72rem,
       var(--safe-left)
     );
-  width: 2.35rem;
-  height: 2.35rem;
+  width: 2.5rem;
+  height: 2.5rem;
   display: grid;
   place-items: center;
   border: 0;
-  border-radius: .72rem;
+  border-radius: .86rem;
   color: var(--sub);
   background:
     color-mix(
@@ -143,6 +143,7 @@
     transform;
   touch-action:
     pan-y;
+  overscroll-behavior-x: none;
 }
 
 #ovll-shell-menu.is-open
@@ -263,12 +264,12 @@
 }
 
 .ovll-sidebar-icon-button {
-  width: 2rem;
-  height: 2rem;
-  flex: 0 0 2rem;
+  width: 2.15rem;
+  height: 2.15rem;
+  flex: 0 0 2.15rem;
   display: grid;
   place-items: center;
-  border-radius: .58rem;
+  border-radius: .72rem;
   color: var(--muted);
   background: transparent;
   cursor: pointer;
@@ -305,21 +306,21 @@
 
 .ovll-sidebar-primary-action {
   width: 100%;
-  min-height: 2.35rem;
+  min-height: 2.7rem;
   display: flex;
   align-items: center;
   gap: .58rem;
   padding:
-    .4rem
-    .58rem;
+    .48rem
+    .68rem;
   border-radius:
-    var(--sidebar-item-radius);
+    .88rem;
   color: var(--text);
   background: transparent;
   text-align: left;
   cursor: pointer;
-  font-size: .74rem;
-  font-weight: 580;
+  font-size: .78rem;
+  font-weight: 600;
   letter-spacing: -.012em;
   transition:
     background-color .13s ease,
@@ -361,7 +362,7 @@
 }
 
 .ovll-sidebar-search {
-  min-height: 2.35rem;
+  min-height: 2.65rem;
   display: grid;
   grid-template-columns:
     1.15rem
@@ -379,7 +380,7 @@
     .0625rem solid
     var(--line);
   border-radius:
-    .72rem;
+    .86rem;
   background:
     color-mix(
       in srgb,
@@ -413,8 +414,8 @@
   border: 0;
   color: var(--text);
   background: transparent;
-  font-size: .7rem;
-  font-weight: 500;
+  font-size: .74rem;
+  font-weight: 520;
 }
 
 .ovll-sidebar-search input::placeholder {
@@ -487,8 +488,8 @@
     .2rem
     .5rem;
   color: var(--muted);
-  font-size: .58rem;
-  font-weight: 720;
+  font-size: .62rem;
+  font-weight: 700;
   letter-spacing: .035em;
 }
 
@@ -538,7 +539,7 @@
 
 .ovll-sidebar-section-toggle {
   min-width: 0;
-  min-height: 1.75rem;
+  min-height: 2.05rem;
   display: grid;
   grid-template-columns:
     .9rem
@@ -587,7 +588,7 @@
 .ovll-sidebar-section-title {
   min-width: 0;
   overflow: hidden;
-  font-size: .61rem;
+  font-size: .66rem;
   font-weight: 650;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -639,7 +640,7 @@
 .ovll-sidebar-chat {
   width: 100%;
   min-width: 0;
-  min-height: 2.12rem;
+  min-height: 2.5rem;
   display: grid;
   grid-template-columns:
     1.05rem
@@ -647,8 +648,8 @@
   align-items: center;
   gap: .45rem;
   padding:
-    .33rem
-    .5rem;
+    .42rem
+    .58rem;
   border-radius:
     var(--sidebar-item-radius);
   color: var(--sub);
@@ -709,8 +710,8 @@
   min-width: 0;
   flex: 1;
   overflow: hidden;
-  font-size: .68rem;
-  font-weight: 520;
+  font-size: .73rem;
+  font-weight: 540;
   letter-spacing: -.012em;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -733,7 +734,7 @@
 .ovll-sidebar-context {
   width: 100%;
   min-width: 0;
-  min-height: 2.1rem;
+  min-height: 2.45rem;
   display: grid;
   grid-template-columns:
     1rem
@@ -791,8 +792,8 @@
 .ovll-sidebar-context-title {
   min-width: 0;
   overflow: hidden;
-  font-size: .66rem;
-  font-weight: 520;
+  font-size: .71rem;
+  font-weight: 540;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -901,7 +902,7 @@
 .ovll-sidebar-account {
   width: 100%;
   min-width: 0;
-  min-height: 3rem;
+  min-height: 3.35rem;
   display: grid;
   grid-template-columns:
     2rem
@@ -1048,4 +1049,86 @@
   .ovll-sidebar-section-chevron {
     transition: none !important;
   }
+}
+
+
+/* =========================================================
+   Sidebar density polish
+   ========================================================= */
+.ovll-sidebar-keyhint,
+.ovll-sidebar-chat-meta,
+.ovll-sidebar-section-count,
+.ovll-sidebar-context-state {
+  display: none;
+}
+
+.ovll-sidebar-chat {
+  grid-template-columns:
+    1.18rem
+    minmax(0,1fr);
+  gap: .52rem;
+}
+
+.ovll-sidebar-chat-icon,
+.ovll-sidebar-context-icon {
+  width: 1.08rem;
+  height: 1.08rem;
+}
+
+.ovll-sidebar-chat-icon svg,
+.ovll-sidebar-context-icon svg {
+  width: .96rem;
+  height: .96rem;
+}
+
+.ovll-sidebar-section-head {
+  grid-template-columns:
+    minmax(0,1fr)
+    1.8rem;
+}
+
+.ovll-sidebar-section-add,
+.ovll-sidebar-group-head > button {
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: .58rem;
+}
+
+.ovll-sidebar-context {
+  grid-template-columns:
+    1.18rem
+    minmax(0,1fr);
+  gap: .52rem;
+  padding:
+    .42rem
+    .58rem;
+}
+
+.ovll-sidebar-primary-icon {
+  width: 1.3rem;
+  height: 1.3rem;
+  flex-basis: 1.3rem;
+}
+
+.ovll-sidebar-primary-icon svg {
+  width: 1.1rem;
+  height: 1.1rem;
+}
+
+.ovll-sidebar-footer {
+  padding-top: .66rem;
+}
+
+.ovll-sidebar-local-tools {
+  min-height: 2.05rem;
+}
+
+.ovll-sidebar-local-tools button {
+  width: 1.9rem;
+  height: 1.9rem;
+  border-radius: .62rem;
+}
+
+.ovll-sidebar-account {
+  border-radius: .9rem;
 }
