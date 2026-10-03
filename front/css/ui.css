@@ -1383,3 +1383,255 @@
   box-shadow: 0 .0625rem .25rem color-mix(in srgb, #000 8%, transparent);
 }
 
+
+
+/* =========================================================
+   NON-BLOCKING ERROR NOTICE
+   ========================================================= */
+
+.ovll-error-notice {
+  position: absolute;
+  z-index: 1200;
+  left: 50%;
+  bottom:
+    calc(
+      var(--composer-live-height) +
+      var(--safe-bottom) +
+      var(--bottom-dock-lift) +
+      .7rem
+    );
+  width:
+    min(
+      31rem,
+      calc(
+        100% -
+        1rem
+      )
+    );
+  min-height: 3.15rem;
+  display: grid;
+  grid-template-columns:
+    2rem
+    minmax(0,1fr)
+    auto;
+  align-items: center;
+  gap: .62rem;
+  padding:
+    .58rem
+    .62rem;
+  border:
+    .0625rem solid
+    color-mix(
+      in srgb,
+      #d76b6b 28%,
+      var(--line)
+    );
+  border-radius: 1.05rem;
+  color: var(--text);
+  background:
+    color-mix(
+      in srgb,
+      var(--panel) 94%,
+      transparent
+    );
+  box-shadow:
+    0
+    .7rem
+    2rem
+    rgba(0,0,0,.16),
+    inset
+    0
+    .0625rem
+    0
+    color-mix(
+      in srgb,
+      #fff 7%,
+      transparent
+    );
+  backdrop-filter:
+    blur(1rem)
+    saturate(1.05);
+  -webkit-backdrop-filter:
+    blur(1rem)
+    saturate(1.05);
+  opacity: 0;
+  transform:
+    translate3d(
+      -50%,
+      .35rem,
+      0
+    )
+    scale(.985);
+  transition:
+    opacity .16s ease,
+    transform .2s
+      cubic-bezier(.2,.82,.2,1);
+  pointer-events: auto;
+}
+
+.ovll-error-notice.is-visible {
+  opacity: 1;
+  transform:
+    translate3d(
+      -50%,
+      0,
+      0
+    )
+    scale(1);
+}
+
+.ovll-error-notice.is-leaving {
+  opacity: 0;
+  transform:
+    translate3d(
+      -50%,
+      .22rem,
+      0
+    )
+    scale(.99);
+  pointer-events: none;
+}
+
+.ovll-error-mark {
+  width: 2rem;
+  height: 2rem;
+  display: grid;
+  place-items: center;
+  border-radius: .72rem;
+  color:
+    color-mix(
+      in srgb,
+      #e57a7a 82%,
+      var(--text)
+    );
+  background:
+    color-mix(
+      in srgb,
+      #d76b6b 10%,
+      transparent
+    );
+}
+
+.ovll-error-mark svg {
+  width: 1.12rem;
+  height: 1.12rem;
+}
+
+.ovll-error-copy {
+  min-width: 0;
+  display: grid;
+  gap: .1rem;
+}
+
+.ovll-error-copy strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: .7rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ovll-error-copy span {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: .61rem;
+  font-weight: 470;
+  line-height: 1.42;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ovll-error-actions {
+  display: flex;
+  align-items: center;
+  gap: .28rem;
+}
+
+.ovll-error-retry,
+.ovll-error-close {
+  appearance: none;
+  -webkit-appearance: none;
+  min-height: 2rem;
+  display: inline-grid;
+  place-items: center;
+  border:
+    .0625rem solid
+    var(--line);
+  border-radius: .72rem;
+  color: var(--sub);
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 4%,
+      transparent
+    );
+  cursor: pointer;
+  transition:
+    color .14s ease,
+    background .14s ease,
+    transform .14s ease;
+}
+
+.ovll-error-retry {
+  padding:
+    0
+    .68rem;
+  font-size: .61rem;
+  font-weight: 680;
+}
+
+.ovll-error-close {
+  width: 2rem;
+  padding: 0;
+}
+
+.ovll-error-close svg {
+  width: .9rem;
+  height: .9rem;
+}
+
+.ovll-error-retry:hover,
+.ovll-error-close:hover {
+  color: var(--text);
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 7%,
+      transparent
+    );
+}
+
+.ovll-error-retry:active,
+.ovll-error-close:active {
+  transform: scale(.94);
+}
+
+@media (max-width: 43.75rem) {
+  .ovll-error-notice {
+    width:
+      calc(
+        100% -
+        1rem
+      );
+    grid-template-columns:
+      1.9rem
+      minmax(0,1fr)
+      auto;
+    gap: .5rem;
+  }
+
+  .ovll-error-mark {
+    width: 1.9rem;
+    height: 1.9rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ovll-error-notice {
+    transition: none;
+  }
+}
