@@ -831,18 +831,6 @@
   max-width: none;
 }
 
-.astra-runtime-step[data-node-type="system"] {
-  grid-template-columns:
-    0
-    minmax(0,1fr);
-  gap: 0;
-}
-
-.astra-runtime-step[data-node-type="system"]
-.astra-runtime-step-icon {
-  display: none;
-}
-
 .astra-runtime-step[data-status="running"]
 .astra-runtime-step-icon {
   animation:
