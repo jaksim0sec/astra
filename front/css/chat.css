@@ -1549,3 +1549,278 @@
     transform: translateY(-.12rem);
   }
 }
+
+
+/* =========================================================
+   Artifact preview
+   ========================================================= */
+
+.astra-artifact-card.is-previewable
+.astra-artifact-info {
+  cursor: zoom-in;
+}
+
+.astra-artifact-preview-root {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding:
+    max(1rem, var(--safe-top))
+    max(1rem, var(--safe-right))
+    max(1rem, var(--safe-bottom))
+    max(1rem, var(--safe-left));
+  background:
+    rgba(0,0,0,.3);
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity .18s ease;
+  backdrop-filter:
+    blur(.5rem);
+  -webkit-backdrop-filter:
+    blur(.5rem);
+}
+
+.astra-artifact-preview-root.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.astra-artifact-preview-panel {
+  width:
+    min(
+      54rem,
+      100%
+    );
+  height:
+    min(
+      44rem,
+      86vh
+    );
+  min-height: 18rem;
+  display: grid;
+  grid-template-rows:
+    auto
+    minmax(0,1fr);
+  overflow: hidden;
+  border:
+    .0625rem solid
+    color-mix(
+      in srgb,
+      var(--line) 90%,
+      transparent
+    );
+  border-radius: 1.45rem;
+  background:
+    color-mix(
+      in srgb,
+      var(--panel) 97%,
+      var(--bg)
+    );
+  box-shadow:
+    0
+    1.2rem
+    4rem
+    rgba(0,0,0,.2);
+  transform:
+    translateY(.45rem)
+    scale(.985);
+  transition:
+    transform .22s
+    cubic-bezier(.2,.82,.2,1);
+}
+
+.astra-artifact-preview-root.is-open
+.astra-artifact-preview-panel {
+  transform:
+    translateY(0)
+    scale(1);
+}
+
+.astra-artifact-preview-header {
+  min-height: 4rem;
+  display: grid;
+  grid-template-columns:
+    2.5rem
+    minmax(0,1fr)
+    auto;
+  align-items: center;
+  gap: .65rem;
+  padding:
+    .65rem
+    .72rem;
+  border-bottom:
+    .0625rem solid
+    color-mix(
+      in srgb,
+      var(--line) 74%,
+      transparent
+    );
+}
+
+.astra-artifact-preview-icon {
+  width: 2.5rem;
+  height: 2.5rem;
+  display: grid;
+  place-items: center;
+  border-radius: .82rem;
+  color: var(--artifact-accent);
+  background:
+    color-mix(
+      in srgb,
+      var(--artifact-accent) 12%,
+      transparent
+    );
+}
+
+.astra-artifact-preview-icon svg {
+  width: 1.35rem;
+  height: 1.35rem;
+  max-width: none;
+}
+
+.astra-artifact-preview-copy {
+  min-width: 0;
+  display: grid;
+  gap: .1rem;
+}
+
+.astra-artifact-preview-copy strong {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text);
+  font-size: .78rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.astra-artifact-preview-copy small {
+  color: var(--muted);
+  font-size: .59rem;
+  font-weight: 500;
+}
+
+.astra-artifact-preview-actions {
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+}
+
+.astra-artifact-preview-download,
+.astra-artifact-preview-close {
+  width: 2.15rem;
+  height: 2.15rem;
+  display: grid;
+  place-items: center;
+  border:
+    .0625rem solid
+    var(--line);
+  border-radius: 999px;
+  color: var(--sub);
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 3.5%,
+      transparent
+    );
+  text-decoration: none;
+  cursor: pointer;
+  transition:
+    color .14s ease,
+    background-color .14s ease,
+    transform .14s ease;
+}
+
+.astra-artifact-preview-download:hover,
+.astra-artifact-preview-close:hover {
+  color: var(--text);
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 7%,
+      transparent
+    );
+}
+
+.astra-artifact-preview-download:active,
+.astra-artifact-preview-close:active {
+  transform: scale(.94);
+}
+
+.astra-artifact-preview-download svg,
+.astra-artifact-preview-close svg {
+  width: 1rem;
+  height: 1rem;
+  max-width: none;
+}
+
+.astra-artifact-preview-body {
+  min-height: 0;
+  overflow: hidden;
+  background:
+    color-mix(
+      in srgb,
+      var(--bg) 88%,
+      var(--panel)
+    );
+}
+
+.astra-artifact-preview-body iframe,
+.astra-artifact-preview-body img {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border: 0;
+}
+
+.astra-artifact-preview-body img {
+  object-fit: contain;
+  padding: 1rem;
+}
+
+@media (max-width: 43.75rem) {
+  .astra-artifact-preview-root {
+    padding:
+      max(.55rem, var(--safe-top))
+      max(.55rem, var(--safe-right))
+      max(.55rem, var(--safe-bottom))
+      max(.55rem, var(--safe-left));
+  }
+
+  .astra-artifact-preview-panel {
+    height:
+      min(
+        48rem,
+        88vh
+      );
+    border-radius: 1.25rem;
+  }
+
+  .astra-artifact-preview-header {
+    min-height: 3.7rem;
+    grid-template-columns:
+      2.2rem
+      minmax(0,1fr)
+      auto;
+    gap: .52rem;
+    padding:
+      .58rem
+      .62rem;
+  }
+
+  .astra-artifact-preview-icon {
+    width: 2.2rem;
+    height: 2.2rem;
+    border-radius: .72rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .astra-artifact-preview-root,
+  .astra-artifact-preview-panel {
+    transition: none;
+  }
+}
