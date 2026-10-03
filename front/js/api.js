@@ -140,6 +140,217 @@
     }
     return data;
   }
+  function clipPayloadText(
+    value,
+    max
+  ) {
+    const text =
+      String(value ?? "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    if (
+      !Number.isFinite(max) ||
+      max <= 0 ||
+      text.length <= max
+    ) {
+      return text;
+    }
+
+    const tail =
+      Math.max(
+        120,
+        Math.floor(
+          max * .25
+        )
+      );
+
+    return (
+      text.slice(
+        0,
+        max - tail - 3
+      ) +
+      " … " +
+      text.slice(-tail)
+    ).slice(0, max);
+  }
+
+  function compactPayloadValue(
+    value,
+    depth = 0
+  ) {
+    if (value == null) {
+      return value;
+    }
+
+    if (
+      typeof value ===
+        "string"
+    ) {
+      return clipPayloadText(
+        value,
+        depth <= 1
+          ? 5000
+          : 3000
+      );
+    }
+
+    if (
+      typeof value ===
+        "number" ||
+      typeof value ===
+        "boolean"
+    ) {
+      return value;
+    }
+
+    if (depth >= 5) {
+      return "[nested]";
+    }
+
+    if (Array.isArray(value)) {
+      return value
+        .slice(0, 18)
+        .map(
+          item =>
+            compactPayloadValue(
+              item,
+              depth + 1
+            )
+        );
+    }
+
+    if (
+      typeof value ===
+        "object"
+    ) {
+      return Object.fromEntries(
+        Object.entries(value)
+          .slice(0, 24)
+          .map(
+            ([key, item]) => [
+              String(key)
+                .slice(0, 120),
+              compactPayloadValue(
+                item,
+                depth + 1
+              )
+            ]
+          )
+      );
+    }
+
+    return String(value)
+      .slice(0, 1000);
+  }
+
+  function compactMemoryPayload(
+    memory
+  ) {
+    if (
+      !memory ||
+      typeof memory !==
+        "object" ||
+      Array.isArray(memory)
+    ) {
+      return null;
+    }
+
+    return {
+      flow:
+        clipPayloadText(
+          memory.flow,
+          700
+        ),
+      recent:
+        clipPayloadText(
+          memory.recent,
+          1400
+        ),
+      detail:
+        clipPayloadText(
+          memory.detail,
+          1900
+        )
+    };
+  }
+
+  function compactWorkflowPayload(
+    workflow
+  ) {
+    if (
+      !workflow ||
+      typeof workflow !==
+        "object" ||
+      Array.isArray(workflow)
+    ) {
+      return null;
+    }
+
+    return {
+      nodes:
+        Array.isArray(
+          workflow.nodes
+        )
+          ? workflow.nodes
+              .slice(0, 96)
+              .map(node => ({
+                id:
+                  String(
+                    node?.id ||
+                    ""
+                  )
+                    .slice(0, 180),
+                type:
+                  String(
+                    node?.type ||
+                    ""
+                  )
+                    .slice(0, 80),
+                params:
+                  compactPayloadValue(
+                    node?.params ||
+                    {}
+                  )
+              }))
+          : [],
+      links:
+        Array.isArray(
+          workflow.links
+        )
+          ? workflow.links
+              .slice(0, 192)
+              .map(edge =>
+                Array.isArray(edge)
+                  ? edge
+                      .slice(0, 2)
+                      .map(value =>
+                        String(value)
+                          .slice(0, 280)
+                      )
+                  : edge
+              )
+          : [],
+      data:
+        Array.isArray(
+          workflow.data
+        )
+          ? workflow.data
+              .slice(0, 192)
+              .map(edge =>
+                Array.isArray(edge)
+                  ? edge
+                      .slice(0, 2)
+                      .map(value =>
+                        String(value)
+                          .slice(0, 280)
+                      )
+                  : edge
+              )
+          : []
+    };
+  }
+
   /* =======================================================
      Workflow
      ======================================================= */
@@ -150,22 +361,32 @@
     options = {}
   ) {
     const normalizedText =
-      String(text ?? "").trim();
+      clipPayloadText(
+        text,
+        6000
+      );
+
     if (!normalizedText) {
       throw new TypeError(
         "작업 내용을 입력해주세요."
       );
     }
+
     return request(
       "workflow",
       {
         method: "POST",
         body: {
-          text: normalizedText,
+          text:
+            normalizedText,
           workflow:
-            workflow ?? null,
+            compactWorkflowPayload(
+              workflow
+            ),
           memory:
-            memory ?? null
+            compactMemoryPayload(
+              memory
+            )
         },
         signal:
           options.signal
@@ -337,9 +558,23 @@
       ) {
         const trimmed =
           value.trim();
+
         if (trimmed) {
+          const maxLength =
+            Math.max(
+              1,
+              Number(
+                definitionParam
+                  ?.maxLength ||
+                1800
+              ) || 1800
+            );
+
           result[key] =
-            trimmed;
+            clipPayloadText(
+              trimmed,
+              maxLength
+            );
         }
         continue;
       }
@@ -495,16 +730,48 @@
         method: "POST",
         body: {
           nodes:
-            group.nodes,
-          connections,
+            group.nodes
+              .slice(0, 6)
+              .map(
+                node => ({
+                  id:
+                    String(
+                      node?.id ||
+                      ""
+                    ).slice(0, 180),
+                  type:
+                    String(
+                      node?.type ||
+                      ""
+                    ).slice(0, 80),
+                  params:
+                    compactPayloadValue(
+                      node?.params ||
+                      {}
+                    ),
+                  inputs:
+                    compactPayloadValue(
+                      node?.inputs ||
+                      {}
+                    )
+                })
+              ),
+          connections:
+            connections
+              .slice(0, 24)
+              .map(
+                compactPayloadValue
+              ),
           context: {
             userRequest:
-              String(
-                context.userRequest ||
-                ""
+              clipPayloadText(
+                context.userRequest,
+                6000
               ),
             memory:
-              context.memory || null
+              compactMemoryPayload(
+                context.memory
+              )
           }
         },
         signal:
