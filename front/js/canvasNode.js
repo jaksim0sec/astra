@@ -120,7 +120,9 @@
       interactionEnabled: options.interactionEnabled !== false,
       destroyed: false,
       connectionFrame: null,
+      panMotionFrame: null,
       lastNodeDragEndAt: 0,
+      enteringNodes: new Set(),
       runtimeConnections: new Set(),
       runtimeNodes: new Map()
     };
@@ -159,6 +161,145 @@
         state.connectionFrame = null;
         if (!state.destroyed) renderConnections();
       });
+    }
+
+    function stopPanMotion() {
+      if (
+        state.panMotionFrame !==
+        null
+      ) {
+        cancelAnimationFrame(
+          state.panMotionFrame
+        );
+        state.panMotionFrame =
+          null;
+      }
+
+      viewport.classList.remove(
+        'vc-panning'
+      );
+    }
+
+    function startPanMotion(
+      velocityX,
+      velocityY
+    ) {
+      stopPanMotion();
+
+      if (
+        global.matchMedia?.(
+          '(prefers-reduced-motion: reduce)'
+        ).matches
+      ) {
+        return;
+      }
+
+      let vx =
+        Number(velocityX) || 0;
+
+      let vy =
+        Number(velocityY) || 0;
+
+      const speed =
+        Math.hypot(
+          vx,
+          vy
+        );
+
+      if (speed < .08) {
+        return;
+      }
+
+      const maxSpeed = 1.6;
+
+      if (speed > maxSpeed) {
+        const ratio =
+          maxSpeed / speed;
+        vx *= ratio;
+        vy *= ratio;
+      }
+
+      let previous =
+        performance.now();
+
+      viewport.classList.add(
+        'vc-panning'
+      );
+
+      const frame = now => {
+        if (
+          state.destroyed ||
+          !state.interactionEnabled ||
+          state.pointers.size ||
+          state.nodeDrag ||
+          state.connectionDrag ||
+          state.pinch
+        ) {
+          stopPanMotion();
+          return;
+        }
+
+        const dt =
+          Math.min(
+            32,
+            Math.max(
+              1,
+              now - previous
+            )
+          );
+
+        previous = now;
+
+        state.offset.x +=
+          vx * dt;
+
+        state.offset.y +=
+          vy * dt;
+
+        const damping =
+          Math.pow(
+            .86,
+            dt / 16.67
+          );
+
+        vx *= damping;
+        vy *= damping;
+
+        renderTransform();
+        scheduleConnectionRender();
+
+        if (
+          Math.hypot(
+            vx,
+            vy
+          ) < .035
+        ) {
+          stopPanMotion();
+
+          emit(
+            'viewportSettled',
+            {
+              scale:
+                state.scale,
+              offset: {
+                ...state.offset
+              }
+            }
+          );
+
+          return;
+        }
+
+        state.panMotionFrame =
+          requestAnimationFrame(
+            frame
+          );
+      };
+
+      state.panMotionFrame =
+        requestAnimationFrame(
+          frame
+        );
     }
     function normalizePort(port, index, direction) {
       return {
@@ -446,6 +587,16 @@
           node.type === 'file' &&
           String(node.data?.mime || '').startsWith('image/');
         const classes = ['vc-node'];
+
+        if (
+          state.enteringNodes.has(
+            node.id
+          )
+        ) {
+          classes.push(
+            'vc-entering'
+          );
+        }
         if (node.type === 'file') classes.push('vc-file-node');
         if (isImageFile) classes.push('vc-image-file-node');
         if (node.id === state.selectedNode) classes.push('vc-selected');
@@ -559,6 +710,40 @@
         observeNode(element);
         setNodeExpanded(node, node.expanded, true);
         positionPorts(element, definition);
+
+        if (
+          state.enteringNodes.has(
+            node.id
+          )
+        ) {
+          requestAnimationFrame(
+            () => {
+              if (
+                !element.isConnected
+              ) {
+                return;
+              }
+
+              element.classList.add(
+                'vc-entered'
+              );
+
+              setTimeout(
+                () => {
+                  state.enteringNodes.delete(
+                    node.id
+                  );
+
+                  element.classList.remove(
+                    'vc-entering',
+                    'vc-entered'
+                  );
+                },
+                360
+              );
+            }
+          );
+        }
       }
       markConnectedPorts();
       renderConnections();
@@ -2231,6 +2416,17 @@
       });
       state.nodes.push(node);
       state.selectedNode = node.id;
+
+      if (
+        !global.matchMedia?.(
+          '(prefers-reduced-motion: reduce)'
+        ).matches
+      ) {
+        state.enteringNodes.add(
+          node.id
+        );
+      }
+
       render();
       emit('nodeAdd', clone(node));
       emit(
@@ -2466,6 +2662,7 @@
     function setInteractionEnabled(enabled) {
       state.interactionEnabled = !!enabled;
       if (!state.interactionEnabled) {
+        stopPanMotion();
         state.pointers.clear();
         state.nodeDrag = null;
         state.canvasPan = null;
@@ -2865,6 +3062,8 @@
         if (!state.interactionEnabled) {
           return;
         }
+
+        stopPanMotion();
         state.pointers.set(
           event.pointerId,
           {
@@ -2955,7 +3154,13 @@
           startY: event.clientY,
           startOffsetX: state.offset.x,
           startOffsetY: state.offset.y,
-          moved: false
+          moved: false,
+          lastX: event.clientX,
+          lastY: event.clientY,
+          lastTime:
+            performance.now(),
+          velocityX: 0,
+          velocityY: 0
         };
         try {
           viewport.setPointerCapture(
@@ -3169,11 +3374,58 @@
             Math.hypot(dx, dy) > 7
           ) {
             pan.moved = true;
+
+            viewport.classList.add(
+              'vc-panning'
+            );
           }
           if (!pan.moved) {
             return;
           }
           event.preventDefault();
+          const now =
+            performance.now();
+
+          const dt =
+            Math.max(
+              1,
+              now -
+              pan.lastTime
+            );
+
+          const instantX =
+            (
+              event.clientX -
+              pan.lastX
+            ) / dt;
+
+          const instantY =
+            (
+              event.clientY -
+              pan.lastY
+            ) / dt;
+
+          pan.velocityX =
+            pan.velocityX *
+              .68 +
+            instantX *
+              .32;
+
+          pan.velocityY =
+            pan.velocityY *
+              .68 +
+            instantY *
+              .32;
+
+          pan.lastX =
+            event.clientX;
+
+          pan.lastY =
+            event.clientY;
+
+          pan.lastTime =
+            now;
+
           state.offset.x =
             pan.startOffsetX +
             dx;
@@ -3252,8 +3504,26 @@
       if (
         state.pointers.size === 0
       ) {
+        const finishedPan =
+          state.canvasPan;
+
         state.canvasPan = null;
         cancelConnectionDrag();
+
+        if (
+          finishedPan?.moved &&
+          event.type !==
+            'pointercancel'
+        ) {
+          startPanMotion(
+            finishedPan.velocityX,
+            finishedPan.velocityY
+          );
+        } else {
+          viewport.classList.remove(
+            'vc-panning'
+          );
+        }
         try {
           viewport.releasePointerCapture(
             event.pointerId
@@ -3455,6 +3725,8 @@
           state.connectionFrame =
             null;
         }
+
+        stopPanMotion();
         listeners
           .splice(0)
           .forEach(
@@ -3478,6 +3750,7 @@
         state.canvasPan = null;
         state.pinch = null;
         state.connectionDrag = null;
+        state.enteringNodes.clear();
         state.runtimeConnections.clear();
         state.runtimeNodes.clear();
         connectionElements
