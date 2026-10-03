@@ -286,25 +286,35 @@
   display: block;
 }
 
+.vc-node-footer {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: .45rem;
+  margin-top: .72rem;
+}
+
+.vc-node:not(.vc-start-node).vc-expanded
+.vc-node-footer {
+  display: flex;
+}
+
 .vc-node-run {
   appearance: none;
   -webkit-appearance: none;
-  height: 1.95rem;
+  min-height: 1.85rem;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: .32rem;
-  margin-left: auto;
-  padding:
-    0
-    .72rem
-    0
-    .54rem;
+  justify-content: center;
+  gap: .28rem;
+  margin: 0;
+  padding: 0 .62rem;
   border:
     .0625rem solid
     color-mix(
       in srgb,
-      var(--node-color) 22%,
+      var(--node-color) 24%,
       var(--line)
     );
   outline: 0;
@@ -312,42 +322,31 @@
   color:
     color-mix(
       in srgb,
-      var(--node-color) 86%,
+      var(--node-color) 84%,
       var(--text)
     );
   background:
     color-mix(
       in srgb,
-      var(--node-color) 10%,
-      var(--panel)
-    );
-  cursor: pointer;
-  font-size: .61rem;
-  font-weight: 720;
-  line-height: 1;
-  letter-spacing: -.012em;
-  box-shadow:
-    inset
-    0
-    .0625rem
-    0
-    color-mix(
-      in srgb,
-      #fff 10%,
+      var(--node-color) 8%,
       transparent
     );
+  cursor: pointer;
+  font-size: .57rem;
+  font-weight: 680;
+  line-height: 1;
+  letter-spacing: -.012em;
   transition:
     color .16s ease,
     border-color .16s ease,
     background .16s ease,
-    transform .14s
-      cubic-bezier(.22,.8,.25,1);
+    transform .14s ease;
 }
 
 .vc-node-run svg {
-  width: .98rem;
-  height: .98rem;
-  flex: 0 0 .98rem;
+  width: .92rem;
+  height: .92rem;
+  flex: 0 0 .92rem;
   overflow: visible;
 }
 
@@ -356,14 +355,14 @@
   border-color:
     color-mix(
       in srgb,
-      var(--node-color) 34%,
+      var(--node-color) 38%,
       var(--line)
     );
   background:
     color-mix(
       in srgb,
-      var(--node-color) 15%,
-      var(--panel)
+      var(--node-color) 13%,
+      transparent
     );
 }
 
@@ -373,6 +372,7 @@
 
 .vc-node-run.is-running {
   pointer-events: none;
+  opacity: .72;
 }
 
 .vc-node-run.is-running
@@ -413,6 +413,7 @@
     transform: rotate(180deg);
   }
 }
+
 
 /* =========================================================
    TOGGLE
@@ -837,13 +838,12 @@
   padding-top: 0;
 }
 .vc-node-delete {
-  display: none;
+  display: inline-flex;
   flex-shrink: 0;
   width: fit-content;
   min-height: 1.85rem;
   padding: 0 .62rem;
-  margin-top: .72rem;
-  margin-left: auto;
+  margin: 0;
   justify-content: center;
   align-items: center;
   text-align: center;
@@ -868,9 +868,6 @@
     background .16s ease,
     border-color .16s ease,
     transform .14s ease;
-}
-.vc-node:not(.vc-start-node).vc-expanded .vc-node-delete {
-  display: flex;
 }
 .vc-node-delete:hover {
   color: var(--text);
