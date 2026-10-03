@@ -368,6 +368,388 @@
     }
   }
 
+  function cleanPublicMessage(
+    value,
+    fallback = ""
+  ) {
+    const text =
+      String(value || "")
+        .replace(/[\u0000-\u001f]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim()
+        .slice(0, 260);
+
+    return text || fallback;
+  }
+
+  function userFacingError(
+    error,
+    fallback =
+      "처리 중 문제가 생겼어. 다시 시도해줘."
+  ) {
+    const code =
+      String(
+        error?.code ||
+        error?.cause?.code ||
+        ""
+      )
+        .trim()
+        .toUpperCase();
+
+    const status =
+      Number(
+        error?.status ||
+        error?.cause?.status ||
+        0
+      );
+
+    const message =
+      String(
+        error?.message ||
+        ""
+      );
+
+    if (
+      code ===
+        "GEMINI_REQUEST_REFUSED"
+    ) {
+      return cleanPublicMessage(
+        message,
+        "이 요청은 지금 실행 구조로 처리하기 어려워. 범위를 줄이거나 목표를 더 구체적으로 잡아줘."
+      );
+    }
+
+    if (
+      code ===
+        "GEMINI_API_KEY_MISSING"
+    ) {
+      return "Gemini API 키가 아직 설정되지 않았어.";
+    }
+
+    if (
+      code ===
+        "GEMINI_GROUP_TOO_LARGE" ||
+      /too large|payload too large/i
+        .test(message)
+    ) {
+      return "한 번에 처리할 작업이 너무 커. 범위를 줄이거나 여러 번으로 나눠서 실행해줘.";
+    }
+
+    if (
+      code ===
+        "NETWORK_ERROR"
+    ) {
+      return "서버 연결이 불안정해. 연결을 확인하고 다시 시도해줘.";
+    }
+
+    if (
+      status === 429 ||
+      /rate limit|quota|too many requests/i
+        .test(message)
+    ) {
+      return "지금 요청이 몰렸어. 잠깐 뒤에 다시 실행해줘.";
+    }
+
+    if (
+      code ===
+        "INVALID_SERVER_RESPONSE" ||
+      code ===
+        "INVALID_GEMINI_RESPONSE" ||
+      code ===
+        "INVALID_GEMINI_RESULT"
+    ) {
+      return "모델 응답을 정리하는 데 실패했어. 다시 실행해줘.";
+    }
+
+    if (
+      code ===
+        "INVALID_EXECUTION_GROUP" ||
+      code ===
+        "UNSUPPORTED_GEMINI_NODE"
+    ) {
+      return "현재 워크플로 구조로는 이 실행을 처리할 수 없어.";
+    }
+
+    return fallback;
+  }
+
+  function escapeChatHtml(value) {
+    return String(
+      value ?? ""
+    )
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function renderInlineChatMarkup(
+    value
+  ) {
+    let text =
+      escapeChatHtml(
+        value
+      );
+
+    const inlineCode = [];
+
+    text = text.replace(
+      /\`([^\`\n]+)\`/g,
+      (_, code) => {
+        const token =
+          `@@OVLL_INLINE_${inlineCode.length}@@`;
+
+        inlineCode.push(
+          `<code>${code}</code>`
+        );
+
+        return token;
+      }
+    );
+
+    text = text
+      .replace(
+        /\*\*([^*\n]+)\*\*/g,
+        "<strong>$1</strong>"
+      )
+      .replace(
+        /__([^_\n]+)__/g,
+        "<strong>$1</strong>"
+      )
+      .replace(
+        /~~([^~\n]+)~~/g,
+        "<del>$1</del>"
+      )
+      .replace(
+        /(^|[^*])\*([^*\n]+)\*/g,
+        "$1<em>$2</em>"
+      );
+
+    inlineCode.forEach(
+      (html, index) => {
+        text = text.replaceAll(
+          `@@OVLL_INLINE_${index}@@`,
+          html
+        );
+      }
+    );
+
+    return text;
+  }
+
+  function chatMarkupHtml(
+    value
+  ) {
+    let source =
+      String(value ?? "")
+        .replace(/\r\n?/g, "\n");
+
+    const codeBlocks = [];
+
+    source = source.replace(
+      /\`\`\`([^\n\`]*)\n([\s\S]*?)\`\`\`/g,
+      (_, language, code) => {
+        const index =
+          codeBlocks.length;
+
+        const safeLanguage =
+          String(language || "")
+            .trim()
+            .replace(
+              /[^a-z0-9_-]/gi,
+              ""
+            )
+            .slice(0, 24);
+
+        codeBlocks.push(
+          `<pre><code${safeLanguage ? ` class="language-${safeLanguage}"` : ""}>${escapeChatHtml(code.replace(/\n$/, ""))}</code></pre>`
+        );
+
+        return `\n@@OVLL_BLOCK_${index}@@\n`;
+      }
+    );
+
+    const lines =
+      source.split("\n");
+
+    const html = [];
+    let paragraph = [];
+    let listType = null;
+    let listItems = [];
+
+    const flushParagraph = () => {
+      if (!paragraph.length) {
+        return;
+      }
+
+      html.push(
+        `<p>${paragraph.map(renderInlineChatMarkup).join("<br>")}</p>`
+      );
+
+      paragraph = [];
+    };
+
+    const flushList = () => {
+      if (
+        !listType ||
+        !listItems.length
+      ) {
+        listType = null;
+        listItems = [];
+        return;
+      }
+
+      html.push(
+        `<${listType}>${listItems.map(item => `<li>${renderInlineChatMarkup(item)}</li>`).join("")}</${listType}>`
+      );
+
+      listType = null;
+      listItems = [];
+    };
+
+    for (
+      const rawLine of lines
+    ) {
+      const blockMatch =
+        rawLine.match(
+          /^@@OVLL_BLOCK_(\d+)@@$/
+        );
+
+      if (blockMatch) {
+        flushParagraph();
+        flushList();
+
+        const block =
+          codeBlocks[
+            Number(
+              blockMatch[1]
+            )
+          ];
+
+        if (block) {
+          html.push(block);
+        }
+
+        continue;
+      }
+
+      if (!rawLine.trim()) {
+        flushParagraph();
+        flushList();
+        continue;
+      }
+
+      const heading =
+        rawLine.match(
+          /^(#{1,3})\s+(.+)$/
+        );
+
+      if (heading) {
+        flushParagraph();
+        flushList();
+
+        const level =
+          heading[1].length;
+
+        html.push(
+          `<h${level}>${renderInlineChatMarkup(heading[2])}</h${level}>`
+        );
+        continue;
+      }
+
+      const bullet =
+        rawLine.match(
+          /^\s*[-*]\s+(.+)$/
+        );
+
+      if (bullet) {
+        flushParagraph();
+
+        if (
+          listType &&
+          listType !== "ul"
+        ) {
+          flushList();
+        }
+
+        listType = "ul";
+        listItems.push(
+          bullet[1]
+        );
+        continue;
+      }
+
+      const ordered =
+        rawLine.match(
+          /^\s*\d+[.)]\s+(.+)$/
+        );
+
+      if (ordered) {
+        flushParagraph();
+
+        if (
+          listType &&
+          listType !== "ol"
+        ) {
+          flushList();
+        }
+
+        listType = "ol";
+        listItems.push(
+          ordered[1]
+        );
+        continue;
+      }
+
+      const quote =
+        rawLine.match(
+          /^\s*>\s?(.+)$/
+        );
+
+      if (quote) {
+        flushParagraph();
+        flushList();
+
+        html.push(
+          `<blockquote>${renderInlineChatMarkup(quote[1])}</blockquote>`
+        );
+        continue;
+      }
+
+      if (listType) {
+        flushList();
+      }
+
+      paragraph.push(
+        rawLine
+      );
+    }
+
+    flushParagraph();
+    flushList();
+
+    return html.join("");
+  }
+
+  function renderChatMarkup(
+    element,
+    value
+  ) {
+    if (!element) {
+      return;
+    }
+
+    element.classList.add(
+      "astra-message-markup"
+    );
+
+    element.innerHTML =
+      chatMarkupHtml(
+        value
+      );
+  }
+
   /* =======================================================
      Chat
      ======================================================= */
@@ -415,6 +797,102 @@
       : "FILE";
   }
 
+  function artifactVisual(
+    artifact
+  ) {
+    const format =
+      artifactFormat(
+        artifact
+      );
+
+    const mime =
+      String(
+        artifact?.mime ||
+        ""
+      ).toLowerCase();
+
+    if (
+      format === "PDF" ||
+      mime.includes(
+        "application/pdf"
+      )
+    ) {
+      return {
+        kind: "pdf",
+        color: "#e36f63",
+        icon: `
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <rect x="4.1" y="2.7" width="11.8" height="14.6" rx="3.15" stroke="currentColor" stroke-width="1.45"/>
+            <path d="M7.1 12.55c1.2-2.45 1.95-4.7 2.35-6.85M6.7 11.35c2.25-.38 4.3-.14 6.5.78M9.1 8.7c.95.9 1.95 1.4 3.05 1.52" stroke="currentColor" stroke-width="1.25" stroke-linecap="round"/>
+          </svg>
+        `
+      };
+    }
+
+    if (
+      mime.startsWith(
+        "image/"
+      ) ||
+      [
+        "PNG",
+        "JPG",
+        "JPEG",
+        "WEBP",
+        "GIF",
+        "SVG"
+      ].includes(format)
+    ) {
+      return {
+        kind: "image",
+        color: "#65a978",
+        icon: `
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <rect x="3.15" y="3.15" width="13.7" height="13.7" rx="3.5" stroke="currentColor" stroke-width="1.45"/>
+            <circle cx="7.2" cy="7.4" r="1.35" fill="currentColor"/>
+            <path d="m5.2 14 3.15-3.25 2.2 2.05 1.55-1.55 2.7 2.75" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        `
+      };
+    }
+
+    if (
+      mime.startsWith(
+        "text/"
+      ) ||
+      [
+        "TXT",
+        "MD",
+        "DOC",
+        "DOCX",
+        "RTF",
+        "HTML",
+        "CSV"
+      ].includes(format)
+    ) {
+      return {
+        kind: "text",
+        color: "#5d8fd8",
+        icon: `
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <rect x="4.1" y="2.7" width="11.8" height="14.6" rx="3.15" stroke="currentColor" stroke-width="1.45"/>
+            <path d="M7.2 7.35h5.6M7.2 10.1h5.6M7.2 12.85h3.7" stroke="currentColor" stroke-width="1.35" stroke-linecap="round"/>
+          </svg>
+        `
+      };
+    }
+
+    return {
+      kind: "file",
+      color: "#8b7fd1",
+      icon: `
+        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M5 2.8h5.9l4.1 4.05V17.2H5V2.8Z" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/>
+          <path d="M10.75 2.8v4.25H15" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>
+        </svg>
+      `
+    };
+  }
+
   function appendArtifactCards(
     message,
     artifacts
@@ -430,66 +908,63 @@
       document.createElement(
         "div"
       );
+
     group.className =
       "astra-message-artifacts";
 
-    const label =
-      document.createElement(
-        "div"
-      );
-    label.className =
-      "astra-message-artifacts-label";
-    label.textContent =
-      "결과물";
-    group.appendChild(label);
+    for (
+      const artifact of list
+    ) {
+      const visual =
+        artifactVisual(
+          artifact
+        );
 
-    for (const artifact of list) {
       const link =
         document.createElement(
           "a"
         );
+
       link.className =
-        "astra-artifact-card";
+        `astra-artifact-card astra-artifact-${visual.kind}`;
+
+      link.style.setProperty(
+        "--artifact-accent",
+        visual.color
+      );
+
       link.href =
         String(
           artifact.downloadUrl ||
           "#"
         );
+
       link.download =
         String(
           artifact.name ||
           "result"
         );
 
+      link.setAttribute(
+        "aria-label",
+        `${artifact.name || "결과물"} 다운로드`
+      );
+
       const icon =
         document.createElement(
           "span"
         );
+
       icon.className =
         "astra-artifact-icon";
-      icon.innerHTML = `
-        <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-          <path d="M5.2 2.9h6.15l3.45 3.45V17.1H5.2V2.9Z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/>
-          <path d="M11.2 2.9v3.65h3.6M7.55 11h4.95M7.55 13.35h3.6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      `;
-
-      const format =
-        document.createElement(
-          "span"
-        );
-      format.className =
-        "astra-artifact-format";
-      format.textContent =
-        artifactFormat(
-          artifact
-        );
-      icon.appendChild(format);
+      icon.innerHTML =
+        visual.icon;
 
       const info =
         document.createElement(
           "span"
         );
+
       info.className =
         "astra-artifact-info";
 
@@ -497,6 +972,7 @@
         document.createElement(
           "span"
         );
+
       name.className =
         "astra-artifact-name";
       name.textContent =
@@ -509,6 +985,7 @@
         document.createElement(
           "span"
         );
+
       meta.className =
         "astra-artifact-meta";
       meta.textContent =
@@ -523,11 +1000,12 @@
         document.createElement(
           "span"
         );
+
       action.className =
         "astra-artifact-download";
       action.innerHTML = `
         <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
-          <path d="M9 3v7.2m0 0 2.55-2.55M9 10.2 6.45 7.65M4 13.6h10" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M9 3.1v7m0 0 2.45-2.45M9 10.1 6.55 7.65M4.2 13.55h9.6" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
         </svg>
       `;
 
@@ -536,10 +1014,15 @@
         info,
         action
       );
-      group.appendChild(link);
+
+      group.appendChild(
+        link
+      );
     }
 
-    message.appendChild(group);
+    message.appendChild(
+      group
+    );
   }
 
   function createMessage(
@@ -559,6 +1042,14 @@
     const value =
       String(text ?? "");
 
+    const artifactList =
+      Array.isArray(
+        options.artifacts
+      )
+        ? options.artifacts
+            .filter(Boolean)
+        : [];
+
     message.id = id;
 
     message.className =
@@ -573,8 +1064,17 @@
     body.className =
       "astra-message-body";
 
-    body.textContent =
-      value;
+    if (
+      role === "assistant"
+    ) {
+      renderChatMarkup(
+        body,
+        value
+      );
+    } else {
+      body.textContent =
+        value;
+    }
 
     message.appendChild(body);
 
@@ -629,13 +1129,14 @@
     ) {
       appendArtifactCards(
         message,
-        options.artifacts
+        artifactList
       );
     }
 
     if (
       role === "assistant" &&
-      options.showCanvasView
+      options.showCanvasView &&
+      artifactList.length === 0
     ) {
       const canvasButton =
         document.createElement("button");
@@ -783,11 +1284,7 @@
           options.showCanvasView === true,
         artifacts:
           storageSafe(
-            Array.isArray(
-              options.artifacts
-            )
-              ? options.artifacts
-              : []
+            artifactList
           ) || [],
         createdAt:
           Number(
@@ -839,7 +1336,22 @@
       options.silent !== true
     ) {
       Presence.moveToEnd();
-      Presence.speak(value);
+      Presence.settle();
+
+      const shortSpeech =
+        String(
+          options.presenceSpeech ||
+          ""
+        ).trim();
+
+      if (shortSpeech) {
+        Presence.speak(
+          shortSpeech,
+          {
+            hold: 2600
+          }
+        );
+      }
     }
 
     scrollChatToBottom();
@@ -883,7 +1395,10 @@
     return message;
   }
 
-  function revealAssistantMessage(message, text) {
+  function revealAssistantMessage(
+    message,
+    text
+  ) {
     const body =
       message?.querySelector(
         ".astra-message-body"
@@ -891,42 +1406,31 @@
 
     if (!body) return 0;
 
-    const tokens =
-      String(text ?? "")
-        .split(/(\s+)/)
-        .filter(
-          token =>
-            token.length > 0
-        );
-
-    body.textContent = "";
-
-    tokens.forEach(
-      (token, index) => {
-        const span =
-          document.createElement(
-            "span"
-          );
-
-        span.className =
-          "astra-message-reveal-token";
-        span.textContent =
-          token;
-        span.style.setProperty(
-          "--reveal-index",
-          Math.min(index, 44)
-        );
-
-        body.appendChild(
-          span
-        );
-      }
+    renderChatMarkup(
+      body,
+      text
     );
 
-    return Math.min(
-      1200,
-      tokens.length * 22 + 180
+    body.classList.remove(
+      "is-revealing"
     );
+
+    void body.offsetWidth;
+
+    body.classList.add(
+      "is-revealing"
+    );
+
+    setTimeout(
+      () => {
+        body.classList.remove(
+          "is-revealing"
+        );
+      },
+      420
+    );
+
+    return 420;
   }
 
   function runtimeActivityMarkup() {
@@ -949,16 +1453,77 @@
     `;
   }
 
+  function runtimeStepPresentation(
+    id
+  ) {
+    const key =
+      String(id || "");
+
+    if (
+      key === "__prepare__"
+    ) {
+      return {
+        type: "system",
+        icon: `
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <circle cx="10" cy="10" r="5.5" stroke="currentColor" stroke-width="1.45"/>
+            <circle cx="10" cy="10" r="1.45" fill="currentColor"/>
+          </svg>
+        `
+      };
+    }
+
+    if (
+      key === "__finalize__"
+    ) {
+      return {
+        type: "system",
+        icon: `
+          <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+            <path d="M10 3.4c.4 3.2 1.55 4.35 4.75 4.75-3.2.4-4.35 1.55-4.75 4.75-.4-3.2-1.55-4.35-4.75-4.75C8.45 7.75 9.6 6.6 10 3.4Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>
+            <circle cx="14.8" cy="14.6" r="1.2" fill="currentColor"/>
+          </svg>
+        `
+      };
+    }
+
+    const node =
+      state.canvas?.getNode?.(
+        key
+      );
+
+    const type =
+      String(
+        node?.type ||
+        ""
+      );
+
+    const definition =
+      state.nodeDefinitions?.[
+        type
+      ];
+
+    return {
+      type:
+        type || "node",
+      icon:
+        typeof definition?.icon ===
+          "string" &&
+        definition.icon.trim()
+          ? definition.icon
+          : `
+            <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+              <circle cx="10" cy="10" r="5.5" stroke="currentColor" stroke-width="1.45"/>
+            </svg>
+          `
+    };
+  }
+
   function runtimeStepMarkup() {
     return `
       <span class="astra-runtime-step-mark" aria-hidden="true">
-        <span class="astra-runtime-step-pulse"></span>
-        <svg class="astra-runtime-step-check" viewBox="0 0 18 18" fill="none">
-          <path d="m5.1 9.2 2.35 2.35 5.45-5.5" stroke="currentColor" stroke-width="1.65" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-        <svg class="astra-runtime-step-error" viewBox="0 0 18 18" fill="none">
-          <path d="m6.2 6.2 5.6 5.6M11.8 6.2l-5.6 5.6" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
-        </svg>
+        <span class="astra-runtime-step-icon"></span>
+        <span class="astra-runtime-step-status"></span>
       </span>
       <span class="astra-runtime-step-content">
         <span class="astra-runtime-step-label"></span>
@@ -1164,6 +1729,24 @@
         runtimeStepMarkup();
       step.dataset.stepId =
         key;
+
+      const presentation =
+        runtimeStepPresentation(
+          key
+        );
+
+      step.dataset.nodeType =
+        presentation.type;
+
+      const icon =
+        step.querySelector(
+          ".astra-runtime-step-icon"
+        );
+
+      if (icon) {
+        icon.innerHTML =
+          presentation.icon;
+      }
 
       activity.steps.set(
         key,
@@ -1470,55 +2053,31 @@
       );
 
     const failed =
-      states.filter(
+      states.find(
         node =>
           node?.status ===
             "FAILED"
       );
 
-    if (failed.length) {
-      const detail =
-        failed
-          .map(
-            node =>
-              node?.error
-                ?.message
-          )
-          .filter(Boolean)
-          .join("\n");
-
-      return detail
-        ? `실행 중 문제가 생겼어.\n${detail}`
-        : "실행 중 문제가 생겼어.";
+    if (failed) {
+      return userFacingError(
+        failed.error,
+        "실행 중 문제가 생겼어. 다시 시도해줘."
+      );
     }
 
-    const reports =
-      states
-        .filter(
-          node =>
-            node?.status ===
-              "SUCCESS"
-        )
-        .map(
-          node =>
-            node?.result
-              ?.report ||
-            node?.report
-        )
-        .filter(
-          value =>
-            typeof value ===
-              "string" &&
-            value.trim()
-        );
+    const artifacts =
+      collectRunArtifacts(
+        run
+      );
 
-    if (reports.length) {
-      return reports
-        .slice(-3)
-        .join("\n\n");
+    if (artifacts.length) {
+      return artifacts.length === 1
+        ? "결과물 파일을 만들었어."
+        : `결과물 파일 ${artifacts.length}개를 만들었어.`;
     }
 
-    return "실행은 끝났어. 결과는 캔버스 노드에서 확인할 수 있어.";
+    return "실행은 끝났어. 결과를 캔버스에 반영했어.";
   }
 
   function collectRunArtifacts(
@@ -2173,8 +2732,10 @@
       );
 
       addAssistantMessage(
-        error?.message ||
-        "요청을 처리하지 못했습니다."
+        userFacingError(
+          error,
+          "요청을 처리하지 못했어. 다시 시도해줘."
+        )
       );
     } finally {
       setBusy(false);
@@ -2397,9 +2958,10 @@
           {
             failed: true,
             detail:
-              event.state?.error
-                ?.message ||
-              "실행 중 문제가 생겼어"
+              userFacingError(
+                event.state?.error,
+                "이 단계에서 문제가 생겼어."
+              )
           }
         );
       } else if (
@@ -2498,8 +3060,10 @@
       Presence.settle();
 
       addAssistantMessage(
-        error?.message ||
-        "실행 중 문제가 생겼어."
+        userFacingError(
+          error,
+          "실행 중 문제가 생겼어. 다시 시도해줘."
+        )
       );
 
       return null;
