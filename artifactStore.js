@@ -300,7 +300,25 @@ export function createStoredArtifact(input = {}) {
   const name = withExtension(input.filename || 'result', info.ext);
   const item = {id, name, format, mime: info.mime, size: buffer.length, createdAt: Date.now(), buffer, previewText: sourceText(sources).slice(0, 240)};
   STORE.set(id, item);
-  return {id: item.id, name: item.name, format: item.format, mime: item.mime, size: item.size, previewText: item.previewText, downloadUrl: '/api/artifacts/' + encodeURIComponent(item.id)};
+  const baseUrl =
+    '/api/artifacts/' +
+    encodeURIComponent(
+      item.id
+    );
+
+  return {
+    id: item.id,
+    name: item.name,
+    format: item.format,
+    mime: item.mime,
+    size: item.size,
+    previewText:
+      item.previewText,
+    previewUrl:
+      baseUrl + '?inline=1',
+    downloadUrl:
+      baseUrl
+  };
 }
 
 export function getStoredArtifact(id) {
