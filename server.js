@@ -2691,17 +2691,36 @@ if (!text) {
         error
       );
 
-      return res.status(
+      const status =
         error?.status === 429
           ? 429
           : error?.status === 413
             ? 413
-            : 500
+            : 500;
+
+      return res.status(
+        status
       ).json({
         ok: false,
+        code:
+          String(
+            error?.code ||
+            (
+              status === 429
+                ? 'PLANNER_RATE_LIMIT'
+                : status === 413
+                  ? 'PLANNER_PAYLOAD_TOO_LARGE'
+                  : 'PLANNER_ERROR'
+            )
+          ),
         error:
           error?.message ||
-          '워크플로우를 처리하지 못했습니다.'
+          '워크플로우를 처리하지 못했습니다.',
+        retryable:
+          error?.retryable ===
+            true ||
+          status === 429 ||
+          status >= 500
       });
     }
   }
