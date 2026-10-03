@@ -7,7 +7,7 @@ const chatMessages=document.querySelector("#chat-messages");
 const canvasPage=document.querySelector("#canvas-page");
 const canvasWorld=document.querySelector("#canvas-world");
 
-if(!chatPage||!chatMessages||!canvasPage){
+if(!chatPage||!chatMessages||!canvasPage||!canvasWorld){
   throw new Error("OvllPresence DOM 구조가 올바르지 않습니다.");
 }
 
@@ -31,7 +31,6 @@ const state={
   canvasSpeech:null,
   speechText:null,
   speechTimer:null,
-  speechFrame:null,
   settleTimer:null,
   destroyed:false
 };
@@ -249,7 +248,7 @@ function ensureCanvasSpeech(){
   bubble.innerHTML=
     '<div class="ovll-canvas-speech-body"></div>';
 
-  canvasPage.appendChild(bubble);
+  canvasWorld.appendChild(bubble);
   state.canvasSpeech=bubble;
 
   return bubble;
@@ -263,121 +262,7 @@ function canvasMascotElement(){
   );
 }
 
-function getCanvasScale(){
-  if(!canvasWorld){
-    return 1;
-  }
-
-  const transform=
-    getComputedStyle(
-      canvasWorld
-    ).transform;
-
-  if(
-    !transform||
-    transform==="none"
-  ){
-    return 1;
-  }
-
-  try{
-    return Math.max(
-      .12,
-      Math.min(
-        3,
-        new DOMMatrixReadOnly(
-          transform
-        ).a||1
-      )
-    );
-  }catch{
-    return 1;
-  }
-}
-
-function positionCanvasSpeech(){
-  state.speechFrame=null;
-
-  const bubble=state.canvasSpeech;
-  const mascot=canvasMascotElement();
-
-  if(
-    !bubble||
-    !bubble.classList.contains("is-visible")||
-    !mascot||
-    mascot.hidden
-  ){
-    return;
-  }
-
-  const pageRect=
-    canvasPage.getBoundingClientRect();
-
-  const mascotRect=
-    mascot.getBoundingClientRect();
-
-  const centerY=
-    mascotRect.top-
-    pageRect.top+
-    mascotRect.height/2;
-
-  const gap=
-    Math.max(
-      7,
-      mascotRect.width*.22
-    );
-
-  const anchorX=
-    mascotRect.right-
-    pageRect.left+
-    gap;
-
-  const speechScale=
-    Math.max(
-      .68,
-      Math.min(
-        1.08,
-        getCanvasScale()
-      )
-    );
-
-  bubble.style.left=
-    `${anchorX}px`;
-
-  bubble.style.top=
-    `${centerY}px`;
-
-  bubble.style.setProperty(
-    "--ovll-speech-scale",
-    String(speechScale)
-  );
-
-  state.speechFrame=
-    requestAnimationFrame(
-      positionCanvasSpeech
-    );
-}
-
-function startSpeechTracking(){
-  if(state.speechFrame!==null) return;
-
-  state.speechFrame=
-    requestAnimationFrame(
-      positionCanvasSpeech
-    );
-}
-
-function stopSpeechTracking(){
-  if(state.speechFrame===null) return;
-
-  cancelAnimationFrame(
-    state.speechFrame
-  );
-
-  state.speechFrame=null;
-}
-
-function showCanvasSpeech(text,{thinking=false,hold=5200}={}){
+function showCanvasSpeech(text,{thinking=false,hold=7600}={}){
   const bubble=ensureCanvasSpeech();
   const body=bubble.querySelector(
     ".ovll-canvas-speech-body"
@@ -413,7 +298,6 @@ function showCanvasSpeech(text,{thinking=false,hold=5200}={}){
     bubble.classList.add(
       "is-visible"
     );
-    startSpeechTracking();
   });
 
   if(!thinking&&hold>0){
@@ -432,8 +316,6 @@ function hideCanvasSpeech(){
     "is-visible",
     "is-thinking"
   );
-
-  stopSpeechTracking();
 
   if(state.phase==="speaking"){
     setPhase("idle");
@@ -498,7 +380,7 @@ function speak(text,options={}){
       hold:
         Number.isFinite(options.hold)
           ?options.hold
-          :5200
+          :7600
     }
   );
 
@@ -512,14 +394,6 @@ function attachCanvasMascot(mascot){
 
   if(state.phase==="thinking"){
     state.canvasMascot?.setThinking?.(true);
-  }
-
-  if(
-    state.canvasSpeech?.classList.contains(
-      "is-visible"
-    )
-  ){
-    startSpeechTracking();
   }
 
   return api;
@@ -543,17 +417,6 @@ function handleModeChange({
     showStart();
   }
 
-  if(state.mode==="canvas"){
-    if(
-      state.canvasSpeech?.classList.contains(
-        "is-visible"
-      )
-    ){
-      startSpeechTracking();
-    }
-  }else{
-    stopSpeechTracking();
-  }
 }
 
 const offModeChange=
@@ -603,7 +466,6 @@ const api={
 
     clearTimeout(state.speechTimer);
     clearTimeout(state.settleTimer);
-    stopSpeechTracking();
 
     listeners
       .splice(0)
