@@ -30,15 +30,15 @@ const THINKING_LEVELS =
 
 const NODE_INSTRUCTIONS = {
   research:
-    "Analyze the supplied material according to params.topic/filter. If no web or search tool is provided, use only supplied material and general model knowledge. Never fabricate citations or claim live browsing occurred.",
+    "Analyze the supplied material according to params.topic/filter. If no web or search tool is provided, use only supplied material and general model knowledge. Never fabricate citations or claim live browsing occurred. Put the node value on outputs.result.",
   organize:
-    "Transform the available input according to params.criteria and params.format. Preserve important facts and do not introduce unsupported claims.",
+    "Transform the available input according to params.criteria and params.format. Preserve important facts and do not introduce unsupported claims. Put the node value on outputs.result.",
   write:
-    "Produce directly usable content using params.title/style/length/about and available upstream material. Do not discuss how to write it unless requested by the node params.",
+    "Produce directly usable content using params.title/style/length/about and available upstream material. Do not discuss how to write it unless requested by the node params. Put the node value on outputs.result.",
   convert:
-    "Convert the available material according to params.instruction while preserving meaning unless the instruction explicitly requests transformation.",
+    "Convert the available material according to params.instruction while preserving meaning unless the instruction explicitly requests transformation. Put the node value on outputs.result.",
   judge:
-    "Evaluate params.condition against the available input. Set decision to a boolean. Put useful branch data on the matching true or false output."
+    "Evaluate params.condition against the available input. Set decision to a boolean. If decision is true, put useful branch data on outputs.true. If false, put it on outputs.false."
 };
 
 const SYSTEM_INSTRUCTION = [
@@ -348,6 +348,67 @@ export function buildGroupResponseSchema(
   const count =
     nodes.length;
 
+  const anyJson = {
+    type: [
+      "object",
+      "array",
+      "string",
+      "number",
+      "integer",
+      "boolean",
+      "null"
+    ]
+  };
+
+  const resultSchema =
+    node => {
+      const outputProperties =
+        node.type === "judge"
+          ? {
+              true: anyJson,
+              false: anyJson
+            }
+          : {
+              result: anyJson
+            };
+
+      return {
+        type: "object",
+        properties: {
+          nodeId: {
+            type: "string",
+            enum: [
+              node.id
+            ]
+          },
+          outputs: {
+            type: "object",
+            properties:
+              outputProperties,
+            additionalProperties:
+              true
+          },
+          decision: {
+            type:
+              node.type === "judge"
+                ? "boolean"
+                : ["null"]
+          },
+          report: {
+            type: "string"
+          }
+        },
+        required: [
+          "nodeId",
+          "outputs",
+          "decision",
+          "report"
+        ],
+        additionalProperties:
+          false
+      };
+    };
+
   return {
     type: "object",
     properties: {
@@ -355,36 +416,10 @@ export function buildGroupResponseSchema(
         type: "array",
         minItems: count,
         maxItems: count,
-        items: {
-          type: "object",
-          properties: {
-            nodeId: {
-              type: "string"
-            },
-            outputs: {
-              type: "object",
-              additionalProperties:
-                true
-            },
-            decision: {
-              type: [
-                "boolean",
-                "null"
-              ]
-            },
-            report: {
-              type: "string"
-            }
-          },
-          required: [
-            "nodeId",
-            "outputs",
-            "decision",
-            "report"
-          ],
-          additionalProperties:
-            false
-        }
+        prefixItems:
+          nodes.map(
+            resultSchema
+          )
       }
     },
     required: [
@@ -654,6 +689,33 @@ export function validateGroupResults(
         ) {
           throw new GeminiExecutionError(
             `non-judge node decision must be null: ${nodeId}`,
+            {
+              code:
+                "INVALID_GEMINI_RESULT",
+              semantic: true
+            }
+          );
+        }
+
+        const requiredPort =
+          expected.type ===
+            "judge"
+            ? (
+                item.decision
+                  ? "true"
+                  : "false"
+              )
+            : "result";
+
+        if (
+          !Object.prototype
+            .hasOwnProperty.call(
+              item.outputs,
+              requiredPort
+            )
+        ) {
+          throw new GeminiExecutionError(
+            `Gemini result missing required output port: ${requiredPort}`,
             {
               code:
                 "INVALID_GEMINI_RESULT",
