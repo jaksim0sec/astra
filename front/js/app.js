@@ -1106,12 +1106,44 @@
 
     state.canvas = canvas;
 
+    const localExecutor =
+      new Execution.DemoNodeExecutor({
+        minDelay: 0,
+        maxDelay: 0
+      });
+
+    const runtimeExecutor = {
+      run(
+        node,
+        inputs,
+        context
+      ) {
+        return localExecutor.run(
+          node,
+          inputs,
+          context
+        );
+      },
+
+      async runGroup(
+        group
+      ) {
+        const response =
+          await API.executeGroup(
+            group
+          );
+
+        return {
+          results:
+            response.results
+        };
+      }
+    };
+
     state.runtime =
       new Execution.RuntimeEngine({
-        executorOptions: {
-          minDelay: 480,
-          maxDelay: 1100
-        },
+        executor:
+          runtimeExecutor,
         onEvent:
           handleRuntimeEvent
       });
