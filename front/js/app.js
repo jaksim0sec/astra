@@ -37,7 +37,6 @@
     !Presence ||
     !Execution ||
     typeof Execution.RuntimeEngine !== "function" ||
-    typeof Execution.sliceWorkflow !== "function" ||
     typeof mountCanvasNode !== "function"
   ) {
     throw new Error("ovll Application dependency가 준비되지 않았습니다.");
@@ -63,6 +62,7 @@
     nodeDefinitions: null,
     conversationMemory: null,
     runtime: null,
+    runtimeConnections: new Set(),
     nodeBuilder: { root: null, open: false },
     messageCount: 0
   };
@@ -970,28 +970,16 @@
   /* =======================================================
      Demo runtime
      ======================================================= */
-  function getCanvasNodeElement(nodeId) {
-    if (!state.canvas?.root) return null;
-
-    return [
-      ...state.canvas.root.querySelectorAll(
-        ".vc-node"
-      )
-    ].find(
-      element =>
-        element.dataset.nodeId ===
-        String(nodeId)
-    ) || null;
+  function syncRuntimeConnections() {
+    state.canvas
+      ?.setRuntimeConnections?.(
+        [...state.runtimeConnections]
+      );
   }
 
-  function clearRuntimeNodeStates() {
-    state.canvas?.root
-      ?.querySelectorAll(
-        ".vc-node[data-runtime-status]"
-      )
-      .forEach(element => {
-        delete element.dataset.runtimeStatus;
-      });
+  function clearRuntimeConnections() {
+    state.runtimeConnections.clear();
+    syncRuntimeConnections();
   }
 
   function handleRuntimeEvent(event) {
@@ -1000,7 +988,7 @@
     }
 
     if (event.type === "run:start") {
-      clearRuntimeNodeStates();
+      clearRuntimeConnections();
 
       console.info(
         "[ovll runtime] start",
@@ -1010,19 +998,31 @@
       return;
     }
 
-    if (event.type === "node:state") {
-      const element =
-        getCanvasNodeElement(
-          event.nodeId
+    if (event.type === "edge:state") {
+      const edgeId =
+        String(
+          event.edgeId || ""
         );
 
-      if (element) {
-        element.dataset.runtimeStatus =
-          String(
-            event.status || ""
-          ).toLowerCase();
+      if (!edgeId) {
+        return;
       }
 
+      if (event.active) {
+        state.runtimeConnections.add(
+          edgeId
+        );
+      } else {
+        state.runtimeConnections.delete(
+          edgeId
+        );
+      }
+
+      syncRuntimeConnections();
+      return;
+    }
+
+    if (event.type === "node:state") {
       console.info(
         "[ovll runtime] node",
         event
@@ -1032,6 +1032,8 @@
     }
 
     if (event.type === "run:finish") {
+      clearRuntimeConnections();
+
       console.info(
         "[ovll runtime] finish",
         event
@@ -1039,7 +1041,10 @@
     }
   }
 
-  async function runCanvasNode(nodeId) {
+  async function runCanvasNode(
+    nodeId,
+    mode = "spread"
+  ) {
     if (
       !state.canvas ||
       !state.runtime ||
@@ -1048,21 +1053,23 @@
       return null;
     }
 
-    const source =
-      state.canvas.getWorkflow();
-
     const workflow =
-      Execution.sliceWorkflow(
-        source,
-        nodeId
-      );
+      state.canvas.getWorkflow();
 
     try {
       return await state.runtime.run(
         workflow,
-        nodeId
+        nodeId,
+        {
+          mode:
+            mode === "target"
+              ? "target"
+              : "spread"
+        }
       );
     } catch (error) {
+      clearRuntimeConnections();
+
       console.error(
         "ovll demo runtime failed:",
         error
@@ -1083,7 +1090,8 @@
     }
 
     void runCanvasNode(
-      nodeId
+      nodeId,
+      "spread"
     );
   }
 
@@ -1366,9 +1374,27 @@ listen(composerInput, "keydown", handleComposerKeydown);
       return getCurrentWorkflow();
     },
 
-    runNode(nodeId) {
+    runNode(
+      nodeId,
+      mode = "spread"
+    ) {
       return runCanvasNode(
-        String(nodeId || "")
+        String(nodeId || ""),
+        mode
+      );
+    },
+
+    runTarget(nodeId) {
+      return runCanvasNode(
+        String(nodeId || ""),
+        "target"
+      );
+    },
+
+    runSpread(nodeId) {
+      return runCanvasNode(
+        String(nodeId || ""),
+        "spread"
       );
     },
 
@@ -1423,7 +1449,10 @@ listen(composerInput, "keydown", handleComposerKeydown);
 
       Presence.destroy?.();
 
+      clearRuntimeConnections();
+
       state.canvas = null;
+      state.runtime = null;
       state.nodeBuilder.root = null;
       state.nodeBuilder.open = false;
       state.workflow = null;
