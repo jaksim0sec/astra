@@ -6,6 +6,7 @@
 :root {
   --composer-input-height: 2.375rem;
   --composer-extra-height: 3.125rem;
+  --composer-form-height: 3.375rem;
   --composer-live-height: max(var(--composer-height), calc(var(--composer-input-height) + var(--composer-extra-height)));
 }
 
@@ -278,19 +279,37 @@
   left: var(--ovll-world-x, 0px);
   top: var(--ovll-world-y, 0px);
 
-  width: min(11.5rem, 46vw);
-  max-width: 12.5rem;
-  padding: .48rem .68rem;
+  width: max-content;
+  max-width: min(12rem, 46vw);
+  padding: .42rem .58rem;
 
-  border: .0625rem solid var(--line);
-  border-radius: 1rem;
+  border:
+    .0625rem solid
+    color-mix(
+      in srgb,
+      var(--line) 72%,
+      transparent
+    );
+  border-radius: .875rem;
 
-  background: var(--ui-control-surface);
+  background:
+    color-mix(
+      in srgb,
+      var(--panel-soft) 90%,
+      transparent
+    );
   backdrop-filter: var(--ui-backdrop);
   -webkit-backdrop-filter: var(--ui-backdrop);
-  box-shadow: var(--ui-control-shadow);
+  box-shadow:
+    0 .14rem .62rem
+    rgba(0, 0, 0, .045);
 
-  color: var(--text);
+  color:
+    color-mix(
+      in srgb,
+      var(--text) 94%,
+      transparent
+    );
   font-size: .6875rem;
   font-weight: 500;
   line-height: 1.42;
@@ -316,27 +335,8 @@
     opacity;
 }
 
-#ovll-canvas-speech::after {
-  content: "";
-
-  position: absolute;
-  left: -.22rem;
-  top: 50%;
-
-  width: .42rem;
-  height: .42rem;
-
-  border-left: .0625rem solid var(--line);
-  border-bottom: .0625rem solid var(--line);
-  background: var(--ui-control-surface);
-
-  transform:
-    translateY(-50%)
-    rotate(45deg);
-}
-
 #ovll-canvas-speech.is-visible {
-  opacity: .98;
+  opacity: .94;
 }
 
 #ovll-canvas-speech.is-thinking {
@@ -532,6 +532,8 @@
 }
 
 #composer-submit svg {
+  width: 1.25rem;
+  height: 1.25rem;
   transition:
     transform .2s var(--ease),
     opacity .2s ease;
@@ -606,7 +608,12 @@
     padding:
       calc(var(--safe-top) + var(--topbar-height) + .375rem)
       max(.875rem, var(--safe-right))
-      1.875rem
+      calc(
+        var(--composer-form-height) +
+        var(--safe-bottom) +
+        var(--bottom-dock-lift) +
+        1.25rem
+      )
       max(.875rem, var(--safe-left));
   }
 
@@ -722,8 +729,8 @@
   bottom: calc(
     var(--safe-bottom) +
     var(--bottom-dock-lift) +
-    var(--composer-live-height) +
-    .5rem
+    var(--composer-form-height) +
+    .75rem
   );
   pointer-events: none;
 }
@@ -923,8 +930,8 @@
     bottom: calc(
       var(--safe-bottom) +
       var(--bottom-dock-lift) +
-      var(--composer-live-height) +
-      .5rem
+      var(--composer-form-height) +
+      .75rem
     );
   }
 
@@ -1079,8 +1086,8 @@
 
 #composer-attach svg {
   display: block;
-  width: 1.125rem;
-  height: 1.125rem;
+  width: 1.1875rem;
+  height: 1.1875rem;
   fill: none;
   stroke: currentColor;
   stroke-width: 1.7;
@@ -1291,8 +1298,8 @@
     bottom: calc(
       var(--safe-bottom) +
       var(--bottom-dock-lift) +
-      var(--composer-live-height) +
-      .5rem
+      var(--composer-form-height) +
+      .75rem
     );
   }
 }
