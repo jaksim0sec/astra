@@ -3952,8 +3952,10 @@ listen(composerInput, "keydown", handleComposerKeydown);
       error
     );
     addSystemMessage(
-      error?.message ||
-      "오블을 초기화하지 못했습니다."
+      userFacingError(
+        error,
+        "오블을 초기화하지 못했어. 새로고침해서 다시 시도해줘."
+      )
     );
   });
 })(window);
