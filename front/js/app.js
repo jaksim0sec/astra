@@ -180,46 +180,10 @@
   }
 
   function syncAppViewport() {
-    const rawHeight =
-      global.innerHeight ||
-      document.documentElement.clientHeight;
-
-    const height =
-      Math.max(1, Math.round(rawHeight));
-
-    const rootStyle =
-      document.documentElement.style;
-
-    rootStyle.setProperty(
-      "--app-frame-top",
-      "0px"
-    );
-
-    rootStyle.setProperty(
-      "--app-frame-height",
-      `${height}px`
-    );
-
-    rootStyle.setProperty(
-      "--app-stage-height",
-      `${height}px`
-    );
-
-    rootStyle.setProperty(
-      "--real-vh",
-      `${height}px`
-    );
-
-    rootStyle.setProperty(
-      "--viewport-height",
-      `${height}px`
-    );
-
-    rootStyle.setProperty(
-      "--real-vh-unit",
-      `${height * 0.01}px`
-    );
-
+    // AstraUI is the single viewport-height owner.
+    // It uses visualViewport when available so keyboard open/close
+    // cannot race an innerHeight-based writer.
+    UI.syncViewport?.();
     resetDocumentScroll();
   }
 
