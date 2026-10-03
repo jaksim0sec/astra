@@ -24,6 +24,15 @@ const state = {
   destroyed:false,
   renderFrame:null,
   suppressClick:false,
+  conversationMenu:null,
+  longPress:{
+    timer:null,
+    pointerId:null,
+    startX:0,
+    startY:0,
+    conversationId:null,
+    target:null
+  },
   gesture:{
     active:false,
     horizontal:false,
@@ -155,6 +164,16 @@ function icon(name){
         <circle cx="5.2" cy="10" r="1.2" fill="currentColor"/>
         <circle cx="10" cy="10" r="1.2" fill="currentColor"/>
         <circle cx="14.8" cy="10" r="1.2" fill="currentColor"/>
+      </svg>
+    `,
+    pin:`
+      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M7.1 4.4h5.8M8 4.4l.4 4-2.45 2.3h8.1L11.6 8.4l.4-4M10 10.7v5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    `,
+    trash:`
+      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M6 6.1h8M8 6.1V4.8h4v1.3M7.2 8.2l.5 6h4.6l.5-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
     `
   };
@@ -617,6 +636,16 @@ function conversationItem(
   conversation,
   activeId
 ){
+  const item =
+    document.createElement(
+      "div"
+    );
+
+  item.className=
+    "ovll-sidebar-chat-item";
+  item.dataset.conversationId=
+    conversation.id;
+
   const button =
     document.createElement(
       "button"
@@ -625,7 +654,7 @@ function conversationItem(
   button.type="button";
   button.className=
     "ovll-sidebar-chat";
-  button.dataset.conversationId=
+  button.dataset.conversationOpen=
     conversation.id;
 
   const active =
@@ -672,29 +701,251 @@ function conversationItem(
     conversation.title ||
     "새 대화";
 
-  const meta =
-    document.createElement(
-      "span"
-    );
-
-  meta.className=
-    "ovll-sidebar-chat-meta";
-  meta.textContent=
-    formatTime(
-      conversation.updatedAt
-    );
-
-  copy.append(
-    title,
-    meta
+  copy.appendChild(
+    title
   );
+
+  if(conversation.pinned){
+    const pinned =
+      document.createElement(
+        "span"
+      );
+
+    pinned.className=
+      "ovll-sidebar-chat-pin";
+    pinned.setAttribute(
+      "aria-label",
+      "고정됨"
+    );
+    pinned.innerHTML=
+      icon("pin");
+
+    copy.appendChild(
+      pinned
+    );
+  }
+
+  const more =
+    document.createElement(
+      "button"
+    );
+
+  more.type="button";
+  more.className=
+    "ovll-sidebar-chat-more";
+  more.dataset.sidebarAction=
+    "conversation-menu";
+  more.dataset.conversationId=
+    conversation.id;
+  more.setAttribute(
+    "aria-label",
+    (conversation.title || "대화") + " 메뉴"
+  );
+  more.innerHTML=
+    icon("dots");
 
   button.append(
     iconNode,
     copy
   );
 
-  return button;
+  item.append(
+    button,
+    more
+  );
+
+  return item;
+}
+
+function compareConversations(
+  a,
+  b
+){
+  if(
+    !!a.pinned !==
+    !!b.pinned
+  ){
+    return a.pinned
+      ?-1
+      :1;
+  }
+
+  return (
+    Number(b.updatedAt)-
+    Number(a.updatedAt)
+  );
+}
+
+function closeConversationMenu(){
+  state.conversationMenu
+    ?.remove?.();
+
+  state.conversationMenu=
+    null;
+}
+
+function openConversationMenu(
+  conversationId,
+  anchor
+){
+  const conversation=
+    Store.getConversation(
+      conversationId
+    );
+
+  if(
+    !conversation ||
+    !anchor
+  ){
+    return;
+  }
+
+  closeConversationMenu();
+
+  const menu=
+    document.createElement(
+      "div"
+    );
+
+  menu.className=
+    "ovll-sidebar-chat-menu";
+  menu.dataset.conversationMenu=
+    conversation.id;
+
+  const pin=
+    document.createElement(
+      "button"
+    );
+
+  pin.type="button";
+  pin.dataset.sidebarAction=
+    "conversation-pin";
+  pin.dataset.conversationId=
+    conversation.id;
+  pin.innerHTML=
+    icon("pin") +
+    "<span>" +
+    (conversation.pinned
+      ?"고정 해제"
+      :"고정") +
+    "</span>";
+
+  const remove=
+    document.createElement(
+      "button"
+    );
+
+  remove.type="button";
+  remove.className=
+    "is-danger";
+  remove.dataset.sidebarAction=
+    "conversation-delete";
+  remove.dataset.conversationId=
+    conversation.id;
+  remove.innerHTML=
+    icon("trash") +
+    "<span>삭제</span>";
+
+  menu.append(
+    pin,
+    remove
+  );
+
+  panel.appendChild(
+    menu
+  );
+
+  const rect=
+    anchor.getBoundingClientRect();
+
+  const panelRect=
+    panel.getBoundingClientRect();
+
+  const menuRect=
+    menu.getBoundingClientRect();
+
+  const top=
+    Math.max(
+      panelRect.top+.5,
+      Math.min(
+        rect.bottom+.2,
+        panelRect.bottom-
+          menuRect.height-
+          .5
+      )
+    );
+
+  const left=
+    Math.max(
+      panelRect.left+.5,
+      Math.min(
+        rect.right-
+          menuRect.width,
+        panelRect.right-
+          menuRect.width-
+          .5
+      )
+    );
+
+  menu.style.top=
+    (top-panelRect.top) + "px";
+  menu.style.left=
+    (left-panelRect.left) + "px";
+
+  state.conversationMenu=
+    menu;
+}
+
+function clearLongPress(){
+  clearTimeout(
+    state.longPress.timer
+  );
+
+  state.longPress.timer=null;
+  state.longPress.pointerId=null;
+  state.longPress.conversationId=null;
+  state.longPress.target=null;
+}
+
+async function deleteConversationFromSidebar(
+  conversationId
+){
+  const id=
+    String(
+      conversationId ||
+      ""
+    );
+
+  if(!id){
+    return;
+  }
+
+  const wasActive=
+    Store.getActiveConversation?.()
+      ?.id===id;
+
+  Store.deleteConversation(
+    id
+  );
+
+  closeConversationMenu();
+
+  if(wasActive){
+    const next=
+      Store.getActiveConversation?.();
+
+    if(next){
+      await global.AstraApp
+        ?.openConversation?.(
+          next.id,
+          {
+            skipSave:true
+          }
+        );
+    }
+  }
+
+  scheduleRender();
 }
 
 function renderSearchResults(
@@ -849,9 +1100,7 @@ function sectionElement(
       conversations
         .slice()
         .sort(
-          (a,b)=>
-            Number(b.updatedAt)-
-            Number(a.updatedAt)
+          compareConversations
         );
 
     for(const conversation of sorted){
@@ -953,9 +1202,7 @@ function renderSections(
         )
         .slice()
         .sort(
-          (a,b) =>
-            Number(b.updatedAt) -
-            Number(a.updatedAt)
+          compareConversations
         );
 
     for(const conversation of conversations){
@@ -1175,6 +1422,18 @@ async function importWorkspaceFile(
 }
 
 function handleClick(event){
+  if(
+    state.conversationMenu &&
+    !event.target.closest(
+      "[data-conversation-menu]"
+    ) &&
+    !event.target.closest(
+      '[data-sidebar-action="conversation-menu"]'
+    )
+  ){
+    closeConversationMenu();
+  }
+
   if(state.suppressClick){
     event.preventDefault();
     event.stopPropagation();
@@ -1182,21 +1441,23 @@ function handleClick(event){
     return;
   }
 
-  const conversation=
+  const conversationOpen=
     event.target.closest(
-      "[data-conversation-id]"
+      "[data-conversation-open]"
     );
 
   if(
-    conversation &&
-    root.contains(conversation)
+    conversationOpen &&
+    root.contains(
+      conversationOpen
+    )
   ){
     event.preventDefault();
 
     void openConversation(
-      conversation
+      conversationOpen
         .dataset
-        .conversationId
+        .conversationOpen
     );
     return;
   }
@@ -1219,6 +1480,38 @@ function handleClick(event){
 
   if(action==="close"){
     close();
+    return;
+  }
+
+  if(action==="conversation-menu"){
+    openConversationMenu(
+      actionNode.dataset.conversationId,
+      actionNode
+    );
+    return;
+  }
+
+  if(action==="conversation-pin"){
+    const conversation=
+      Store.getConversation(
+        actionNode.dataset.conversationId
+      );
+
+    if(conversation){
+      Store.setConversationPinned(
+        conversation.id,
+        !conversation.pinned
+      );
+    }
+
+    closeConversationMenu();
+    return;
+  }
+
+  if(action==="conversation-delete"){
+    void deleteConversationFromSidebar(
+      actionNode.dataset.conversationId
+    );
     return;
   }
 
@@ -1695,6 +1988,138 @@ listen(
   root,
   "click",
   handleClick
+);
+listen(
+  root,
+  "pointerdown",
+  event=>{
+    if(
+      event.pointerType!=="touch"
+    ){
+      return;
+    }
+
+    const item=
+      event.target.closest(
+        ".ovll-sidebar-chat-item"
+      );
+
+    if(
+      !item ||
+      event.target.closest(
+        ".ovll-sidebar-chat-more"
+      )
+    ){
+      return;
+    }
+
+    clearLongPress();
+
+    state.longPress.pointerId=
+      event.pointerId;
+    state.longPress.startX=
+      event.clientX;
+    state.longPress.startY=
+      event.clientY;
+    state.longPress.conversationId=
+      item.dataset.conversationId;
+    state.longPress.target=
+      item.querySelector(
+        ".ovll-sidebar-chat-more"
+      );
+
+    state.longPress.timer=
+      setTimeout(
+        ()=>{
+          state.suppressClick=
+            true;
+
+          openConversationMenu(
+            state.longPress.conversationId,
+            state.longPress.target
+          );
+
+          navigator.vibrate?.(
+            12
+          );
+
+          clearLongPress();
+        },
+        480
+      );
+  },
+  {
+    passive:true
+  }
+);
+
+listen(
+  root,
+  "pointermove",
+  event=>{
+    if(
+      event.pointerId!==
+      state.longPress.pointerId
+    ){
+      return;
+    }
+
+    if(
+      Math.hypot(
+        event.clientX-
+          state.longPress.startX,
+        event.clientY-
+          state.longPress.startY
+      )>9
+    ){
+      clearLongPress();
+    }
+  },
+  {
+    passive:true
+  }
+);
+
+listen(
+  root,
+  "pointerup",
+  clearLongPress,
+  {
+    passive:true
+  }
+);
+
+listen(
+  root,
+  "pointercancel",
+  clearLongPress,
+  {
+    passive:true
+  }
+);
+
+listen(
+  root,
+  "contextmenu",
+  event=>{
+    const item=
+      event.target.closest(
+        ".ovll-sidebar-chat-item"
+      );
+
+    if(!item){
+      return;
+    }
+
+    event.preventDefault();
+
+    openConversationMenu(
+      item.dataset.conversationId,
+      item.querySelector(
+        ".ovll-sidebar-chat-more"
+      )
+    );
+  }
 );
 
 listen(
