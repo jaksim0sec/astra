@@ -30,6 +30,12 @@
         <path class="vc-run-spark-main" d="M9.95 3.25c.34 3.28 1.52 4.46 4.8 4.8-3.28.34-4.46 1.52-4.8 4.8-.34-3.28-1.52-4.46-4.8-4.8 3.28-.34 4.46-1.52 4.8-4.8Z" stroke="currentColor" stroke-width="1.35" stroke-linejoin="round"/>
         <path class="vc-run-spark-small" d="M14.9 12.7c.16 1.55.72 2.1 2.25 2.25-1.53.16-2.09.72-2.25 2.25-.16-1.53-.71-2.09-2.25-2.25 1.54-.15 2.09-.7 2.25-2.25Z" fill="currentColor"/>
       </svg>
+    `,
+    fileResult: `
+      <svg viewBox="0 0 20 20" fill="none" preserveAspectRatio="xMidYMid meet" aria-hidden="true">
+        <path d="M5.1 2.9h6.25l3.55 3.55v10.65H5.1V2.9Z" stroke="currentColor" stroke-width="1.45" stroke-linejoin="round"/>
+        <path d="M11.2 2.9v3.8h3.7M7.5 11.1h5M7.5 13.55h3.7" stroke="currentColor" stroke-width="1.35" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
     `
   };
   function svgEl(name, attrs = {}) {
@@ -232,12 +238,35 @@
           : size < 1048576
             ? `${(size / 1024).toFixed(1)} KB`
             : `${(size / 1048576).toFixed(1)} MB`;
+        const downloadUrl =
+          String(
+            node.data
+              ?.downloadUrl ||
+            ""
+          );
+
         out.push(`
           <div class="vc-slot-custom">
             <div class="vc-file-meta">
               <span>${escapeHtml(mime)}</span>
               <span>${escapeHtml(text)}</span>
             </div>
+            ${
+              downloadUrl
+                ? `
+                  <a
+                    class="vc-file-download"
+                    href="${escapeHtml(downloadUrl)}"
+                    download="${escapeHtml(node.data?.name || 'result')}"
+                  >
+                    <span>다운로드</span>
+                    <svg viewBox="0 0 18 18" fill="none" aria-hidden="true">
+                      <path d="M9 3.2v7.3m0 0 2.65-2.65M9 10.5 6.35 7.85M4 13.5h10" stroke="currentColor" stroke-width="1.45" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </a>
+                `
+                : ''
+            }
           </div>
         `);
       }
@@ -250,91 +279,12 @@
       }
       return out.join('');
     }
-    function runtimePayload(runtimeState) {
-      if (
-        !runtimeState ||
-        typeof runtimeState !==
-          'object'
-      ) {
-        return null;
-      }
-
-      if (
-        runtimeState.status ===
-          'FAILED'
-      ) {
-        return {
-          오류:
-            runtimeState.error
-              ?.message ||
-            '실행에 실패했습니다.'
-        };
-      }
-
-      const result =
-        runtimeState.result;
-
-      if (
-        !result ||
-        typeof result !==
-          'object'
-      ) {
-        return runtimeState.report ||
-          null;
-      }
-
-      if (
-        typeof result.decision ===
-          'boolean'
-      ) {
-        const branch =
-          result.decision
-            ? result.outputs?.true
-            : result.outputs?.false;
-
-        return {
-          판단:
-            result.decision
-              ? '참'
-              : '거짓',
-          결과:
-            branch ?? null
-        };
-      }
-
-      const outputs =
-        result.outputs &&
-        typeof result.outputs ===
-          'object'
-          ? result.outputs
-          : {};
-
-      const values =
-        Object.values(outputs);
-
-      if (values.length === 1) {
-        return values[0];
-      }
-
-      if (values.length > 1) {
-        return outputs;
-      }
-
-      return (
-        result.artifact ??
-        result.file ??
-        result.report ??
-        runtimeState.report ??
-        null
-      );
-    }
-
     function runtimeStatusLabel(status) {
       return ({
-        WAITING: '대기 중',
+        WAITING: '대기',
         RUNNING: '실행 중',
-        SUCCESS: '실행 완료',
-        FAILED: '실행 실패',
+        SUCCESS: '완료',
+        FAILED: '실패',
         SKIPPED: '건너뜀'
       })[
         String(status || '')
@@ -342,273 +292,100 @@
       ] || '실행';
     }
 
-    function runtimeKeyLabel(key) {
-      const known = {
-        title: '제목',
-        summary: '요약',
-        content: '내용',
-        source: '자료',
-        topic: '주제',
-        criteria: '기준',
-        format: '형식',
-        filename: '파일명',
-        instruction: '변환',
-        name: '이름',
-        type: '형식',
-        result: '결과',
-        converted: '변환 완료'
-      };
-
-      const text =
-        String(key ?? '');
-
-      return known[text] ||
-        text
-          .replace(
-            /([a-z0-9])([A-Z])/g,
-            '$1 $2'
-          )
-          .replace(
-            /[_-]+/g,
-            ' '
-          );
-    }
-
-    function runtimePrimitive(value) {
-      if (value === null) {
-        return '없음';
-      }
-
-      if (
-        typeof value ===
-          'boolean'
-      ) {
-        return value
-          ? '예'
-          : '아니오';
-      }
-
-      return String(value);
-    }
-
-    function runtimeTable(value) {
-      if (
-        !Array.isArray(value) ||
-        value.length < 2 ||
-        !value.every(
-          item =>
-            item &&
-            typeof item ===
-              'object' &&
-            !Array.isArray(item)
-        )
-      ) {
-        return '';
-      }
-
-      const keys =
-        [...new Set(
-          value.flatMap(
-            item =>
-              Object.keys(item)
-          )
-        )]
-          .slice(0, 6);
-
-      if (!keys.length) {
-        return '';
-      }
-
-      const rows =
-        value
-          .slice(0, 30)
-          .map(item => `
-            <tr>
-              ${
-                keys
-                  .map(key => `
-                    <td>
-                      ${renderRuntimeValue(
-                        item[key],
-                        1,
-                        true
-                      )}
-                    </td>
-                  `)
-                  .join('')
-              }
-            </tr>
-          `)
-          .join('');
-
-      return `
-        <div class="vc-runtime-table-wrap">
-          <table class="vc-runtime-table">
-            <thead>
-              <tr>
-                ${
-                  keys
-                    .map(key => `
-                      <th>
-                        ${escapeHtml(
-                          runtimeKeyLabel(
-                            key
-                          )
-                        )}
-                      </th>
-                    `)
-                    .join('')
-                }
-              </tr>
-            </thead>
-            <tbody>
-              ${rows}
-            </tbody>
-          </table>
-        </div>
-      `;
-    }
-
-    function renderRuntimeValue(
-      value,
-      depth = 0,
-      compact = false
+    function runtimeSummary(
+      runtimeState
     ) {
       if (
-        value === null ||
-        typeof value ===
-          'string' ||
-        typeof value ===
-          'number' ||
-        typeof value ===
-          'boolean'
+        !runtimeState ||
+        typeof runtimeState !==
+          'object'
       ) {
-        const text =
-          runtimePrimitive(
-            value
-          );
-
-        return compact
-          ? `<span class="vc-runtime-inline">${escapeHtml(text)}</span>`
-          : `<div class="vc-runtime-text">${escapeHtml(text)}</div>`;
-      }
-
-      if (Array.isArray(value)) {
-        const table =
-          runtimeTable(value);
-
-        if (table) {
-          return table;
-        }
-
-        if (!value.length) {
-          return '<div class="vc-runtime-empty">항목 없음</div>';
-        }
-
-        return `
-          <ul class="vc-runtime-list">
-            ${
-              value
-                .slice(0, 40)
-                .map(item => `
-                  <li>
-                    ${renderRuntimeValue(
-                      item,
-                      depth + 1,
-                      compact
-                    )}
-                  </li>
-                `)
-                .join('')
-            }
-          </ul>
-        `;
+        return '';
       }
 
       if (
-        value &&
-        typeof value ===
-          'object'
+        runtimeState.status ===
+          'FAILED'
       ) {
-        const entries =
-          Object.entries(value);
-
-        if (!entries.length) {
-          return '<div class="vc-runtime-empty">내용 없음</div>';
-        }
-
-        if (depth >= 4) {
-          let text = '';
-
-          try {
-            text =
-              JSON.stringify(value);
-          } catch {
-            text =
-              String(value);
-          }
-
-          return `<span class="vc-runtime-inline">${escapeHtml(text)}</span>`;
-        }
-
-        return `
-          <dl class="vc-runtime-kv">
-            ${
-              entries
-                .slice(0, 40)
-                .map(
-                  ([key, item]) => `
-                    <div class="vc-runtime-kv-row">
-                      <dt>
-                        ${escapeHtml(
-                          runtimeKeyLabel(
-                            key
-                          )
-                        )}
-                      </dt>
-                      <dd>
-                        ${renderRuntimeValue(
-                          item,
-                          depth + 1,
-                          compact
-                        )}
-                      </dd>
-                    </div>
-                  `
-                )
-                .join('')
-            }
-          </dl>
-        `;
+        return String(
+          runtimeState.error
+            ?.message ||
+          '실행에 실패했습니다.'
+        );
       }
 
-      return `<div class="vc-runtime-text">${escapeHtml(String(value ?? ''))}</div>`;
+      if (
+        runtimeState.status ===
+          'RUNNING'
+      ) {
+        return '오블이 이 작업을 처리하고 있어요';
+      }
+
+      if (
+        runtimeState.status ===
+          'SKIPPED'
+      ) {
+        return '앞 단계 결과 때문에 실행하지 않았어요';
+      }
+
+      const result =
+        runtimeState.result || {};
+
+      const report =
+        result.report ??
+        runtimeState.report;
+
+      if (
+        typeof report ===
+          'string' &&
+        report.trim()
+      ) {
+        return report.trim();
+      }
+
+      if (
+        report &&
+        typeof report ===
+          'object'
+      ) {
+        const text =
+          report.summary ||
+          report.title ||
+          report.message;
+
+        if (text) {
+          return String(text);
+        }
+      }
+
+      const artifact =
+        result.artifact ||
+        result.file;
+
+      if (artifact?.name) {
+        return `${artifact.name} 생성 완료`;
+      }
+
+      return runtimeState.status ===
+        'SUCCESS'
+        ? '작업 완료'
+        : '';
     }
 
-    function renderRuntimeBadge(runtimeState) {
-      if (!runtimeState?.status) return '';
-      const status =
-        String(runtimeState.status).toLowerCase();
-      return `
-        <span
-          class="vc-runtime-badge vc-runtime-${escapeHtml(status)}"
-          title="${escapeHtml(runtimeStatusLabel(runtimeState.status))}"
-          aria-label="${escapeHtml(runtimeStatusLabel(runtimeState.status))}"
-        >
-          <span class="vc-runtime-dot"></span>
-        </span>
-      `;
-    }
-
-    function renderRuntimeState(runtimeState) {
-      if (!runtimeState?.status) return '';
+    function renderRuntimeState(
+      runtimeState
+    ) {
+      if (!runtimeState?.status) {
+        return '';
+      }
 
       const status =
-        String(runtimeState.status)
-          .toLowerCase();
+        String(
+          runtimeState.status
+        ).toLowerCase();
 
-      const payload =
-        runtimePayload(
+      const summary =
+        runtimeSummary(
           runtimeState
         );
 
@@ -617,14 +394,12 @@
           class="vc-runtime-result vc-runtime-${escapeHtml(status)}"
           data-action="runtime-result"
         >
-          <div class="vc-runtime-result-head">
-            <span class="vc-runtime-dot"></span>
-            <span>${escapeHtml(runtimeStatusLabel(runtimeState.status))}</span>
-          </div>
+          <span class="vc-runtime-dot"></span>
+          <span class="vc-runtime-state-label">${escapeHtml(runtimeStatusLabel(runtimeState.status))}</span>
           ${
-            payload == null
-              ? ''
-              : `<div class="vc-runtime-result-value">${renderRuntimeValue(payload)}</div>`
+            summary
+              ? `<span class="vc-runtime-summary">${escapeHtml(summary)}</span>`
+              : ''
           }
         </div>
       `;
@@ -683,6 +458,13 @@
         }
         element.className = classes.join(' ');
         element.dataset.nodeId = node.id;
+        if (
+          node.type === 'file' &&
+          node.data?.generated
+        ) {
+          element.dataset.generated =
+            'true';
+        }
         element.style.left = `${node.x}px`;
         element.style.top = `${node.y}px`;
         element.style.setProperty('--node-color', definition.color);
@@ -699,9 +481,14 @@
           node.type === 'file' && fileName.includes('.')
             ? fileName.split('.').pop().toUpperCase()
             : 'FILE';
+        const nodeIcon =
+          node.type === 'file' &&
+          node.data?.generated
+            ? icons.fileResult
+            : definition.icon || '';
         element.innerHTML = `
           <div class="vc-node-head">
-            <span class="vc-node-icon">${definition.icon || ''}</span>
+            <span class="vc-node-icon">${nodeIcon}</span>
             ${
               node.type === 'file'
                 ? `
@@ -723,17 +510,23 @@
                   </span>
                 `
             }
-            ${renderRuntimeBadge(runtimeState)}
+            ${
+              node.type === 'file' &&
+              node.data?.generated
+                ? ''
+                : `
+                  <button
+                    type="button"
+                    class="vc-node-run${runtimeState?.status === 'RUNNING' ? ' is-running' : ''}"
+                    data-action="run"
+                    aria-label="이 노드부터 실행"
+                  >
+                    ${icons.run}
+                    <span>${runtimeState?.status === 'RUNNING' ? '실행 중' : '실행'}</span>
+                  </button>
+                `
+            }
             <div class="vc-node-actions">
-              <button
-                type="button"
-                class="vc-node-action vc-node-run${runtimeState?.status === 'RUNNING' ? ' is-running' : ''}"
-                data-action="run"
-                aria-label="이 노드부터 실행"
-                title="실행"
-              >
-                ${icons.run}
-              </button>
               <button
                 type="button"
                 class="vc-node-action vc-node-toggle"
@@ -2862,6 +2655,9 @@
           ) ||
           event.target.closest(
             '.vc-runtime-result'
+          ) ||
+          event.target.closest(
+            '.vc-file-download'
           )
         ) {
           event.stopPropagation();
@@ -2873,6 +2669,14 @@
       nodesLayer,
       'click',
       event => {
+        if (
+          event.target.closest(
+            '.vc-file-download'
+          )
+        ) {
+          return;
+        }
+
         const action =
           event.target.closest(
             '[data-action]'
