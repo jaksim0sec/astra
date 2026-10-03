@@ -58,9 +58,7 @@
     );
 
     for (const connection of connections) {
-      graph
-        .get(connection.from.node)
-        ?.push(connection.to.node);
+      graph.get(connection.from.node)?.push(connection.to.node);
     }
 
     const visiting = new Set();
@@ -71,9 +69,7 @@
         throw new Error("실행 workflow에 cycle이 있습니다.");
       }
 
-      if (visited.has(nodeId)) {
-        return;
-      }
+      if (visited.has(nodeId)) return;
 
       visiting.add(nodeId);
 
@@ -90,128 +86,28 @@
     }
 
     return {
-      revision:
-        input.revision ??
-        null,
+      revision: input.revision ?? null,
       nodes,
       connections
     };
   }
 
-  function sliceWorkflow(input, pivotId) {
-    const workflow =
-      normalizeWorkflow(input);
-
-    const id =
-      String(pivotId || "");
-
-    if (
-      !workflow.nodes.some(
-        node => node.id === id
-      )
-    ) {
-      throw new Error(
-        `실행 기준 node가 없습니다: ${id}`
-      );
-    }
-
-    const adjacent =
-      new Map(
-        workflow.nodes.map(
-          node => [
-            node.id,
-            new Set()
-          ]
-        )
-      );
-
-    for (
-      const connection
-        of workflow.connections
-    ) {
-      adjacent
-        .get(connection.from.node)
-        ?.add(connection.to.node);
-
-      adjacent
-        .get(connection.to.node)
-        ?.add(connection.from.node);
-    }
-
-    const included =
-      new Set([id]);
-
-    const queue =
-      [id];
-
-    while (queue.length) {
-      const current =
-        queue.shift();
-
-      for (
-        const next
-          of adjacent.get(current) || []
-      ) {
-        if (
-          included.has(next)
-        ) {
-          continue;
-        }
-
-        included.add(next);
-        queue.push(next);
-      }
-    }
-
-    return {
-      revision:
-        workflow.revision,
-
-      nodes:
-        workflow.nodes.filter(
-          node =>
-            included.has(node.id)
-        ),
-
-      connections:
-        workflow.connections.filter(
-          connection =>
-            included.has(
-              connection.from.node
-            ) &&
-            included.has(
-              connection.to.node
-            )
-        )
-    };
-  }
-
   function inputValues(inputs) {
-    return Object.values(
-      inputs || {}
-    )
+    return Object.values(inputs || {})
       .flatMap(value =>
         Array.isArray(value)
           ? value
           : [value]
       )
       .map(item => item?.value)
-      .filter(value =>
-        value !== undefined
-      );
+      .filter(value => value !== undefined);
   }
 
   function demoDelayFor(nodeId, min, max) {
-    const text =
-      String(nodeId || "");
-
+    const text = String(nodeId || "");
     let hash = 0;
 
-    for (
-      let index = 0;
-      index < text.length;
-      index++
-    ) {
+    for (let index = 0; index < text.length; index++) {
       hash =
         (
           hash * 31 +
@@ -219,18 +115,9 @@
         ) >>> 0;
     }
 
-    const span =
-      Math.max(
-        0,
-        max - min
-      );
+    const span = Math.max(0, max - min);
 
-    return min +
-      (
-        span
-          ? hash % (span + 1)
-          : 0
-      );
+    return min + (span ? hash % (span + 1) : 0);
   }
 
   class DemoNodeExecutor {
@@ -238,33 +125,25 @@
       this.minDelay =
         Math.max(
           0,
-          Number(
-            options.minDelay ?? 420
-          ) || 0
+          Number(options.minDelay ?? 420) || 0
         );
 
       this.maxDelay =
         Math.max(
           this.minDelay,
-          Number(
-            options.maxDelay ?? 1050
-          ) || this.minDelay
+          Number(options.maxDelay ?? 1050) ||
+            this.minDelay
         );
     }
 
-    async run(
-      node,
-      inputs = {},
-      context = {}
-    ) {
-      const delay =
+    async run(node, inputs = {}, context = {}) {
+      await wait(
         demoDelayFor(
           node.id,
           this.minDelay,
           this.maxDelay
-        );
-
-      await wait(delay);
+        )
+      );
 
       const params =
         node.data?.params &&
@@ -275,44 +154,30 @@
             ? node.params
             : {};
 
-      const values =
-        inputValues(inputs);
+      const values = inputValues(inputs);
 
       switch (node.type) {
         case "start":
           return {
-            outputs: {
-              out: true
-            },
-            report: {
-              title: "시작 준비 완료"
-            }
+            outputs: { out: true },
+            report: { title: "시작 준비 완료" }
           };
 
         case "file": {
           const file = {
             kind: "demo-file",
-            id:
-              `demo-file:${node.id}`,
-            name:
-              node.data?.name ||
-              "예시 파일",
+            id: `demo-file:${node.id}`,
+            name: node.data?.name || "예시 파일",
             mime:
               node.data?.mime ||
               "application/octet-stream",
-            size:
-              Number(
-                node.data?.size || 0
-              )
+            size: Number(node.data?.size || 0)
           };
 
           return {
-            outputs: {
-              file
-            },
+            outputs: { file },
             report: {
-              title:
-                `${file.name} 준비 완료`
+              title: `${file.name} 준비 완료`
             }
           };
         }
@@ -322,14 +187,9 @@
             outputs: {
               result: {
                 kind: "demo-research",
-                topic:
-                  params.topic ||
-                  "지정된 주제",
-                filter:
-                  params.filter ||
-                  "",
-                inputCount:
-                  values.length,
+                topic: params.topic || "지정된 주제",
+                filter: params.filter || "",
+                inputCount: values.length,
                 items: [
                   "시연 자료 A",
                   "시연 자료 B",
@@ -348,13 +208,10 @@
               result: {
                 kind: "demo-structured",
                 criteria:
-                  params.criteria ||
-                  "기본 기준",
+                  params.criteria || "기본 기준",
                 format:
-                  params.format ||
-                  "목록",
-                sources:
-                  clone(values)
+                  params.format || "목록",
+                sources: clone(values)
               }
             },
             report: {
@@ -364,9 +221,7 @@
 
         case "judge": {
           const condition =
-            String(
-              params.condition || ""
-            )
+            String(params.condition || "")
               .trim()
               .toLowerCase();
 
@@ -404,16 +259,12 @@
               result: {
                 kind: "demo-document",
                 title:
-                  params.title ||
-                  "예시 문서",
+                  params.title || "예시 문서",
                 style:
-                  params.style ||
-                  "일반",
+                  params.style || "일반",
                 length:
-                  params.length ||
-                  "기본 분량",
-                sources:
-                  clone(values),
+                  params.length || "기본 분량",
+                sources: clone(values),
                 text:
                   "시연 실행기가 만든 임시 결과입니다."
               }
@@ -426,12 +277,9 @@
 
         case "createFile": {
           const filename =
-            params.filename ||
-            "결과물";
-
+            params.filename || "결과물";
           const format =
-            params.format ||
-            "PDF";
+            params.format || "PDF";
 
           return {
             outputs: {},
@@ -442,12 +290,10 @@
               name:
                 `${filename}.${String(format).toLowerCase()}`,
               format,
-              sources:
-                clone(values)
+              sources: clone(values)
             },
             report: {
-              title:
-                `${filename} 생성 완료`
+              title: `${filename} 생성 완료`
             }
           };
         }
@@ -457,13 +303,11 @@
             outputs: {
               result: {
                 kind: "demo-value",
-                sources:
-                  clone(values)
+                sources: clone(values)
               }
             },
             report: {
-              title:
-                `${node.type} 실행 완료`
+              title: `${node.type} 실행 완료`
             }
           };
       }
@@ -485,14 +329,9 @@
           ? options.onEvent
           : null;
 
-      this.running =
-        false;
-
-      this.runCounter =
-        0;
-
-      this.lastRun =
-        null;
+      this.running = false;
+      this.runCounter = 0;
+      this.lastRun = null;
     }
 
     isRunning() {
@@ -502,8 +341,7 @@
     emit(type, payload = {}) {
       const event = {
         type,
-        at:
-          Date.now(),
+        at: Date.now(),
         ...clone(payload)
       };
 
@@ -519,7 +357,7 @@
       return event;
     }
 
-    async run(inputWorkflow, pivotId) {
+    async run(inputWorkflow, pivotId, options = {}) {
       if (this.running) {
         throw new Error(
           "이미 demo run이 실행 중입니다."
@@ -527,22 +365,20 @@
       }
 
       const workflow =
-        normalizeWorkflow(
-          inputWorkflow
-        );
+        normalizeWorkflow(inputWorkflow);
 
       const pivot =
-        String(
-          pivotId || ""
-        );
+        String(pivotId || "");
+
+      const mode =
+        options.mode === "target"
+          ? "target"
+          : "spread";
 
       const nodes =
         new Map(
           workflow.nodes.map(
-            node => [
-              node.id,
-              node
-            ]
+            node => [node.id, node]
           )
         );
 
@@ -555,27 +391,18 @@
       const incoming =
         new Map(
           workflow.nodes.map(
-            node => [
-              node.id,
-              []
-            ]
+            node => [node.id, []]
           )
         );
 
       const outgoing =
         new Map(
           workflow.nodes.map(
-            node => [
-              node.id,
-              []
-            ]
+            node => [node.id, []]
           )
         );
 
-      for (
-        const connection
-          of workflow.connections
-      ) {
+      for (const connection of workflow.connections) {
         incoming
           .get(connection.to.node)
           ?.push(connection);
@@ -594,12 +421,9 @@
             node => [
               node.id,
               {
-                id:
-                  node.id,
-                type:
-                  node.type,
-                status:
-                  "IDLE",
+                id: node.id,
+                type: node.type,
+                status: "IDLE",
                 inputs: {},
                 result: null,
                 error: null,
@@ -610,21 +434,9 @@
           )
         );
 
-      const nodeJobs =
-        new Map();
-
-      const forwardJobs =
-        new Map();
-
-      const context = {
-        runId,
-        pivot,
-        workflow,
-        nodes,
-        incoming,
-        outgoing,
-        states
-      };
+      const nodeJobs = new Map();
+      const spreadJobs = new Map();
+      const edgeRefs = new Map();
 
       const setState = (
         nodeId,
@@ -656,50 +468,104 @@
         );
       };
 
+      const acquireEdge =
+        connection => {
+          const id =
+            String(connection?.id || "");
+
+          if (!id) {
+            return () => {};
+          }
+
+          const count =
+            edgeRefs.get(id) || 0;
+
+          edgeRefs.set(
+            id,
+            count + 1
+          );
+
+          if (count === 0) {
+            this.emit(
+              "edge:state",
+              {
+                runId,
+                edgeId: id,
+                active: true
+              }
+            );
+          }
+
+          let released = false;
+
+          return () => {
+            if (released) return;
+            released = true;
+
+            const next =
+              Math.max(
+                0,
+                (edgeRefs.get(id) || 1) - 1
+              );
+
+            if (next === 0) {
+              edgeRefs.delete(id);
+
+              this.emit(
+                "edge:state",
+                {
+                  runId,
+                  edgeId: id,
+                  active: false
+                }
+              );
+            } else {
+              edgeRefs.set(id, next);
+            }
+          };
+        };
+
       const edgeIsActive =
         connection => {
           const sourceState =
-            states.get(
-              connection.from.node
-            );
-
-          const sourceNode =
-            nodes.get(
-              connection.from.node
-            );
+            states.get(connection.from.node);
 
           if (
-            sourceNode?.type !==
-            "judge"
+            sourceState?.status ===
+            "SKIPPED"
           ) {
-            return true;
+            return false;
+          }
+
+          const sourceNode =
+            nodes.get(connection.from.node);
+
+          if (sourceNode?.type !== "judge") {
+            return (
+              sourceState?.status ===
+              "SUCCESS"
+            );
           }
 
           const decision =
             sourceState?.result?.decision;
 
-          if (
-            typeof decision !==
-            "boolean"
-          ) {
+          if (typeof decision !== "boolean") {
             return false;
           }
 
-          if (
-            connection.from.port ===
-            "true"
-          ) {
+          if (connection.from.port === "true") {
             return decision;
           }
 
-          if (
-            connection.from.port ===
-            "false"
-          ) {
+          if (connection.from.port === "false") {
             return !decision;
           }
 
-          return true;
+          return (
+            sourceState?.status ===
+            "SUCCESS"
+          );
         };
 
       const collectInputs =
@@ -710,44 +576,30 @@
             const connection
               of incoming.get(nodeId) || []
           ) {
-            if (
-              !edgeIsActive(
-                connection
-              )
-            ) {
+            if (!edgeIsActive(connection)) {
               continue;
             }
 
             const source =
-              states.get(
-                connection.from.node
-              );
+              states.get(connection.from.node);
 
             const value =
               source?.result?.outputs?.[
                 connection.from.port
               ];
 
-            if (
-              value === undefined
-            ) {
+            if (value === undefined) {
               continue;
             }
 
             const port =
-              String(
-                connection.to.port
-              );
+              String(connection.to.port);
 
             const item = {
               edgeId:
-                String(
-                  connection.id || ""
-                ),
+                String(connection.id || ""),
               kind:
-                connectionKind(
-                  connection
-                ),
+                connectionKind(connection),
               fromNode:
                 connection.from.node,
               fromPort:
@@ -760,22 +612,16 @@
               inputs[port] = [];
             }
 
-            inputs[port].push(
-              item
-            );
+            inputs[port].push(item);
           }
 
           return inputs;
         };
 
-      const schedule =
+      const resolveNode =
         nodeId => {
-          if (
-            nodeJobs.has(nodeId)
-          ) {
-            return nodeJobs.get(
-              nodeId
-            );
+          if (nodeJobs.has(nodeId)) {
+            return nodeJobs.get(nodeId);
           }
 
           const job =
@@ -789,44 +635,38 @@
                 );
               }
 
-              const parents =
-                [
-                  ...new Set(
-                    (
-                      incoming.get(
-                        nodeId
-                      ) || []
-                    ).map(
-                      connection =>
-                        connection.from.node
-                    )
-                  )
-                ];
+              const parentEdges =
+                incoming.get(nodeId) || [];
 
-              if (parents.length) {
+              if (parentEdges.length) {
                 setState(
                   nodeId,
                   "WAITING"
                 );
-
-                await Promise.all(
-                  parents.map(
-                    parentId =>
-                      schedule(parentId)
-                  )
-                );
               }
 
+              await Promise.all(
+                parentEdges.map(
+                  async connection => {
+                    const release =
+                      acquireEdge(connection);
+
+                    try {
+                      await resolveNode(
+                        connection.from.node
+                      );
+                    } finally {
+                      release();
+                    }
+                  }
+                )
+              );
+
               const flowIncoming =
-                (
-                  incoming.get(
-                    nodeId
-                  ) || []
-                ).filter(
+                parentEdges.filter(
                   connection =>
-                    connectionKind(
-                      connection
-                    ) === "flow"
+                    connectionKind(connection) ===
+                    "flow"
                 );
 
               if (
@@ -848,20 +688,14 @@
               }
 
               const inputs =
-                collectInputs(
-                  nodeId
-                );
-
-              const startedAt =
-                Date.now();
+                collectInputs(nodeId);
 
               setState(
                 nodeId,
                 "RUNNING",
                 {
-                  inputs:
-                    clone(inputs),
-                  startedAt
+                  inputs: clone(inputs),
+                  startedAt: Date.now()
                 }
               );
 
@@ -873,12 +707,10 @@
                     {
                       runId,
                       nodeId,
-                      pivot
+                      pivot,
+                      mode
                     }
                   );
-
-                const finishedAt =
-                  Date.now();
 
                 setState(
                   nodeId,
@@ -886,7 +718,8 @@
                   {
                     result:
                       clone(result),
-                    finishedAt,
+                    finishedAt:
+                      Date.now(),
                     report:
                       result?.report ||
                       null
@@ -905,8 +738,7 @@
                   nodeId,
                   "FAILED",
                   {
-                    error:
-                      failure,
+                    error: failure,
                     finishedAt:
                       Date.now()
                   }
@@ -916,125 +748,94 @@
               }
             })();
 
-          nodeJobs.set(
-            nodeId,
-            job
-          );
+          nodeJobs.set(nodeId, job);
 
           return job;
         };
 
-      const walkForward =
+      const spreadFrom =
         nodeId => {
-          if (
-            forwardJobs.has(nodeId)
-          ) {
-            return forwardJobs.get(
-              nodeId
-            );
+          if (spreadJobs.has(nodeId)) {
+            return spreadJobs.get(nodeId);
           }
 
           const job =
             (async () => {
+              await resolveNode(nodeId);
+
+              if (
+                states.get(nodeId)?.status !==
+                "SUCCESS"
+              ) {
+                return;
+              }
+
+              const childEdges =
+                (outgoing.get(nodeId) || [])
+                  .filter(edgeIsActive);
+
               const children =
                 [
                   ...new Set(
-                    (
-                      outgoing.get(
-                        nodeId
-                      ) || []
+                    childEdges.map(
+                      connection =>
+                        connection.to.node
                     )
-                      .filter(
-                        edgeIsActive
-                      )
-                      .map(
-                        connection =>
-                          connection.to.node
-                      )
                   )
                 ];
 
               await Promise.all(
                 children.map(
-                  async childId => {
-                    await schedule(
-                      childId
-                    );
-
-                    if (
-                      states.get(
-                        childId
-                      )?.status ===
-                      "SUCCESS"
-                    ) {
-                      await walkForward(
-                        childId
-                      );
-                    }
-                  }
+                  childId =>
+                    spreadFrom(childId)
                 )
               );
             })();
 
-          forwardJobs.set(
-            nodeId,
-            job
-          );
+          spreadJobs.set(nodeId, job);
 
           return job;
         };
 
-      this.running =
-        true;
+      this.running = true;
 
       this.emit(
         "run:start",
         {
           runId,
           pivot,
-          nodeIds:
-            workflow.nodes.map(
-              node => node.id
-            )
+          mode
         }
       );
 
       try {
-        await schedule(
-          pivot
-        );
-
-        if (
-          states.get(pivot)?.status ===
-          "SUCCESS"
-        ) {
-          await walkForward(
-            pivot
-          );
+        if (mode === "target") {
+          await resolveNode(pivot);
+        } else {
+          await spreadFrom(pivot);
         }
 
         const snapshot =
           Object.fromEntries(
-            [...states.entries()]
-              .map(
-                ([id, state]) => [
-                  id,
-                  clone(state)
-                ]
-              )
+            [...states.entries()].map(
+              ([id, state]) => [
+                id,
+                clone(state)
+              ]
+            )
           );
 
-        const statuses =
-          Object.values(
-            snapshot
-          ).map(
-            state =>
-              state.status
-          );
+        const touched =
+          Object.values(snapshot)
+            .filter(
+              state =>
+                state.status !== "IDLE"
+            );
 
         const status =
-          statuses.includes(
-            "FAILED"
+          touched.some(
+            state =>
+              state.status === "FAILED"
           )
             ? "FAILED"
             : "SUCCESS";
@@ -1042,6 +843,7 @@
         const result = {
           runId,
           pivot,
+          mode,
           status,
           workflow:
             clone(workflow),
@@ -1057,6 +859,7 @@
           {
             runId,
             pivot,
+            mode,
             status,
             result
           }
@@ -1067,19 +870,18 @@
         const result = {
           runId,
           pivot,
-          status:
-            "FAILED",
+          mode,
+          status: "FAILED",
           workflow:
             clone(workflow),
           nodes:
             Object.fromEntries(
-              [...states.entries()]
-                .map(
-                  ([id, state]) => [
-                    id,
-                    clone(state)
-                  ]
-                )
+              [...states.entries()].map(
+                ([id, state]) => [
+                  id,
+                  clone(state)
+                ]
+              )
             ),
           error: {
             message:
@@ -1096,16 +898,30 @@
           {
             runId,
             pivot,
-            status:
-              "FAILED",
+            mode,
+            status: "FAILED",
             result
           }
         );
 
         throw error;
       } finally {
-        this.running =
-          false;
+        for (
+          const edgeId
+            of [...edgeRefs.keys()]
+        ) {
+          this.emit(
+            "edge:state",
+            {
+              runId,
+              edgeId,
+              active: false
+            }
+          );
+        }
+
+        edgeRefs.clear();
+        this.running = false;
       }
     }
 
@@ -1119,7 +935,6 @@
   global.OvllExecutionEngine = {
     RuntimeEngine,
     DemoNodeExecutor,
-    normalizeWorkflow,
-    sliceWorkflow
+    normalizeWorkflow
   };
 })(window);
