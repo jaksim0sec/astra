@@ -180,11 +180,7 @@
   }
 
   function syncAppViewport() {
-    // AstraUI is the single viewport-height owner.
-    // It uses visualViewport when available so keyboard open/close
-    // cannot race an innerHeight-based writer.
     UI.syncViewport?.();
-    resetDocumentScroll();
   }
 
   function requestAppViewportSync() {
@@ -894,7 +890,6 @@
     } finally {
       setBusy(false);
       focusComposerWithoutScroll();
-      requestAppViewportSync();
       resizeComposer();
     }
   }
@@ -1184,45 +1179,16 @@
     listen(chatMessages, "click", handleMessageClick);
 listen(composerInput, "input", handleComposerInput);
 listen(composerInput, "keydown", handleComposerKeydown);
-    listen(global, "resize", () => {
-      requestAppViewportSync();
-      resizeComposer();
-    });
+    listen(global, "resize", resizeComposer);
 
     listen(global, "orientationchange", () => {
       syncPhysicalOrientation();
-      requestAppViewportSync();
+      resizeComposer();
     });
-    listen(global, "pageshow", requestAppViewportSync);
+
     if (global.screen?.orientation) {
       listen(global.screen.orientation, "change", () => {
         syncPhysicalOrientation();
-        requestAppViewportSync();
-      });
-    }
-    listen(global, "scroll", () => {
-      resetDocumentScroll();
-      requestAppViewportSync();
-    }, { passive: true });
-
-    listen(document, "focusin", () => {
-      resetDocumentScroll();
-      requestAppViewportSync();
-    }, { passive: true });
-
-    listen(document, "focusout", () => {
-      resetDocumentScroll();
-      requestAppViewportSync();
-
-      setTimeout(() => {
-        resetDocumentScroll();
-        requestAppViewportSync();
-      }, 180);
-    }, { passive: true });
-
-    if (global.visualViewport) {
-      listen(global.visualViewport, "resize", () => {
-        requestAppViewportSync();
         resizeComposer();
       });
     }
