@@ -409,8 +409,20 @@ function mount(world,canvas,options={}){
   }
 
   function render(){
-    orb.style.left=x+"px";
-    orb.style.top=y+"px";
+    const left=x+"px";
+    const top=y+"px";
+
+    orb.style.left=left;
+    orb.style.top=top;
+
+    world.style.setProperty(
+      "--ovll-world-x",
+      left
+    );
+    world.style.setProperty(
+      "--ovll-world-y",
+      top
+    );
   }
 
   function eyes(dx=0,dy=0){
@@ -1250,12 +1262,25 @@ function mount(world,canvas,options={}){
       return;
     }
 
+    const distance=
+      Math.hypot(
+        sx-c.x,
+        sy-c.y
+      );
+
     swooshToward(
       sx,
       sy,
       {
-        step:4,
-        duration:380
+        step:
+          distance/
+          Math.max(1,rect.width)+
+          .2,
+        duration:
+          Math.min(
+            520,
+            320+distance*.18
+          )
       }
     );
   }
