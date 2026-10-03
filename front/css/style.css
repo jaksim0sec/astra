@@ -46,10 +46,10 @@
   --ui-radius-item: 1rem;
   --ui-glass: var(--panel-soft);
   --ui-glass-strong: var(--panel-strong);
-  --ui-control-surface: rgba(255, 255, 255, .82);
-  --ui-control-surface-strong: rgba(255, 255, 255, .92);
-  --ui-control-shadow: 0 .3rem 1rem rgba(0, 0, 0, .055);
-  --ui-backdrop: blur(1.35rem) saturate(1.08);
+  --ui-control-surface: rgba(255, 255, 255, .86);
+  --ui-control-surface-strong: rgba(255, 255, 255, .94);
+  --ui-control-shadow: 0 .32rem 1.05rem rgba(0, 0, 0, .065);
+  --ui-backdrop: blur(1.45rem) saturate(1.1);
 
   --app-resize-duration: .14s;
   --app-resize-ease: cubic-bezier(.2,.82,.2,1);
@@ -78,9 +78,9 @@
   --shadow-soft:
     0 .25rem .875rem rgba(0, 0, 0, 0.14);
 
-  --ui-control-surface: rgba(29, 29, 29, .86);
-  --ui-control-surface-strong: rgba(34, 34, 34, .95);
-  --ui-control-shadow: 0 .32rem 1.05rem rgba(0, 0, 0, .20);
+  --ui-control-surface: rgba(29, 29, 29, .89);
+  --ui-control-surface-strong: rgba(35, 35, 35, .96);
+  --ui-control-shadow: 0 .34rem 1.1rem rgba(0, 0, 0, .22);
 }
 
 
