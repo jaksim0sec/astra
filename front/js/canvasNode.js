@@ -245,52 +245,84 @@
       return out.join('');
     }
     function runtimePayload(runtimeState) {
-      if (!runtimeState || typeof runtimeState !== 'object') {
+      if (
+        !runtimeState ||
+        typeof runtimeState !==
+          'object'
+      ) {
         return null;
       }
-      if (runtimeState.status === 'FAILED') {
-        return runtimeState.error || {
-          message: '실행에 실패했습니다.'
+
+      if (
+        runtimeState.status ===
+          'FAILED'
+      ) {
+        return {
+          오류:
+            runtimeState.error
+              ?.message ||
+            '실행에 실패했습니다.'
         };
       }
-      const result = runtimeState.result;
-      if (!result || typeof result !== 'object') {
-        return runtimeState.report || null;
-      }
-      const payload = {};
+
+      const result =
+        runtimeState.result;
+
       if (
-        result.outputs &&
-        typeof result.outputs === 'object' &&
-        Object.keys(result.outputs).length
+        !result ||
+        typeof result !==
+          'object'
       ) {
-        payload.outputs = result.outputs;
+        return runtimeState.report ||
+          null;
       }
-      if (typeof result.decision === 'boolean') {
-        payload.decision = result.decision;
+
+      if (
+        typeof result.decision ===
+          'boolean'
+      ) {
+        const branch =
+          result.decision
+            ? result.outputs?.true
+            : result.outputs?.false;
+
+        return {
+          판단:
+            result.decision
+              ? '참'
+              : '거짓',
+          결과:
+            branch ?? null
+        };
       }
-      if (result.artifact != null) {
-        payload.artifact = result.artifact;
+
+      const outputs =
+        result.outputs &&
+        typeof result.outputs ===
+          'object'
+          ? result.outputs
+          : {};
+
+      const values =
+        Object.values(outputs);
+
+      if (values.length === 1) {
+        return values[0];
       }
-      if (result.file != null) {
-        payload.file = result.file;
+
+      if (values.length > 1) {
+        return outputs;
       }
-      if (!Object.keys(payload).length && result.report != null) {
-        payload.report = result.report;
-      }
-      return Object.keys(payload).length
-        ? payload
-        : result;
+
+      return (
+        result.artifact ??
+        result.file ??
+        result.report ??
+        runtimeState.report ??
+        null
+      );
     }
-    function runtimeText(value) {
-      if (typeof value === 'string') {
-        return value;
-      }
-      try {
-        return JSON.stringify(value, null, 2);
-      } catch {
-        return String(value ?? '');
-      }
-    }
+
     function runtimeStatusLabel(status) {
       return ({
         WAITING: '대기 중',
@@ -298,8 +330,255 @@
         SUCCESS: '실행 완료',
         FAILED: '실행 실패',
         SKIPPED: '건너뜀'
-      })[String(status || '').toUpperCase()] || '실행';
+      })[
+        String(status || '')
+          .toUpperCase()
+      ] || '실행';
     }
+
+    function runtimeKeyLabel(key) {
+      const known = {
+        title: '제목',
+        summary: '요약',
+        content: '내용',
+        source: '자료',
+        topic: '주제',
+        criteria: '기준',
+        format: '형식',
+        filename: '파일명',
+        instruction: '변환',
+        name: '이름',
+        type: '형식',
+        result: '결과',
+        converted: '변환 완료'
+      };
+
+      const text =
+        String(key ?? '');
+
+      return known[text] ||
+        text
+          .replace(
+            /([a-z0-9])([A-Z])/g,
+            '$1 $2'
+          )
+          .replace(
+            /[_-]+/g,
+            ' '
+          );
+    }
+
+    function runtimePrimitive(value) {
+      if (value === null) {
+        return '없음';
+      }
+
+      if (
+        typeof value ===
+          'boolean'
+      ) {
+        return value
+          ? '예'
+          : '아니오';
+      }
+
+      return String(value);
+    }
+
+    function runtimeTable(value) {
+      if (
+        !Array.isArray(value) ||
+        value.length < 2 ||
+        !value.every(
+          item =>
+            item &&
+            typeof item ===
+              'object' &&
+            !Array.isArray(item)
+        )
+      ) {
+        return '';
+      }
+
+      const keys =
+        [...new Set(
+          value.flatMap(
+            item =>
+              Object.keys(item)
+          )
+        )]
+          .slice(0, 6);
+
+      if (!keys.length) {
+        return '';
+      }
+
+      const rows =
+        value
+          .slice(0, 30)
+          .map(item => `
+            <tr>
+              ${
+                keys
+                  .map(key => `
+                    <td>
+                      ${renderRuntimeValue(
+                        item[key],
+                        1,
+                        true
+                      )}
+                    </td>
+                  `)
+                  .join('')
+              }
+            </tr>
+          `)
+          .join('');
+
+      return `
+        <div class="vc-runtime-table-wrap">
+          <table class="vc-runtime-table">
+            <thead>
+              <tr>
+                ${
+                  keys
+                    .map(key => `
+                      <th>
+                        ${escapeHtml(
+                          runtimeKeyLabel(
+                            key
+                          )
+                        )}
+                      </th>
+                    `)
+                    .join('')
+                }
+              </tr>
+            </thead>
+            <tbody>
+              ${rows}
+            </tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function renderRuntimeValue(
+      value,
+      depth = 0,
+      compact = false
+    ) {
+      if (
+        value === null ||
+        typeof value ===
+          'string' ||
+        typeof value ===
+          'number' ||
+        typeof value ===
+          'boolean'
+      ) {
+        const text =
+          runtimePrimitive(
+            value
+          );
+
+        return compact
+          ? `<span class="vc-runtime-inline">${escapeHtml(text)}</span>`
+          : `<div class="vc-runtime-text">${escapeHtml(text)}</div>`;
+      }
+
+      if (Array.isArray(value)) {
+        const table =
+          runtimeTable(value);
+
+        if (table) {
+          return table;
+        }
+
+        if (!value.length) {
+          return '<div class="vc-runtime-empty">항목 없음</div>';
+        }
+
+        return `
+          <ul class="vc-runtime-list">
+            ${
+              value
+                .slice(0, 40)
+                .map(item => `
+                  <li>
+                    ${renderRuntimeValue(
+                      item,
+                      depth + 1,
+                      compact
+                    )}
+                  </li>
+                `)
+                .join('')
+            }
+          </ul>
+        `;
+      }
+
+      if (
+        value &&
+        typeof value ===
+          'object'
+      ) {
+        const entries =
+          Object.entries(value);
+
+        if (!entries.length) {
+          return '<div class="vc-runtime-empty">내용 없음</div>';
+        }
+
+        if (depth >= 4) {
+          let text = '';
+
+          try {
+            text =
+              JSON.stringify(value);
+          } catch {
+            text =
+              String(value);
+          }
+
+          return `<span class="vc-runtime-inline">${escapeHtml(text)}</span>`;
+        }
+
+        return `
+          <dl class="vc-runtime-kv">
+            ${
+              entries
+                .slice(0, 40)
+                .map(
+                  ([key, item]) => `
+                    <div class="vc-runtime-kv-row">
+                      <dt>
+                        ${escapeHtml(
+                          runtimeKeyLabel(
+                            key
+                          )
+                        )}
+                      </dt>
+                      <dd>
+                        ${renderRuntimeValue(
+                          item,
+                          depth + 1,
+                          compact
+                        )}
+                      </dd>
+                    </div>
+                  `
+                )
+                .join('')
+            }
+          </dl>
+        `;
+      }
+
+      return `<div class="vc-runtime-text">${escapeHtml(String(value ?? ''))}</div>`;
+    }
+
     function renderRuntimeBadge(runtimeState) {
       if (!runtimeState?.status) return '';
       const status =
@@ -314,16 +593,19 @@
         </span>
       `;
     }
+
     function renderRuntimeState(runtimeState) {
       if (!runtimeState?.status) return '';
+
       const status =
-        String(runtimeState.status).toLowerCase();
+        String(runtimeState.status)
+          .toLowerCase();
+
       const payload =
-        runtimePayload(runtimeState);
-      const text =
-        payload == null
-          ? ''
-          : runtimeText(payload);
+        runtimePayload(
+          runtimeState
+        );
+
       return `
         <div
           class="vc-runtime-result vc-runtime-${escapeHtml(status)}"
@@ -334,14 +616,15 @@
             <span>${escapeHtml(runtimeStatusLabel(runtimeState.status))}</span>
           </div>
           ${
-            text
-              ? `<pre class="vc-runtime-result-value">${escapeHtml(text)}</pre>`
-              : ''
+            payload == null
+              ? ''
+              : `<div class="vc-runtime-result-value">${renderRuntimeValue(payload)}</div>`
           }
         </div>
       `;
     }
-    function renderPorts(node, ports, direction) {
+
+    function renderPorts(node, ports, direction) {    function renderPorts(node, ports, direction) {
       const cls = direction === 'input' ? 'vc-input' : 'vc-output';
       return (ports || []).map(port => `
         <div

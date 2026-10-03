@@ -63,6 +63,8 @@
     conversationMemory: null,
     runtime: null,
     runtimeConnections: new Set(),
+    runtimeActivity: null,
+    lastUserRequest: "",
     nodeBuilder: { root: null, open: false },
     messageCount: 0
   };
@@ -453,21 +455,462 @@
   }
 
   function revealAssistantMessage(message, text) {
-    const body = message?.querySelector(".astra-message-body");
-    if (!body) return;
+    const body =
+      message?.querySelector(
+        ".astra-message-body"
+      );
 
-    const chars = Array.from(String(text ?? ""));
+    if (!body) return 0;
+
+    const tokens =
+      String(text ?? "")
+        .split(/(\s+)/)
+        .filter(
+          token =>
+            token.length > 0
+        );
+
     body.textContent = "";
 
-    chars.forEach((char, index) => {
-      const span = document.createElement("span");
-      span.className = "astra-message-reveal-char";
-      span.textContent = char;
-      span.style.setProperty("--reveal-index", index);
-      body.appendChild(span);
+    tokens.forEach(
+      (token, index) => {
+        const span =
+          document.createElement(
+            "span"
+          );
+
+        span.className =
+          "astra-message-reveal-token";
+        span.textContent =
+          token;
+        span.style.setProperty(
+          "--reveal-index",
+          Math.min(index, 44)
+        );
+
+        body.appendChild(
+          span
+        );
+      }
+    );
+
+    return Math.min(
+      1200,
+      tokens.length * 22 + 180
+    );
+  }
+
+  function runtimeActivityMarkup() {
+    return `
+      <span class="astra-runtime-activity-mark" aria-hidden="true">
+        <span></span>
+      </span>
+      <span class="astra-runtime-activity-label"></span>
+      <span class="astra-runtime-activity-dots" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </span>
+    `;
+  }
+
+  function beginRuntimeActivity(
+    text = "실행 준비 중"
+  ) {
+    finishRuntimeActivity(
+      { removeImmediately: true }
+    );
+
+    const row =
+      document.createElement(
+        "div"
+      );
+
+    row.className =
+      "astra-message astra-message-assistant astra-runtime-activity";
+    row.dataset.runtimeActivity =
+      "true";
+
+    const body =
+      document.createElement(
+        "div"
+      );
+
+    body.className =
+      "astra-runtime-activity-body";
+    body.innerHTML =
+      runtimeActivityMarkup();
+
+    row.appendChild(body);
+    chatMessages.appendChild(row);
+
+    state.runtimeActivity = {
+      row,
+      label:
+        body.querySelector(
+          ".astra-runtime-activity-label"
+        ),
+      timer: null,
+      text: ""
+    };
+
+    setRuntimeActivity(text, {
+      immediate: true
     });
 
-    return chars.length * 18;
+    scrollChatToBottom();
+    return row;
+  }
+
+  function setRuntimeActivity(
+    text,
+    options = {}
+  ) {
+    const value =
+      String(text || "").trim();
+
+    if (!value) return;
+
+    const activity =
+      state.runtimeActivity ||
+      (
+        beginRuntimeActivity(
+          value
+        ),
+        state.runtimeActivity
+      );
+
+    if (
+      !activity ||
+      activity.text === value
+    ) {
+      return;
+    }
+
+    clearTimeout(
+      activity.timer
+    );
+
+    const apply = () => {
+      activity.text = value;
+
+      if (activity.label) {
+        activity.label.textContent =
+          value;
+      }
+
+      activity.row
+        ?.classList
+        .remove(
+          "is-changing"
+        );
+
+      activity.row
+        ?.classList
+        .add(
+          "is-entering"
+        );
+
+      requestAnimationFrame(() => {
+        activity.row
+          ?.classList
+          .remove(
+            "is-entering"
+          );
+      });
+
+      scrollChatToBottom();
+    };
+
+    if (options.immediate) {
+      apply();
+      return;
+    }
+
+    activity.row
+      ?.classList
+      .add(
+        "is-changing"
+      );
+
+    activity.timer =
+      setTimeout(
+        apply,
+        115
+      );
+  }
+
+  function finishRuntimeActivity(
+    options = {}
+  ) {
+    const activity =
+      state.runtimeActivity;
+
+    if (!activity) return;
+
+    clearTimeout(
+      activity.timer
+    );
+
+    state.runtimeActivity =
+      null;
+
+    if (
+      options.removeImmediately
+    ) {
+      activity.row?.remove();
+      return;
+    }
+
+    activity.row
+      ?.classList
+      .add(
+        "is-complete"
+      );
+
+    const label =
+      activity.label;
+
+    if (label) {
+      label.textContent =
+        options.failed
+          ? "실행 종료"
+          : "완료";
+    }
+
+    setTimeout(() => {
+      activity.row
+        ?.classList
+        .add(
+          "is-leaving"
+        );
+    }, 180);
+
+    setTimeout(() => {
+      activity.row?.remove();
+    }, 560);
+  }
+
+  function compactRuntimeSubject(
+    value,
+    fallback
+  ) {
+    const text =
+      String(
+        value || fallback || ""
+      )
+        .replace(/\s+/g, " ")
+        .trim();
+
+    if (text.length <= 34) {
+      return text;
+    }
+
+    return text.slice(0, 33) + "…";
+  }
+
+  function runtimeActivityText(
+    event
+  ) {
+    const node =
+      state.canvas?.getNode?.(
+        String(
+          event?.nodeId ||
+          ""
+        )
+      );
+
+    const type =
+      String(
+        event?.state?.type ||
+        node?.type ||
+        ""
+      );
+
+    const params =
+      node?.data?.params ||
+      {};
+
+    switch (type) {
+      case "research":
+        return `${compactRuntimeSubject(
+          params.topic,
+          "자료"
+        )} 탐색 중`;
+
+      case "organize":
+        return `${compactRuntimeSubject(
+          params.format ||
+          params.criteria,
+          "자료"
+        )}로 정리 중`;
+
+      case "write":
+        return `${compactRuntimeSubject(
+          params.title ||
+          params.about,
+          "결과"
+        )} 작성 중`;
+
+      case "convert":
+        return `${compactRuntimeSubject(
+          params.instruction,
+          "결과"
+        )} 변환 중`;
+
+      case "judge":
+        return `${compactRuntimeSubject(
+          params.condition,
+          "조건"
+        )} 판단 중`;
+
+      case "createFile":
+        return `${compactRuntimeSubject(
+          params.filename,
+          "결과물"
+        )} 생성 중`;
+
+      case "file":
+        return "입력 파일 확인 중";
+
+      case "start":
+        return "실행 흐름 준비 중";
+
+      default:
+        return "작업 실행 중";
+    }
+  }
+
+  function fallbackRuntimeMessage(
+    run
+  ) {
+    const states =
+      Object.values(
+        run?.nodes || {}
+      );
+
+    const failed =
+      states.filter(
+        node =>
+          node?.status ===
+            "FAILED"
+      );
+
+    if (failed.length) {
+      const detail =
+        failed
+          .map(
+            node =>
+              node?.error
+                ?.message
+          )
+          .filter(Boolean)
+          .join("\n");
+
+      return detail
+        ? `실행 중 문제가 생겼어.\n${detail}`
+        : "실행 중 문제가 생겼어.";
+    }
+
+    const reports =
+      states
+        .filter(
+          node =>
+            node?.status ===
+              "SUCCESS"
+        )
+        .map(
+          node =>
+            node?.result
+              ?.report ||
+            node?.report
+        )
+        .filter(
+          value =>
+            typeof value ===
+              "string" &&
+            value.trim()
+        );
+
+    if (reports.length) {
+      return reports
+        .slice(-3)
+        .join("\n\n");
+    }
+
+    return "실행은 끝났어. 결과는 캔버스 노드에서 확인할 수 있어.";
+  }
+
+  async function finalizeRuntimeRun(
+    run
+  ) {
+    setRuntimeActivity(
+      run?.status === "FAILED"
+        ? "실행 결과 확인 중"
+        : "결과를 정리 중"
+    );
+
+    let message = "";
+
+    try {
+      const response =
+        await API.finalizeRun(
+          run,
+          {
+            userRequest:
+              state.lastUserRequest,
+            memory:
+              state.conversationMemory
+          }
+        );
+
+      message =
+        String(
+          response?.message ||
+          ""
+        ).trim();
+    } catch (error) {
+      console.warn(
+        "ovll runtime finalizer failed:",
+        error
+      );
+
+      message =
+        fallbackRuntimeMessage(
+          run
+        );
+    }
+
+    finishRuntimeActivity({
+      failed:
+        run?.status ===
+          "FAILED"
+    });
+
+    Presence.settle();
+
+    if (!message) {
+      return;
+    }
+
+    const finalMessage =
+      addAssistantMessage(
+        message,
+        {
+          showCanvasView:
+            true
+        }
+      );
+
+    if (finalMessage) {
+      await new Promise(resolve =>
+        setTimeout(
+          resolve,
+          revealAssistantMessage(
+            finalMessage,
+            message
+          )
+        )
+      );
+    }
   }
 
   function addSystemMessage(text) {
@@ -793,6 +1236,9 @@
 
     if (!value) return;
 
+    state.lastUserRequest =
+      value;
+
     if (
       options.addUserMessage !== false
     ) {
@@ -992,6 +1438,10 @@
       state.canvas
         ?.clearRuntimeNodeStates?.();
 
+      beginRuntimeActivity(
+        "실행 준비 중"
+      );
+
       console.info(
         "[ovll runtime] start",
         event
@@ -1036,6 +1486,24 @@
           }
         );
 
+      if (
+        event.status ===
+          "RUNNING"
+      ) {
+        setRuntimeActivity(
+          runtimeActivityText(
+            event
+          )
+        );
+      } else if (
+        event.status ===
+          "FAILED"
+      ) {
+        setRuntimeActivity(
+          "실행 중 문제 확인 중"
+        );
+      }
+
       console.info(
         "[ovll runtime] node",
         event
@@ -1050,6 +1518,12 @@
         ?.showRuntimeNode?.(
           event.pivot
         );
+
+      setRuntimeActivity(
+        event.status === "FAILED"
+          ? "실행 결과 확인 중"
+          : "결과를 정리 중"
+      );
 
       console.info(
         "[ovll runtime] finish",
@@ -1074,22 +1548,40 @@
       state.canvas.getWorkflow();
 
     try {
-      return await state.runtime.run(
-        workflow,
-        nodeId,
-        {
-          mode:
-            mode === "target"
-              ? "target"
-              : "spread"
-        }
+      const result =
+        await state.runtime.run(
+          workflow,
+          nodeId,
+          {
+            mode:
+              mode === "target"
+                ? "target"
+                : "spread"
+          }
+        );
+
+      await finalizeRuntimeRun(
+        result
       );
+
+      return result;
     } catch (error) {
       clearRuntimeConnections();
 
       console.error(
-        "ovll demo runtime failed:",
+        "ovll runtime failed:",
         error
+      );
+
+      finishRuntimeActivity({
+        failed: true
+      });
+
+      Presence.settle();
+
+      addAssistantMessage(
+        error?.message ||
+        "실행 중 문제가 생겼어."
       );
 
       return null;

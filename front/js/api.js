@@ -452,6 +452,40 @@
     );
   }
 
+  async function finalizeRun(
+    run,
+    context = {},
+    options = {}
+  ) {
+    if (
+      !run ||
+      typeof run !== "object"
+    ) {
+      throw new TypeError(
+        "정리할 실행 결과가 없습니다."
+      );
+    }
+
+    return request(
+      "finalize-run",
+      {
+        method: "POST",
+        body: {
+          run,
+          userRequest:
+            String(
+              context.userRequest ||
+              ""
+            ),
+          memory:
+            context.memory || null
+        },
+        signal:
+          options.signal
+      }
+    );
+  }
+
   async function execute(
     workflow,
     options = {}
@@ -472,6 +506,7 @@
     request,
     planWorkflow,
     executeGroup,
+    finalizeRun,
     execute,
     getNodeDefinitions,
     getNodeDefinitionSync,

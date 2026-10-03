@@ -50,10 +50,38 @@ const SYSTEM_INSTRUCTION = [
   "Follow each node type and params precisely.",
   "Return only the schema-conforming result.",
   "Keep outputs useful for the next node instead of explaining your process.",
+  "For every node, report must be a short user-facing summary of what the node actually produced. Write it naturally, in the dominant language of the supplied params/inputs, with concrete facts rather than JSON or process narration.",
+  "Keep report concise: normally one or two sentences. Preserve uncertainty and limitations. Never claim live browsing, tool use, citations, or external verification unless such evidence is explicitly supplied in the node input.",
   "Do not include chain-of-thought, hidden reasoning, markdown fences, or commentary.",
   "For judge nodes, make a boolean decision from the condition and available input. Do not decide graph traversal yourself.",
   "If information is missing, use only reasonable transformations supported by supplied inputs, params, and general model knowledge. Do not invent external facts or pretend live research occurred."
 ].join("\n");
+
+const FINAL_RESPONSE_SYSTEM_INSTRUCTION = [
+  "You write ovll's final user-facing response after a workflow execution.",
+  "Use only the supplied execution results and user context. Do not invent missing facts.",
+  "Answer the user's actual request, not the internal workflow mechanics.",
+  "Do not expose node IDs, raw JSON, token usage, hidden reasoning, or implementation details.",
+  "Do not claim live web browsing, citations, external verification, or file creation unless the execution results explicitly prove it.",
+  "Preserve useful names, numbers, constraints, caveats, and uncertainty from the execution results.",
+  "If the run partially failed, clearly distinguish completed results from failures without fabricating the missing part.",
+  "Use the user's language when it can be inferred from userRequest or memory. Otherwise use the dominant language of the node params and reports.",
+  "Prefer a direct natural answer first, then concise supporting detail.",
+  "Plain text only. Short paragraphs and '- ' bullets are allowed. Do not emit raw JSON, Markdown tables, or fenced code unless the user's task itself requires code."
+].join("\n");
+
+const FINAL_RESPONSE_SCHEMA = {
+  type: "object",
+  properties: {
+    message: {
+      type: "string"
+    }
+  },
+  required: [
+    "message"
+  ],
+  additionalProperties: false
+};
 
 function isPlainObject(value) {
   return (
@@ -514,6 +542,234 @@ export function buildInteractionRequest(
   };
 }
 
+function compactFinalValue(
+  value,
+  depth = 0
+) {
+  if (value == null) {
+    return value;
+  }
+
+  if (
+    typeof value === "string"
+  ) {
+    return value.length > 12000
+      ? value.slice(0, 12000) +
+          "\n…"
+      : value;
+  }
+
+  if (
+    typeof value === "number" ||
+    typeof value === "boolean"
+  ) {
+    return value;
+  }
+
+  if (depth >= 5) {
+    return "[nested value]";
+  }
+
+  if (Array.isArray(value)) {
+    return value
+      .slice(0, 24)
+      .map(item =>
+        compactFinalValue(
+          item,
+          depth + 1
+        )
+      );
+  }
+
+  if (isPlainObject(value)) {
+    return Object.fromEntries(
+      Object.entries(value)
+        .slice(0, 32)
+        .map(
+          ([key, item]) => [
+            key,
+            compactFinalValue(
+              item,
+              depth + 1
+            )
+          ]
+        )
+    );
+  }
+
+  return String(value);
+}
+
+function compactFinalRun(input) {
+  const run =
+    isPlainObject(input?.run)
+      ? input.run
+      : {};
+
+  const workflowNodes =
+    Array.isArray(
+      run?.workflow?.nodes
+    )
+      ? run.workflow.nodes
+      : [];
+
+  const paramsById =
+    new Map(
+      workflowNodes.map(node => [
+        String(node?.id || ""),
+        compactFinalValue(
+          node?.params ||
+          node?.data?.params ||
+          {}
+        )
+      ])
+    );
+
+  const states =
+    isPlainObject(run.nodes)
+      ? Object.values(run.nodes)
+      : [];
+
+  const nodes =
+    states
+      .filter(
+        state =>
+          state &&
+          state.status !== "IDLE"
+      )
+      .map(state => {
+        const result =
+          isPlainObject(state.result)
+            ? state.result
+            : {};
+
+        return {
+          id:
+            String(state.id || ""),
+          type:
+            String(state.type || ""),
+          status:
+            String(state.status || ""),
+          params:
+            paramsById.get(
+              String(state.id || "")
+            ) || {},
+          outputs:
+            compactFinalValue(
+              result.outputs || {}
+            ),
+          decision:
+            typeof result.decision ===
+              "boolean"
+              ? result.decision
+              : null,
+          artifact:
+            compactFinalValue(
+              result.artifact ??
+              result.file ??
+              null
+            ),
+          report:
+            typeof result.report ===
+              "string"
+              ? result.report
+              : typeof state.report ===
+                  "string"
+                ? state.report
+                : "",
+          error:
+            typeof state?.error
+              ?.message === "string"
+              ? state.error.message
+              : ""
+        };
+      });
+
+  const memory =
+    isPlainObject(input?.memory)
+      ? {
+          flow:
+            String(
+              input.memory.flow ||
+              ""
+            ).slice(0, 3000),
+          recent:
+            String(
+              input.memory.recent ||
+              ""
+            ).slice(0, 3000),
+          detail:
+            String(
+              input.memory.detail ||
+              ""
+            ).slice(0, 5000)
+        }
+      : null;
+
+  return {
+    userRequest:
+      String(
+        input?.userRequest ||
+        ""
+      ).slice(0, 5000),
+    memory,
+    run: {
+      mode:
+        String(run.mode || ""),
+      pivot:
+        String(run.pivot || ""),
+      status:
+        String(run.status || ""),
+      nodes
+    }
+  };
+}
+
+export function buildFinalResponseRequest(
+  input,
+  options = {}
+) {
+  let prompt =
+    JSON.stringify(
+      compactFinalRun(input)
+    );
+
+  if (options.repairError) {
+    prompt +=
+      "\n<REPAIR>Previous output failed validation: " +
+      String(
+        options.repairError
+      ).slice(0, 500) +
+      ". Return a corrected final response.</REPAIR>";
+  }
+
+  return {
+    model:
+      String(
+        options.model ||
+        DEFAULT_GEMINI_MODEL
+      ).trim(),
+    input:
+      prompt,
+    system_instruction:
+      FINAL_RESPONSE_SYSTEM_INSTRUCTION,
+    generation_config: {
+      thinking_level:
+        normalizeThinkingLevel(
+          options.thinkingLevel
+        )
+    },
+    response_format: {
+      type: "text",
+      mime_type:
+        "application/json",
+      schema:
+        FINAL_RESPONSE_SCHEMA
+    },
+    store: false
+  };
+}
+
 export function extractInteractionText(
   payload
 ) {
@@ -968,9 +1224,13 @@ export function createGeminiExecution(
     return response;
   }
 
-  async function executeModel(
-    group,
-    selectedModel
+  async function executeStructuredModel(
+    selectedModel,
+    {
+      buildRequest,
+      parseText,
+      invalidMessage
+    }
   ) {
     let lastError = null;
     let repairError = "";
@@ -985,14 +1245,8 @@ export function createGeminiExecution(
         null;
 
       const request =
-        buildInteractionRequest(
-          group,
-          {
-            model:
-              selectedModel,
-            thinkingLevel,
-            repairError
-          }
+        buildRequest(
+          repairError
         );
 
       let response;
@@ -1172,14 +1426,8 @@ export function createGeminiExecution(
           );
         }
 
-        const parsed =
-          JSON.parse(text);
-
-        const results =
-          validateGroupResults(
-            parsed,
-            group.nodes
-          );
+        const value =
+          parseText(text);
 
         return {
           model:
@@ -1191,7 +1439,7 @@ export function createGeminiExecution(
             normalizeUsage(
               body?.usage
             ),
-          results
+          value
         };
       } catch (error) {
         lastError =
@@ -1199,7 +1447,8 @@ export function createGeminiExecution(
             GeminiExecutionError
             ? error
             : new GeminiExecutionError(
-                "Gemini structured output was not valid JSON.",
+                invalidMessage ||
+                "Gemini structured output was not valid.",
                 {
                   code:
                     "INVALID_GEMINI_RESULT",
@@ -1231,7 +1480,138 @@ export function createGeminiExecution(
     );
   }
 
+  async function executeModel(
+    group,
+    selectedModel
+  ) {
+    const response =
+      await executeStructuredModel(
+        selectedModel,
+        {
+          buildRequest:
+            repairError =>
+              buildInteractionRequest(
+                group,
+                {
+                  model:
+                    selectedModel,
+                  thinkingLevel,
+                  repairError
+                }
+              ),
+          parseText:
+            text => {
+              let parsed;
+
+              try {
+                parsed =
+                  JSON.parse(text);
+              } catch {
+                throw new GeminiExecutionError(
+                  "Gemini structured output was not valid JSON.",
+                  {
+                    code:
+                      "INVALID_GEMINI_RESULT",
+                    semantic: true
+                  }
+                );
+              }
+
+              return validateGroupResults(
+                parsed,
+                group.nodes
+              );
+            },
+          invalidMessage:
+            "Gemini structured output was not valid JSON."
+        }
+      );
+
+    return {
+      model:
+        response.model,
+      usage:
+        response.usage,
+      results:
+        response.value
+    };
+  }
+
+  async function finalizeModel(
+    input,
+    selectedModel
+  ) {
+    const response =
+      await executeStructuredModel(
+        selectedModel,
+        {
+          buildRequest:
+            repairError =>
+              buildFinalResponseRequest(
+                input,
+                {
+                  model:
+                    selectedModel,
+                  thinkingLevel:
+                    "minimal",
+                  repairError
+                }
+              ),
+          parseText:
+            text => {
+              let parsed;
+
+              try {
+                parsed =
+                  JSON.parse(text);
+              } catch {
+                throw new GeminiExecutionError(
+                  "Gemini final response was not valid JSON.",
+                  {
+                    code:
+                      "INVALID_GEMINI_RESULT",
+                    semantic: true
+                  }
+                );
+              }
+
+              const message =
+                typeof parsed?.message ===
+                  "string"
+                  ? parsed.message.trim()
+                  : "";
+
+              if (!message) {
+                throw new GeminiExecutionError(
+                  "Gemini final response message is empty.",
+                  {
+                    code:
+                      "INVALID_GEMINI_RESULT",
+                    semantic: true
+                  }
+                );
+              }
+
+              return message;
+            },
+          invalidMessage:
+            "Gemini final response was not valid."
+        }
+      );
+
+    return {
+      model:
+        response.model,
+      usage:
+        response.usage,
+      message:
+        response.value
+    };
+  }
+
   async function executeGroup(
+    input
+  ) {  async function executeGroup(
     input
   ) {
     if (!apiKey) {
@@ -1305,8 +1685,72 @@ export function createGeminiExecution(
     );
   }
 
+  async function finalizeRun(
+    input
+  ) {
+    if (!apiKey) {
+      throw new GeminiExecutionError(
+        "GEMINI_API_KEY가 설정되지 않았습니다.",
+        {
+          code:
+            "GEMINI_API_KEY_MISSING"
+        }
+      );
+    }
+
+    const models =
+      [
+        model,
+        fallbackModel
+      ]
+        .filter(Boolean)
+        .filter(
+          (
+            value,
+            index,
+            list
+          ) =>
+            list.indexOf(value) ===
+            index
+        );
+
+    let lastError = null;
+
+    for (
+      let index = 0;
+      index < models.length;
+      index++
+    ) {
+      try {
+        return await finalizeModel(
+          input,
+          models[index]
+        );
+      } catch (error) {
+        lastError = error;
+
+        if (
+          index + 1 >=
+            models.length ||
+          !error
+            ?.fallbackEligible
+        ) {
+          throw error;
+        }
+      }
+    }
+
+    throw (
+      lastError ||
+      new GeminiExecutionError(
+        "Gemini final response failed."
+      )
+    );
+  }
+
   return {
     executeGroup,
+    finalizeRun,
     config: {
       model,
       fallbackModel,

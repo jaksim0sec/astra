@@ -83,7 +83,7 @@ const geminiExecution =
  * The frontend compares this server value with its locally stored version
  * before loading application assets.
  */
-const APP_VERSION = '2026.10.04.06';
+const APP_VERSION = '2026.10.04.07';
 
 /* =========================================================
    CANONICAL NODE DEFINITION
@@ -1914,6 +1914,50 @@ async function planWorkflow(
   );
 }
 
+function geminiHttpFailure(
+  error,
+  fallback
+) {
+  const known =
+    error instanceof
+      GeminiExecutionError;
+
+  const code =
+    known
+      ? error.code
+      : 'GEMINI_EXECUTION_ERROR';
+
+  const status =
+    code ===
+      'INVALID_EXECUTION_GROUP' ||
+    code ===
+      'UNSUPPORTED_GEMINI_NODE' ||
+    code ===
+      'GEMINI_GROUP_TOO_LARGE'
+      ? 400
+      : code ===
+          'GEMINI_API_KEY_MISSING'
+        ? 503
+        : error?.status === 429
+          ? 429
+          : 502;
+
+  return {
+    code,
+    status,
+    body: {
+      ok: false,
+      code,
+      error:
+        error?.message ||
+        fallback,
+      retryable:
+        error?.retryable ===
+          true
+    }
+  };
+}
+
 /* =========================================================
    GEMINI GROUP EXECUTION API
 ========================================================= */
@@ -1961,34 +2005,17 @@ app.post(
           result.results
       });
     } catch (error) {
-      const known =
-        error instanceof
-          GeminiExecutionError;
-
-      const code =
-        known
-          ? error.code
-          : 'GEMINI_EXECUTION_ERROR';
-
-      const status =
-        code ===
-          'INVALID_EXECUTION_GROUP' ||
-        code ===
-          'UNSUPPORTED_GEMINI_NODE' ||
-        code ===
-          'GEMINI_GROUP_TOO_LARGE'
-          ? 400
-          : code ===
-              'GEMINI_API_KEY_MISSING'
-            ? 503
-            : error?.status === 429
-              ? 429
-              : 502;
+      const failure =
+        geminiHttpFailure(
+          error,
+          'Gemini execution failed.'
+        );
 
       console.warn(
         '[Gemini execution failed]',
         {
-          code,
+          code:
+            failure.code,
           status:
             error?.status ??
             null,
@@ -1999,17 +2026,89 @@ app.post(
       );
 
       return res
-        .status(status)
-        .json({
-          ok: false,
-          code,
-          error:
-            error?.message ||
-            'Gemini execution failed.',
+        .status(
+          failure.status
+        )
+        .json(
+          failure.body
+        );
+    }
+  }
+);
+
+app.post(
+  '/api/finalize-run',
+  async (req, res) => {
+    try {
+      const result =
+        await geminiExecution
+          .finalizeRun({
+            run:
+              req.body?.run,
+            userRequest:
+              req.body
+                ?.userRequest,
+            memory:
+              req.body?.memory
+          });
+
+      console.info(
+        '[Gemini final response]',
+        {
+          model:
+            result.model,
+          inputTokens:
+            result.usage
+              ?.inputTokens ??
+            null,
+          outputTokens:
+            result.usage
+              ?.outputTokens ??
+            null,
+          totalTokens:
+            result.usage
+              ?.totalTokens ??
+            null
+        }
+      );
+
+      return res.json({
+        ok: true,
+        model:
+          result.model,
+        usage:
+          result.usage,
+        message:
+          result.message
+      });
+    } catch (error) {
+      const failure =
+        geminiHttpFailure(
+          error,
+          'Gemini final response failed.'
+        );
+
+      console.warn(
+        '[Gemini final response failed]',
+        {
+          code:
+            failure.code,
+          status:
+            error?.status ??
+            null,
           retryable:
             error?.retryable ===
             true
-        });
+        }
+      );
+
+      return res
+        .status(
+          failure.status
+        )
+        .json(
+          failure.body
+        );
     }
   }
 );

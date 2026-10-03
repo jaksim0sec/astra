@@ -308,23 +308,170 @@
 }
 
 
-.astra-message-reveal-char {
+.astra-message-reveal-token {
   opacity: 0;
+  display: inline;
   animation:
     astra-message-reveal
-    .01s
-    linear
-    calc(var(--reveal-index) * .018s)
+    .18s
+    cubic-bezier(.2,.82,.2,1)
+    calc(var(--reveal-index) * .022s)
     both;
 }
 
 @keyframes astra-message-reveal {
   from {
     opacity: 0;
+    filter: blur(.12rem);
   }
 
   to {
     opacity: 1;
+    filter: blur(0);
+  }
+}
+
+.astra-runtime-activity {
+  min-height: 1.6rem;
+  padding: 0 .1875rem;
+  overflow: hidden;
+  transition:
+    opacity .28s ease,
+    max-height .34s cubic-bezier(.2,.8,.2,1),
+    margin .34s cubic-bezier(.2,.8,.2,1),
+    transform .28s cubic-bezier(.2,.8,.2,1);
+  max-height: 3rem;
+}
+
+.astra-runtime-activity-body {
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  gap: .42rem;
+  color: var(--muted);
+  font-size: .75rem;
+  line-height: 1.4;
+}
+
+.astra-runtime-activity-mark {
+  width: .9rem;
+  height: .9rem;
+  flex: 0 0 .9rem;
+  display: grid;
+  place-items: center;
+}
+
+.astra-runtime-activity-mark span {
+  width: .42rem;
+  height: .42rem;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: .72;
+  animation:
+    astra-runtime-breathe
+    1.25s
+    ease-in-out
+    infinite;
+}
+
+.astra-runtime-activity-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+  transition:
+    opacity .12s ease,
+    transform .16s cubic-bezier(.2,.8,.2,1),
+    filter .12s ease;
+}
+
+.astra-runtime-activity.is-changing
+.astra-runtime-activity-label {
+  opacity: 0;
+  transform: translateY(-.22rem);
+  filter: blur(.08rem);
+}
+
+.astra-runtime-activity.is-entering
+.astra-runtime-activity-label {
+  opacity: 0;
+  transform: translateY(.22rem);
+  filter: blur(.08rem);
+}
+
+.astra-runtime-activity-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: .13rem;
+  margin-left: -.16rem;
+}
+
+.astra-runtime-activity-dots span {
+  width: .16rem;
+  height: .16rem;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: .2;
+  animation:
+    astra-runtime-dot
+    1s
+    ease-in-out
+    infinite;
+}
+
+.astra-runtime-activity-dots span:nth-child(2) {
+  animation-delay: .13s;
+}
+
+.astra-runtime-activity-dots span:nth-child(3) {
+  animation-delay: .26s;
+}
+
+.astra-runtime-activity.is-complete
+.astra-runtime-activity-mark span {
+  animation: none;
+  opacity: .85;
+  transform: scale(.7);
+}
+
+.astra-runtime-activity.is-complete
+.astra-runtime-activity-dots {
+  opacity: 0;
+}
+
+.astra-runtime-activity.is-leaving {
+  opacity: 0;
+  max-height: 0;
+  margin: -.55rem 0;
+  transform: translateY(-.25rem);
+}
+
+@keyframes astra-runtime-breathe {
+  0%,
+  100% {
+    transform: scale(.72);
+    opacity: .34;
+  }
+
+  50% {
+    transform: scale(1);
+    opacity: .9;
+  }
+}
+
+@keyframes astra-runtime-dot {
+  0%,
+  100% {
+    opacity: .18;
+    transform: translateY(0);
+  }
+
+  50% {
+    opacity: .7;
+    transform: translateY(-.08rem);
   }
 }
 
