@@ -389,6 +389,17 @@ function speak(text,options={}){
   });
 }
 
+function workAtNode(
+  id,
+  active=true
+){
+  return state.canvasMascot
+    ?.workAtNode?.(
+      id,
+      active
+    );
+}
+
 function attachCanvasMascot(mascot){
   state.canvasMascot=mascot||null;
 
@@ -437,6 +448,7 @@ const api={
   settle,
   speak,
   hideCanvasSpeech,
+  workAtNode,
   attachCanvasMascot,
   react(){
     if(
