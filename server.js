@@ -87,7 +87,7 @@ const geminiExecution =
  * The frontend compares this server value with its locally stored version
  * before loading application assets.
  */
-const APP_VERSION = '2026.10.04.24';
+const APP_VERSION = '2026.10.04.25';
 
 /* =========================================================
    CANONICAL NODE DEFINITION
@@ -857,6 +857,42 @@ function cloneWorkflow(workflow) {
         JSON.stringify(data)
       )
   };
+}
+
+function clipCompactText(
+  value,
+  max
+) {
+  const text =
+    String(value ?? '')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+  if (
+    !Number.isFinite(max) ||
+    max <= 0 ||
+    text.length <= max
+  ) {
+    return text;
+  }
+
+  const tail =
+    Math.max(
+      80,
+      Math.floor(max * .28)
+    );
+
+  const head =
+    Math.max(
+      0,
+      max - tail - 3
+    );
+
+  return (
+    text.slice(0, head) +
+    ' … ' +
+    text.slice(-tail)
+  ).slice(0, max);
 }
 
 function cleanParams(type, params, fillDefaults = false) {
