@@ -2147,17 +2147,6 @@
     const key =
       String(id || "");
 
-    if (
-      key === "__prepare__" ||
-      key === "__finalize__"
-    ) {
-      return {
-        type: "system",
-        icon: "",
-        color: ""
-      };
-    }
-
     const node =
       state.canvas?.getNode?.(
         key
@@ -2278,11 +2267,18 @@
       }
     );
 
-    upsertRuntimeStep(
-      "__prepare__",
-      text,
-      "running"
-    );
+    if (activity.meta) {
+      activity.meta.textContent =
+        /준비/i.test(
+          String(text || "")
+        )
+          ? "준비 중"
+          : String(text || "")
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, 42) ||
+            "준비 중";
+    }
 
     scrollChatToBottom();
     return row;
@@ -2517,6 +2513,43 @@
         "__status__"
       );
 
+    if (
+      id === "__prepare__" ||
+      id === "__finalize__"
+    ) {
+      const activity =
+        state.runtimeActivity ||
+        (
+          beginRuntimeActivity(
+            value
+          ),
+          state.runtimeActivity
+        );
+
+      if (
+        activity?.meta
+      ) {
+        activity.meta.textContent =
+          id === "__prepare__"
+            ? "준비 중"
+            : value
+                .replace(
+                  /^실행\s*/,
+                  ""
+                )
+                .replace(
+                  /\s+/g,
+                  " "
+                )
+                .trim()
+                .slice(0, 42) ||
+              "결과 정리 중";
+      }
+
+      scrollChatToBottom();
+      return;
+    }
+
     upsertRuntimeStep(
       id,
       value,
@@ -2538,6 +2571,14 @@
 
     const key =
       String(id || "");
+
+    if (
+      key === "__prepare__" ||
+      key === "__finalize__"
+    ) {
+      return;
+    }
+
     const step =
       activity.steps.get(
         key
@@ -3768,10 +3809,6 @@
         event.status ===
           "RUNNING"
       ) {
-        completeRuntimeStep(
-          "__prepare__"
-        );
-
         setRuntimeActivity(
           text,
           {
@@ -3875,10 +3912,6 @@
         ?.selectNode?.(
           event.pivot
         );
-
-      completeRuntimeStep(
-        "__prepare__"
-      );
 
       const text =
         event.status === "FAILED"
