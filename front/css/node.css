@@ -240,15 +240,15 @@
 .vc-node-action {
   appearance: none;
   -webkit-appearance: none;
-  width: 1.55rem;
-  height: 1.55rem;
+  width: 1.75rem;
+  height: 1.75rem;
   display: grid;
   place-items: center;
   margin: 0;
   padding: 0;
   border: 0;
   outline: 0;
-  border-radius: .48rem;
+  border-radius: .58rem;
   color: var(--muted);
   background: transparent;
   cursor: pointer;
@@ -289,18 +289,22 @@
 .vc-node-run {
   appearance: none;
   -webkit-appearance: none;
-  height: 1.55rem;
+  height: 1.85rem;
   flex: 0 0 auto;
   display: inline-flex;
   align-items: center;
-  gap: .26rem;
+  gap: .32rem;
   margin-left: auto;
-  padding: 0 .48rem 0 .4rem;
+  padding:
+    0
+    .68rem
+    0
+    .5rem;
   border:
     .0625rem solid
     color-mix(
       in srgb,
-      var(--node-color) 18%,
+      var(--node-color) 22%,
       var(--line)
     );
   outline: 0;
@@ -308,32 +312,42 @@
   color:
     color-mix(
       in srgb,
-      var(--node-color) 72%,
-      var(--sub)
+      var(--node-color) 86%,
+      var(--text)
     );
   background:
     color-mix(
       in srgb,
-      var(--node-color) 5%,
+      var(--node-color) 10%,
       var(--panel)
     );
   cursor: pointer;
-  font-size: .55rem;
-  font-weight: 720;
+  font-size: .58rem;
+  font-weight: 740;
   line-height: 1;
   letter-spacing: -.012em;
+  box-shadow:
+    inset
+    0
+    .0625rem
+    0
+    color-mix(
+      in srgb,
+      #fff 10%,
+      transparent
+    );
   transition:
-    color .18s ease,
-    border-color .18s ease,
-    background .18s ease,
-    transform .16s
+    color .16s ease,
+    border-color .16s ease,
+    background .16s ease,
+    transform .14s
       cubic-bezier(.22,.8,.25,1);
 }
 
 .vc-node-run svg {
-  width: .86rem;
-  height: .86rem;
-  flex: 0 0 .86rem;
+  width: .92rem;
+  height: .92rem;
+  flex: 0 0 .92rem;
   overflow: visible;
 }
 
@@ -348,7 +362,7 @@
   background:
     color-mix(
       in srgb,
-      var(--node-color) 9%,
+      var(--node-color) 15%,
       var(--panel)
     );
 }
@@ -772,19 +786,27 @@
 
 .vc-file-download {
   width: fit-content;
+  min-height: 1.9rem;
   display: inline-flex;
   align-items: center;
-  gap: .28rem;
-  margin-top: .48rem;
-  padding: .3rem .46rem;
+  gap: .32rem;
+  margin-top: .52rem;
+  padding:
+    .34rem
+    .58rem;
   border:
     .0625rem solid
     var(--line);
   border-radius: 999px;
   color: var(--sub);
-  background: var(--soft);
+  background:
+    color-mix(
+      in srgb,
+      var(--text) 4%,
+      transparent
+    );
   text-decoration: none;
-  font-size: .54rem;
+  font-size: .56rem;
   font-weight: 650;
 }
 
