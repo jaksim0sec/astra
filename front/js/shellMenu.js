@@ -113,7 +113,7 @@ function icon(name){
   const icons={
     sidebar:`
       <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
-        <rect x="3.2" y="3.5" width="13.6" height="13" rx="4" stroke="currentColor" stroke-width="1.55"/>
+        <rect x="3.2" y="3.5" width="13.6" height="13" rx="4.7" stroke="currentColor" stroke-width="1.55"/>
         <path d="M7.55 4v12" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
       </svg>
     `,
@@ -429,7 +429,10 @@ async function createConversation(
 
   await global.AstraApp
     ?.openConversation?.(
-      conversation.id
+      conversation.id,
+      {
+        skipSave:true
+      }
     );
 
   closeOnSmallScreen();
