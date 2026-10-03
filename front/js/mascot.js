@@ -1377,6 +1377,108 @@ function mount(world,canvas,options={}){
     }
   }
 
+  function workAtNode(
+    id,
+    active=true
+  ){
+    orb.classList.toggle(
+      "working",
+      !!active
+    );
+
+    if(!active){
+      if(
+        orb.dataset.mood===
+          "working"
+      ){
+        orb.dataset.mood=
+          "idle";
+      }
+
+      restoreGaze();
+      return false;
+    }
+
+    const node=
+      nodeEl(id);
+
+    if(!node)
+      return false;
+
+    noteActivity();
+    stopMotion();
+
+    focusId=
+      String(id);
+    gazePriority=14;
+    gazeUntil=
+      performance.now()+2200;
+    attentionUntil=
+      gazeUntil;
+
+    setMood(
+      "working",
+      2200
+    );
+
+    const target=
+      nodeTarget(node);
+
+    const orbRect=
+      orb.getBoundingClientRect();
+
+    const current=
+      center(orbRect);
+
+    const nodeCenter=
+      center(
+        node.getBoundingClientRect()
+      );
+
+    const distance=
+      Math.hypot(
+        target.x-current.x,
+        target.y-current.y
+      );
+
+    if(nodeVisible(node)){
+      lookAt(
+        nodeCenter.x,
+        nodeCenter.y,
+        .19
+      );
+    }
+
+    if(
+      distance >
+        orbRect.width*1.15
+    ){
+      swooshToward(
+        target.x,
+        target.y,
+        {
+          step:
+            Math.max(
+              1.4,
+              distance/
+              Math.max(
+                1,
+                orbRect.width
+              )
+            ),
+          duration:
+            Math.min(
+              620,
+              300+
+              distance*.2
+            )
+        }
+      );
+    }
+
+    return true;
+  }
+
   function setThinking(active=true){
     clearTimeout(moodTimer);
 
@@ -2147,6 +2249,7 @@ function mount(world,canvas,options={}){
     element:orb,
     react,
     setThinking,
+    workAtNode,
     centerInViewport,
 
     destroy(){
