@@ -109,7 +109,8 @@
       interactionEnabled: options.interactionEnabled !== false,
       destroyed: false,
       connectionFrame: null,
-      lastNodeDragEndAt: 0
+      lastNodeDragEndAt: 0,
+      runtimeConnections: new Set()
     };
     const registry = new Map(
       Object.entries(definitions).map(([type, def]) => [
@@ -462,8 +463,25 @@
         const active =
           state.selectedNode === connection.from.node ||
           state.selectedNode === connection.to.node;
-        path.classList.toggle('vc-active', active);
-        if (active) {
+        const runtimeActive =
+          state.runtimeConnections.has(
+            String(connection.id)
+          );
+
+        path.classList.toggle(
+          'vc-active',
+          active
+        );
+
+        path.classList.toggle(
+          'vc-runtime-active',
+          runtimeActive
+        );
+
+        if (
+          active ||
+          runtimeActive
+        ) {
           const definition = getDefinition(
             getNode(connection.from.node)?.type
           );
@@ -3129,6 +3147,16 @@
       selectNode,
       toggleNodeExpanded,
       setInteractionEnabled,
+      setRuntimeConnections(ids = []) {
+        state.runtimeConnections =
+          new Set(
+            Array.isArray(ids)
+              ? ids.map(String)
+              : []
+          );
+        renderConnections();
+        return api;
+      },
       isInteractionEnabled:
         () =>
           state.interactionEnabled,
@@ -3186,6 +3214,7 @@
         state.canvasPan = null;
         state.pinch = null;
         state.connectionDrag = null;
+        state.runtimeConnections.clear();
         connectionElements
           .forEach(
             element =>
