@@ -660,6 +660,82 @@
                   )
                 );
 
+                const failedDependencies =
+                  parentEdges
+                    .map(connection => {
+                      const state =
+                        states.get(
+                          connection.from.node
+                        );
+
+                      if (
+                        state?.status ===
+                        "FAILED"
+                      ) {
+                        return {
+                          nodeId:
+                            connection.from.node,
+                          blockedBy: [
+                            connection.from.node
+                          ]
+                        };
+                      }
+
+                      if (
+                        state?.status ===
+                          "SKIPPED" &&
+                        state?.skipReason ===
+                          "dependency_failed"
+                      ) {
+                        return {
+                          nodeId:
+                            connection.from.node,
+                          blockedBy:
+                            Array.isArray(
+                              state.blockedBy
+                            ) &&
+                            state.blockedBy.length
+                              ? state.blockedBy
+                              : [
+                                  connection
+                                    .from.node
+                                ]
+                        };
+                      }
+
+                      return null;
+                    })
+                    .filter(Boolean);
+
+                if (
+                  failedDependencies.length
+                ) {
+                  const blockedBy =
+                    [
+                      ...new Set(
+                        failedDependencies
+                          .flatMap(
+                            item =>
+                              item.blockedBy
+                          )
+                      )
+                    ];
+
+                  setState(
+                    nodeId,
+                    "SKIPPED",
+                    {
+                      skipReason:
+                        "dependency_failed",
+                      blockedBy,
+                      finishedAt:
+                        Date.now()
+                    }
+                  );
+
+                  return null;
+                }
+
                 const flowIncoming =
                   parentEdges.filter(
                     connection =>
@@ -742,7 +818,7 @@
                     }
                   );
 
-                  throw error;
+                  return null;
                 }
               } finally {
                 releaseParentEdges
