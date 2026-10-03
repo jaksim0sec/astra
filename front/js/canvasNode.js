@@ -802,22 +802,6 @@
                   </span>
                 `
             }
-            ${
-              node.type === 'file' &&
-              node.data?.generated
-                ? ''
-                : `
-                  <button
-                    type="button"
-                    class="vc-node-run${runtimeState?.status === 'RUNNING' ? ' is-running' : ''}"
-                    data-action="run"
-                    aria-label="이 노드부터 실행"
-                  >
-                    ${icons.run}
-                    <span>${runtimeState?.status === 'RUNNING' ? '실행 중' : '실행'}</span>
-                  </button>
-                `
-            }
             <div class="vc-node-actions">
               <button
                 type="button"
@@ -835,6 +819,22 @@
             ${renderRuntimeState(runtimeState)}
           </div>
           <div class="vc-node-footer">
+            ${
+              node.type === 'file' &&
+              node.data?.generated
+                ? ''
+                : `
+                  <button
+                    type="button"
+                    class="vc-node-run${runtimeState?.status === 'RUNNING' ? ' is-running' : ''}"
+                    data-action="run"
+                    aria-label="이 노드부터 실행"
+                  >
+                    ${icons.run}
+                    <span>${runtimeState?.status === 'RUNNING' ? '실행 중' : '실행하기'}</span>
+                  </button>
+                `
+            }
             <button
               type="button"
               class="vc-node-delete"
@@ -1535,11 +1535,65 @@
     }
     function getWorkflowIR() {
       return {
-        nodes: state.nodes.map(node => ({
-          id: node.id,
-          type: node.type,
-          params: clone(node.data?.params || {})
-        })),
+        nodes: state.nodes.map(node => {
+          const item = {
+            id: node.id,
+            type: node.type,
+            params: clone(node.data?.params || {})
+          };
+
+          if (node.type === 'file') {
+            item.file = {
+              source:
+                node.data?.generated
+                  ? 'generated'
+                  : 'upload',
+              name:
+                String(
+                  node.data?.name ||
+                  '파일'
+                ).slice(0, 240),
+              mime:
+                String(
+                  node.data?.mime ||
+                  'application/octet-stream'
+                ).slice(0, 160),
+              size:
+                Math.max(
+                  0,
+                  Number(
+                    node.data?.size ||
+                    0
+                  ) || 0
+                ),
+              lastModified:
+                Math.max(
+                  0,
+                  Number(
+                    node.data?.lastModified ||
+                    0
+                  ) || 0
+                )
+            };
+
+            if (
+              typeof node.data?.textPreview ===
+                'string' &&
+              node.data.textPreview
+            ) {
+              item.file.textPreview =
+                node.data.textPreview.slice(
+                  0,
+                  12000
+                );
+              item.file.textTruncated =
+                node.data?.textTruncated ===
+                  true;
+            }
+          }
+
+          return item;
+        }),
         links: state.connections
           .filter(
             connection =>
