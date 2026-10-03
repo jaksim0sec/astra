@@ -11,6 +11,7 @@
   const UI = global.AstraUI;
   const API = global.AstraAPI;
   const Presence = global.OvllPresence;
+  const Execution = global.OvllExecutionEngine;
   const mountCanvasNode = global.mountCanvasNode;
 
   /* =======================================================
@@ -30,7 +31,15 @@
     throw new Error("ovll Application DOM 구조가 올바르지 않습니다.");
   }
 
-  if (!UI || !API || !Presence || typeof mountCanvasNode !== "function") {
+  if (
+    !UI ||
+    !API ||
+    !Presence ||
+    !Execution ||
+    typeof Execution.RuntimeEngine !== "function" ||
+    typeof Execution.sliceWorkflow !== "function" ||
+    typeof mountCanvasNode !== "function"
+  ) {
     throw new Error("ovll Application dependency가 준비되지 않았습니다.");
   }
 
@@ -53,6 +62,7 @@
     workflow: null,
     nodeDefinitions: null,
     conversationMemory: null,
+    runtime: null,
     nodeBuilder: { root: null, open: false },
     messageCount: 0
   };
@@ -958,6 +968,126 @@
   }
 
   /* =======================================================
+     Demo runtime
+     ======================================================= */
+  function getCanvasNodeElement(nodeId) {
+    if (!state.canvas?.root) return null;
+
+    return [
+      ...state.canvas.root.querySelectorAll(
+        ".vc-node"
+      )
+    ].find(
+      element =>
+        element.dataset.nodeId ===
+        String(nodeId)
+    ) || null;
+  }
+
+  function clearRuntimeNodeStates() {
+    state.canvas?.root
+      ?.querySelectorAll(
+        ".vc-node[data-runtime-status]"
+      )
+      .forEach(element => {
+        delete element.dataset.runtimeStatus;
+      });
+  }
+
+  function handleRuntimeEvent(event) {
+    if (!event || typeof event !== "object") {
+      return;
+    }
+
+    if (event.type === "run:start") {
+      clearRuntimeNodeStates();
+
+      console.info(
+        "[ovll runtime] start",
+        event
+      );
+
+      return;
+    }
+
+    if (event.type === "node:state") {
+      const element =
+        getCanvasNodeElement(
+          event.nodeId
+        );
+
+      if (element) {
+        element.dataset.runtimeStatus =
+          String(
+            event.status || ""
+          ).toLowerCase();
+      }
+
+      console.info(
+        "[ovll runtime] node",
+        event
+      );
+
+      return;
+    }
+
+    if (event.type === "run:finish") {
+      console.info(
+        "[ovll runtime] finish",
+        event
+      );
+    }
+  }
+
+  async function runCanvasNode(nodeId) {
+    if (
+      !state.canvas ||
+      !state.runtime ||
+      state.runtime.isRunning()
+    ) {
+      return null;
+    }
+
+    const source =
+      state.canvas.getWorkflow();
+
+    const workflow =
+      Execution.sliceWorkflow(
+        source,
+        nodeId
+      );
+
+    try {
+      return await state.runtime.run(
+        workflow,
+        nodeId
+      );
+    } catch (error) {
+      console.error(
+        "ovll demo runtime failed:",
+        error
+      );
+
+      return null;
+    }
+  }
+
+  function handleCanvasNodeClick(payload) {
+    const nodeId =
+      String(
+        payload?.id || ""
+      );
+
+    if (!nodeId) {
+      return;
+    }
+
+    void runCanvasNode(
+      nodeId
+    );
+  }
+
+  /* =======================================================
      Canvas
      ======================================================= */
   async function initializeCanvas() {
@@ -967,11 +1097,23 @@
     });
 
     state.canvas = canvas;
+
+    state.runtime =
+      new Execution.RuntimeEngine({
+        executorOptions: {
+          minDelay: 480,
+          maxDelay: 1100
+        },
+        onEvent:
+          handleRuntimeEvent
+      });
+
     initializeNodeBuilder();
     UI.bindCanvas(canvas);
 
     canvas.on("change", handleCanvasChange);
     canvas.on("workflowApplied", handleCanvasWorkflowApplied);
+    canvas.on("nodeClick", handleCanvasNodeClick);
 
     syncWorkflow();
 
@@ -1222,6 +1364,16 @@ listen(composerInput, "keydown", handleComposerKeydown);
 
     getWorkflow() {
       return getCurrentWorkflow();
+    },
+
+    runNode(nodeId) {
+      return runCanvasNode(
+        String(nodeId || "")
+      );
+    },
+
+    getLastRun() {
+      return state.runtime?.getLastRun?.() || null;
     },
 
     getNodeDefinitions() {
