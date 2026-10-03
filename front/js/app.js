@@ -2123,12 +2123,80 @@
 
   function runtimeActivityMarkup() {
     return `
-      <span class="astra-runtime-activity-mark" aria-hidden="true">
-        <span></span>
-      </span>
-      <span class="astra-runtime-activity-label"></span>
-      <span class="astra-runtime-activity-dots" aria-hidden="true">
-        <span></span><span></span><span></span>
+      <button
+        type="button"
+        class="astra-runtime-activity-summary"
+        aria-expanded="true"
+      >
+        <span class="astra-runtime-activity-spark" aria-hidden="true">
+          <span></span>
+        </span>
+        <span class="astra-runtime-activity-title">실행 과정</span>
+        <span class="astra-runtime-activity-meta">준비 중</span>
+        <svg class="astra-runtime-activity-chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true">
+          <path d="M6.5 8 10 11.5 13.5 8" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+      <div class="astra-runtime-activity-steps"></div>
+    `;
+  }
+
+  function runtimeStepPresentation(
+    id
+  ) {
+    const key =
+      String(id || "");
+
+    if (
+      key === "__prepare__" ||
+      key === "__finalize__"
+    ) {
+      return {
+        type: "system",
+        icon: "",
+        color: ""
+      };
+    }
+
+    const node =
+      state.canvas?.getNode?.(
+        key
+      );
+
+    const type =
+      String(
+        node?.type ||
+        ""
+      );
+
+    const definition =
+      state.nodeDefinitions?.[
+        type
+      ];
+
+    return {
+      type:
+        type || "node",
+      icon:
+        typeof definition?.icon ===
+          "string" &&
+        definition.icon.trim()
+          ? definition.icon
+          : "",
+      color:
+        String(
+          definition?.color ||
+          ""
+        )
+    };
+  }
+
+  function runtimeStepMarkup() {
+    return `
+      <span class="astra-runtime-step-icon" aria-hidden="true"></span>
+      <span class="astra-runtime-step-content">
+        <span class="astra-runtime-step-label"></span>
+        <span class="astra-runtime-step-detail"></span>
       </span>
     `;
   }
@@ -2136,9 +2204,11 @@
   function beginRuntimeActivity(
     text = "실행 준비 중"
   ) {
-    finishRuntimeActivity({
-      removeImmediately: true
-    });
+    if (state.runtimeActivity) {
+      finishRuntimeActivity(
+        { removeImmediately: true }
+      );
+    }
 
     const row =
       document.createElement(
@@ -2163,25 +2233,273 @@
     row.appendChild(body);
     chatMessages.appendChild(row);
 
-    state.runtimeActivity = {
+    const summary =
+      body.querySelector(
+        ".astra-runtime-activity-summary"
+      );
+
+    const activity = {
       row,
-      label:
+      summary,
+      meta:
         body.querySelector(
-          ".astra-runtime-activity-label"
+          ".astra-runtime-activity-meta"
         ),
-      timer: null,
-      text: ""
+      stepsRoot:
+        body.querySelector(
+          ".astra-runtime-activity-steps"
+        ),
+      steps:
+        new Map(),
+      order: [],
+      text: "",
+      finished: false,
+      userToggled: false
     };
 
-    setRuntimeActivity(
-      text,
-      {
-        immediate: true
+    state.runtimeActivity =
+      activity;
+
+    summary?.addEventListener(
+      "click",
+      () => {
+        activity.userToggled =
+          true;
+
+        const collapsed =
+          row.classList.toggle(
+            "is-collapsed"
+          );
+
+        summary.setAttribute(
+          "aria-expanded",
+          String(!collapsed)
+        );
       }
+    );
+
+    upsertRuntimeStep(
+      "__prepare__",
+      text,
+      "running"
     );
 
     scrollChatToBottom();
     return row;
+  }
+
+  function normalizeCompletedStepText(
+    text
+  ) {
+    return String(text || "")
+      .replace(
+        /\s+(중|확인 중|판단 중|준비 중)$/,
+        match =>
+          match.includes("확인")
+            ? " 확인"
+            : match.includes("판단")
+              ? " 판단"
+              : match.includes("준비")
+                ? " 준비"
+                : ""
+      )
+      .trim();
+  }
+
+  function runtimeActivityCount(
+    activity
+  ) {
+    return activity.order
+      .filter(
+        id =>
+          id !== "__prepare__" &&
+          id !== "__finalize__"
+      )
+      .length;
+  }
+
+  function syncRuntimeActivityMeta() {
+    const activity =
+      state.runtimeActivity;
+
+    if (!activity) return;
+
+    const count =
+      runtimeActivityCount(
+        activity
+      );
+
+    const failed =
+      activity.order.some(
+        id =>
+          activity.steps
+            .get(id)
+            ?.dataset
+            ?.status ===
+            "failed"
+      );
+
+    if (activity.finished) {
+      activity.meta.textContent =
+        failed
+          ? `${count}단계 · 일부 실패`
+          : `${count}단계 완료`;
+      return;
+    }
+
+    const running =
+      activity.order.filter(
+        id =>
+          activity.steps
+            .get(id)
+            ?.dataset
+            ?.status ===
+            "running"
+      ).length;
+
+    activity.meta.textContent =
+      running
+        ? "진행 중"
+        : count
+          ? `${count}단계`
+          : "준비 중";
+  }
+
+  function upsertRuntimeStep(
+    id,
+    text,
+    status = "running",
+    detail = ""
+  ) {
+    const activity =
+      state.runtimeActivity ||
+      (
+        beginRuntimeActivity(),
+        state.runtimeActivity
+      );
+
+    if (!activity) return null;
+
+    const key =
+      String(id || "");
+
+    if (!key) return null;
+
+    let step =
+      activity.steps.get(
+        key
+      );
+
+    if (!step) {
+      step =
+        document.createElement(
+          "div"
+        );
+
+      step.className =
+        "astra-runtime-step";
+      step.innerHTML =
+        runtimeStepMarkup();
+      step.dataset.stepId =
+        key;
+
+      const presentation =
+        runtimeStepPresentation(
+          key
+        );
+
+      step.dataset.nodeType =
+        presentation.type;
+
+      const icon =
+        step.querySelector(
+          ".astra-runtime-step-icon"
+        );
+
+      if (icon) {
+        icon.innerHTML =
+          presentation.icon;
+
+        icon.hidden =
+          !presentation.icon;
+      }
+
+      if (
+        presentation.color
+      ) {
+        step.style.setProperty(
+          "--runtime-node-color",
+          presentation.color
+        );
+      }
+
+      activity.steps.set(
+        key,
+        step
+      );
+      activity.order.push(
+        key
+      );
+      activity.stepsRoot
+        ?.appendChild(
+          step
+        );
+
+      requestAnimationFrame(
+        () =>
+          step.classList.add(
+            "is-visible"
+          )
+      );
+    }
+
+    const label =
+      step.querySelector(
+        ".astra-runtime-step-label"
+      );
+
+    const detailElement =
+      step.querySelector(
+        ".astra-runtime-step-detail"
+      );
+
+    const nextText =
+      status === "done"
+        ? normalizeCompletedStepText(
+            text
+          )
+        : String(text || "").trim();
+
+    if (label && nextText) {
+      label.textContent =
+        nextText;
+    }
+
+    const detailText =
+      String(detail || "")
+        .replace(
+          /\s+/g,
+          " "
+        )
+        .trim()
+        .slice(
+          0,
+          180
+        );
+
+    if (detailElement) {
+      detailElement.textContent =
+        detailText;
+      detailElement.hidden =
+        !detailText;
+    }
+
+    step.dataset.status =
+      status;
+
+    syncRuntimeActivityMeta();
+    scrollChatToBottom();
+    return step;
   }
 
   function setRuntimeActivity(
@@ -2189,81 +2507,62 @@
     options = {}
   ) {
     const value =
-      String(text || "")
-        .replace(/\s+/g, " ")
-        .trim();
+      String(text || "").trim();
 
     if (!value) return;
 
-    const activity =
-      state.runtimeActivity ||
-      (
-        beginRuntimeActivity(
-          value
-        ),
-        state.runtimeActivity
+    const id =
+      String(
+        options.id ||
+        "__status__"
       );
 
-    if (
-      !activity ||
-      activity.text === value
-    ) {
-      return;
-    }
-
-    clearTimeout(
-      activity.timer
+    upsertRuntimeStep(
+      id,
+      value,
+      options.status ||
+        "running",
+      options.detail ||
+        ""
     );
+  }
 
-    const apply = () => {
-      activity.text = value;
+  function completeRuntimeStep(
+    id,
+    options = {}
+  ) {
+    const activity =
+      state.runtimeActivity;
 
-      if (activity.label) {
-        activity.label.textContent =
-          value;
-      }
+    if (!activity) return;
 
-      activity.row
-        ?.classList
-        .remove(
-          "is-changing"
-        );
-
-      activity.row
-        ?.classList
-        .add(
-          "is-entering"
-        );
-
-      requestAnimationFrame(
-        () => {
-          activity.row
-            ?.classList
-            .remove(
-              "is-entering"
-            );
-        }
+    const key =
+      String(id || "");
+    const step =
+      activity.steps.get(
+        key
       );
 
-      scrollChatToBottom();
-    };
+    if (!step) return;
 
-    if (options.immediate) {
-      apply();
-      return;
-    }
-
-    activity.row
-      ?.classList
-      .add(
-        "is-changing"
+    const label =
+      step.querySelector(
+        ".astra-runtime-step-label"
       );
 
-    activity.timer =
-      setTimeout(
-        apply,
-        105
-      );
+    upsertRuntimeStep(
+      key,
+      options.text ||
+        label?.textContent ||
+        "",
+      options.failed
+        ? "failed"
+        : options.skipped
+          ? "skipped"
+          : "done",
+      options.detail ||
+        ""
+    );
   }
 
   function finishRuntimeActivity(
@@ -2274,17 +2573,41 @@
 
     if (!activity) return;
 
-    clearTimeout(
-      activity.timer
-    );
-
-    state.runtimeActivity = null;
-
     if (
       options.removeImmediately
     ) {
       activity.row?.remove();
+      state.runtimeActivity =
+        null;
       return;
+    }
+
+    activity.finished =
+      true;
+
+    for (
+      const id of
+      activity.order
+    ) {
+      const step =
+        activity.steps.get(
+          id
+        );
+
+      if (
+        step?.dataset
+          ?.status ===
+          "running"
+      ) {
+        completeRuntimeStep(
+          id,
+          {
+            failed:
+              options.failed === true &&
+              id === "__finalize__"
+          }
+        );
+      }
     }
 
     activity.row
@@ -2293,30 +2616,51 @@
         "is-complete"
       );
 
-    if (activity.label) {
-      activity.label.textContent =
-        options.failed
-          ? "실행 종료"
-          : "완료";
+    syncRuntimeActivityMeta();
+
+    const shouldCollapse =
+      runtimeActivityCount(
+        activity
+      ) > 4;
+
+    if (
+      !activity.userToggled &&
+      shouldCollapse
+    ) {
+      setTimeout(
+        () => {
+          activity.row
+            ?.classList
+            .add(
+              "is-collapsed"
+            );
+
+          activity.summary
+            ?.setAttribute(
+              "aria-expanded",
+              "false"
+            );
+        },
+        520
+      );
+    } else if (
+      !activity.userToggled
+    ) {
+      activity.row
+        ?.classList
+        .remove(
+          "is-collapsed"
+        );
+
+      activity.summary
+        ?.setAttribute(
+          "aria-expanded",
+          "true"
+        );
     }
 
-    setTimeout(
-      () => {
-        activity.row
-          ?.classList
-          .add(
-            "is-leaving"
-          );
-      },
-      160
-    );
-
-    setTimeout(
-      () => {
-        activity.row?.remove();
-      },
-      520
-    );
+    state.runtimeActivity =
+      null;
   }
 
   function compactRuntimeSubject(
@@ -2636,7 +2980,11 @@
     setRuntimeActivity(
       run?.status === "FAILED"
         ? "실행 결과 확인 중"
-        : "결과를 정리 중"
+        : "결과를 정리 중",
+      {
+        id:
+          "__finalize__"
+      }
     );
 
     let message = "";
@@ -2669,6 +3017,15 @@
           run
         );
     }
+
+    completeRuntimeStep(
+      "__finalize__",
+      {
+        failed:
+          run?.status ===
+            "FAILED"
+      }
+    );
 
     finishRuntimeActivity({
       failed:
@@ -3402,17 +3759,25 @@
           }
         );
 
+      const text =
+        runtimeActivityText(
+          event
+        );
+
       if (
         event.status ===
           "RUNNING"
       ) {
-        const text =
-          runtimeActivityText(
-            event
-          );
+        completeRuntimeStep(
+          "__prepare__"
+        );
 
         setRuntimeActivity(
-          text
+          text,
+          {
+            id:
+              event.nodeId
+          }
         );
 
         Presence.canvasStatus?.(
@@ -3444,22 +3809,36 @@
             artifact
           );
         }
+
+        completeRuntimeStep(
+          event.nodeId,
+          {
+            detail:
+              event.report ||
+              ""
+          }
+        );
       } else if (
         event.status ===
           "FAILED"
       ) {
-        const text =
+        const errorText =
           userFacingError(
             event.state?.error,
             "이 단계에서 문제가 생겼어."
           );
 
-        setRuntimeActivity(
-          text
+        completeRuntimeStep(
+          event.nodeId,
+          {
+            failed: true,
+            detail:
+              errorText
+          }
         );
 
         Presence.canvasStatus?.(
-          text,
+          errorText,
           {
             hold: 2600
           }
@@ -3471,7 +3850,17 @@
             scope:
               "노드 실행 오류",
             fallback:
-              text
+              errorText
+          }
+        );
+      } else if (
+        event.status ===
+          "SKIPPED"
+      ) {
+        completeRuntimeStep(
+          event.nodeId,
+          {
+            skipped: true
           }
         );
       }
@@ -3487,13 +3876,21 @@
           event.pivot
         );
 
+      completeRuntimeStep(
+        "__prepare__"
+      );
+
       const text =
         event.status === "FAILED"
           ? "실행 결과 확인 중"
           : "결과를 정리 중";
 
       setRuntimeActivity(
-        text
+        text,
+        {
+          id:
+            "__finalize__"
+        }
       );
 
       Presence.canvasStatus?.(
