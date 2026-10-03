@@ -4,6 +4,10 @@ import compression from 'compression';
 import path from 'path';
 import {fileURLToPath} from 'url';
 import {randomUUID} from 'crypto';
+import {
+  createGeminiExecution,
+  GeminiExecutionError
+} from './geminiExecution.js';
 
 const app = express();
 
@@ -71,12 +75,15 @@ app.use(
 
 const PORT = process.env.PORT || 3000;
 
+const geminiExecution =
+  createGeminiExecution();
+
 /*
  * Bump this for every deployed app update.
  * The frontend compares this server value with its locally stored version
  * before loading application assets.
  */
-const APP_VERSION = '2026.10.04.03';
+const APP_VERSION = '2026.10.04.04';
 
 /* =========================================================
    CANONICAL NODE DEFINITION
@@ -1906,6 +1913,106 @@ async function planWorkflow(
     )
   );
 }
+
+/* =========================================================
+   GEMINI GROUP EXECUTION API
+========================================================= */
+
+app.post(
+  '/api/execute-group',
+  async (req, res) => {
+    try {
+      const result =
+        await geminiExecution
+          .executeGroup({
+            nodes:
+              req.body?.nodes,
+            connections:
+              req.body?.connections
+          });
+
+      console.info(
+        '[Gemini execution]',
+        {
+          model:
+            result.model,
+          inputTokens:
+            result.usage
+              ?.inputTokens ??
+            null,
+          outputTokens:
+            result.usage
+              ?.outputTokens ??
+            null,
+          totalTokens:
+            result.usage
+              ?.totalTokens ??
+            null
+        }
+      );
+
+      return res.json({
+        ok: true,
+        model:
+          result.model,
+        usage:
+          result.usage,
+        results:
+          result.results
+      });
+    } catch (error) {
+      const known =
+        error instanceof
+          GeminiExecutionError;
+
+      const code =
+        known
+          ? error.code
+          : 'GEMINI_EXECUTION_ERROR';
+
+      const status =
+        code ===
+          'INVALID_EXECUTION_GROUP' ||
+        code ===
+          'UNSUPPORTED_GEMINI_NODE' ||
+        code ===
+          'GEMINI_GROUP_TOO_LARGE'
+          ? 400
+          : code ===
+              'GEMINI_API_KEY_MISSING'
+            ? 503
+            : error?.status === 429
+              ? 429
+              : 502;
+
+      console.warn(
+        '[Gemini execution failed]',
+        {
+          code,
+          status:
+            error?.status ??
+            null,
+          retryable:
+            error?.retryable ===
+            true
+        }
+      );
+
+      return res
+        .status(status)
+        .json({
+          ok: false,
+          code,
+          error:
+            error?.message ||
+            'Gemini execution failed.',
+          retryable:
+            error?.retryable ===
+            true
+        });
+    }
+  }
+);
 
 /* =========================================================
    WORKFLOW API
