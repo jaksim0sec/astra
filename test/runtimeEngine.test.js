@@ -164,7 +164,7 @@ test("workflow cycles are rejected before execution", () => {
   );
 });
 
-test("a parent failure rejects the run and records FAILED state", async () => {
+test("a parent failure skips its dependent target and returns a FAILED run", async () => {
   const log = [];
   const engine = new RuntimeEngine({
     executor: executor(log, {}, new Set(["parent"]))
@@ -174,13 +174,65 @@ test("a parent failure rejects the run and records FAILED state", async () => {
     [edge("parent-pivot", "parent", "pivot")]
   );
 
-  await assert.rejects(
-    engine.run(graph, "pivot", { mode: "target" }),
-    /failed:parent/
+  const result =
+    await engine.run(
+      graph,
+      "pivot",
+      { mode: "target" }
+    );
+
+  assert.equal(result.status, "FAILED");
+  assert.equal(result.nodes.parent.status, "FAILED");
+  assert.equal(result.nodes.pivot.status, "SKIPPED");
+  assert.equal(
+    result.nodes.pivot.skipReason,
+    "dependency_failed"
+  );
+  assert.deepEqual(
+    result.nodes.pivot.blockedBy,
+    ["parent"]
+  );
+  assert.equal(log.includes("pivot"), false);
+});
+
+test("spread continues independent branches after a node failure", async () => {
+  const log = [];
+  const engine = new RuntimeEngine({
+    executor: executor(log, {}, new Set(["bad"]))
+  });
+  const graph = workflow(
+    [
+      node("root"),
+      node("bad"),
+      node("blocked"),
+      node("good"),
+      node("tail")
+    ],
+    [
+      edge("root-bad", "root", "bad"),
+      edge("bad-blocked", "bad", "blocked"),
+      edge("root-good", "root", "good"),
+      edge("good-tail", "good", "tail")
+    ]
   );
 
-  assert.equal(engine.getLastRun().status, "FAILED");
-  assert.equal(engine.getLastRun().nodes.parent.status, "FAILED");
+  const result =
+    await engine.run(
+      graph,
+      "root",
+      { mode: "spread" }
+    );
+
+  assert.equal(result.status, "FAILED");
+  assert.equal(result.nodes.bad.status, "FAILED");
+  assert.equal(result.nodes.blocked.status, "SKIPPED");
+  assert.equal(
+    result.nodes.blocked.skipReason,
+    "dependency_failed"
+  );
+  assert.equal(result.nodes.good.status, "SUCCESS");
+  assert.equal(result.nodes.tail.status, "SUCCESS");
+  assert.equal(log.includes("blocked"), false);
 });
 
 test("dependency edges emit balanced active and inactive events", async () => {
