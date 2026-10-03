@@ -244,6 +244,75 @@
       .slice(0, 1000);
   }
 
+  function compactArtifactValue(
+    value,
+    depth = 0
+  ) {
+    if (value == null) {
+      return value;
+    }
+
+    if (
+      typeof value ===
+        "string"
+    ) {
+      return clipPayloadText(
+        value,
+        depth <= 1
+          ? 80000
+          : 30000
+      );
+    }
+
+    if (
+      typeof value ===
+        "number" ||
+      typeof value ===
+        "boolean"
+    ) {
+      return value;
+    }
+
+    if (depth >= 6) {
+      return "[nested]";
+    }
+
+    if (Array.isArray(value)) {
+      return value
+        .slice(0, 80)
+        .map(
+          item =>
+            compactArtifactValue(
+              item,
+              depth + 1
+            )
+        );
+    }
+
+    if (
+      typeof value ===
+        "object"
+    ) {
+      return Object.fromEntries(
+        Object.entries(value)
+          .slice(0, 80)
+          .map(
+            ([key, item]) => [
+              String(key)
+                .slice(0, 160),
+              compactArtifactValue(
+                item,
+                depth + 1
+              )
+            ]
+          )
+      );
+    }
+
+    return String(value)
+      .slice(0, 4000);
+  }
+
   function compactMemoryPayload(
     memory
   ) {
@@ -585,6 +654,25 @@
        * 제외한다.
        */
     }
+    if (
+      typeof result.request ===
+        "string" &&
+      result.request.trim()
+    ) {
+      for (
+        const param
+        of definition.params || []
+      ) {
+        if (
+          param?.legacy === true
+        ) {
+          delete result[
+            String(param.id)
+          ];
+        }
+      }
+    }
+
     return result;
   }
   /* =======================================================
@@ -760,7 +848,10 @@
             connections
               .slice(0, 24)
               .map(
-                compactPayloadValue
+                item =>
+                  compactPayloadValue(
+                    item
+                  )
               ),
           context: {
             userRequest:
@@ -795,11 +886,20 @@
             filename:
               input?.filename,
             sources:
-              Array.isArray(
-                input?.sources
+              (
+                Array.isArray(
+                  input?.sources
+                )
+                  ? input.sources
+                  : []
               )
-                ? input.sources
-                : []
+                .slice(0, 32)
+                .map(
+                  item =>
+                    compactArtifactValue(
+                      item
+                    )
+                )
           },
           signal:
             options.signal
