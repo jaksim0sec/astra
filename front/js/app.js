@@ -77,6 +77,9 @@
 
   const listeners = [];
 
+  let conversationSwitchQueue =
+    Promise.resolve();
+
 
   /* =======================================================
      Utilities
@@ -1875,80 +1878,12 @@
 
   function runtimeActivityMarkup() {
     return `
-      <button
-        type="button"
-        class="astra-runtime-activity-summary"
-        aria-expanded="true"
-      >
-        <span class="astra-runtime-activity-spark" aria-hidden="true">
-          <span></span>
-        </span>
-        <span class="astra-runtime-activity-title">실행 과정</span>
-        <span class="astra-runtime-activity-meta">준비 중</span>
-        <svg class="astra-runtime-activity-chevron" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-          <path d="M6.5 8 10 11.5 13.5 8" stroke="currentColor" stroke-width="1.55" stroke-linecap="round" stroke-linejoin="round"/>
-        </svg>
-      </button>
-      <div class="astra-runtime-activity-steps"></div>
-    `;
-  }
-
-  function runtimeStepPresentation(
-    id
-  ) {
-    const key =
-      String(id || "");
-
-    if (
-      key === "__prepare__" ||
-      key === "__finalize__"
-    ) {
-      return {
-        type: "system",
-        icon: "",
-        color: ""
-      };
-    }
-
-    const node =
-      state.canvas?.getNode?.(
-        key
-      );
-
-    const type =
-      String(
-        node?.type ||
-        ""
-      );
-
-    const definition =
-      state.nodeDefinitions?.[
-        type
-      ];
-
-    return {
-      type:
-        type || "node",
-      icon:
-        typeof definition?.icon ===
-          "string" &&
-        definition.icon.trim()
-          ? definition.icon
-          : "",
-      color:
-        String(
-          definition?.color ||
-          ""
-        )
-    };
-  }
-
-  function runtimeStepMarkup() {
-    return `
-      <span class="astra-runtime-step-icon" aria-hidden="true"></span>
-      <span class="astra-runtime-step-content">
-        <span class="astra-runtime-step-label"></span>
-        <span class="astra-runtime-step-detail"></span>
+      <span class="astra-runtime-activity-mark" aria-hidden="true">
+        <span></span>
+      </span>
+      <span class="astra-runtime-activity-label"></span>
+      <span class="astra-runtime-activity-dots" aria-hidden="true">
+        <span></span><span></span><span></span>
       </span>
     `;
   }
@@ -1956,11 +1891,9 @@
   function beginRuntimeActivity(
     text = "실행 준비 중"
   ) {
-    if (state.runtimeActivity) {
-      finishRuntimeActivity(
-        { removeImmediately: true }
-      );
-    }
+    finishRuntimeActivity({
+      removeImmediately: true
+    });
 
     const row =
       document.createElement(
@@ -1985,273 +1918,25 @@
     row.appendChild(body);
     chatMessages.appendChild(row);
 
-    const summary =
-      body.querySelector(
-        ".astra-runtime-activity-summary"
-      );
-
-    const activity = {
+    state.runtimeActivity = {
       row,
-      summary,
-      meta:
+      label:
         body.querySelector(
-          ".astra-runtime-activity-meta"
+          ".astra-runtime-activity-label"
         ),
-      stepsRoot:
-        body.querySelector(
-          ".astra-runtime-activity-steps"
-        ),
-      steps:
-        new Map(),
-      order: [],
-      text: "",
-      finished: false,
-      userToggled: false
+      timer: null,
+      text: ""
     };
 
-    state.runtimeActivity =
-      activity;
-
-    summary?.addEventListener(
-      "click",
-      () => {
-        activity.userToggled =
-          true;
-
-        const collapsed =
-          row.classList.toggle(
-            "is-collapsed"
-          );
-
-        summary.setAttribute(
-          "aria-expanded",
-          String(!collapsed)
-        );
-      }
-    );
-
-    upsertRuntimeStep(
-      "__prepare__",
+    setRuntimeActivity(
       text,
-      "running"
+      {
+        immediate: true
+      }
     );
 
     scrollChatToBottom();
     return row;
-  }
-
-  function normalizeCompletedStepText(
-    text
-  ) {
-    return String(text || "")
-      .replace(
-        /\s+(중|확인 중|판단 중|준비 중)$/,
-        match =>
-          match.includes("확인")
-            ? " 확인"
-            : match.includes("판단")
-              ? " 판단"
-              : match.includes("준비")
-                ? " 준비"
-                : ""
-      )
-      .trim();
-  }
-
-  function runtimeActivityCount(
-    activity
-  ) {
-    return activity.order
-      .filter(
-        id =>
-          id !== "__prepare__" &&
-          id !== "__finalize__"
-      )
-      .length;
-  }
-
-  function syncRuntimeActivityMeta() {
-    const activity =
-      state.runtimeActivity;
-
-    if (!activity) return;
-
-    const count =
-      runtimeActivityCount(
-        activity
-      );
-
-    const failed =
-      activity.order.some(
-        id =>
-          activity.steps
-            .get(id)
-            ?.dataset
-            ?.status ===
-            "failed"
-      );
-
-    if (activity.finished) {
-      activity.meta.textContent =
-        failed
-          ? `${count}단계 · 일부 실패`
-          : `${count}단계 완료`;
-      return;
-    }
-
-    const running =
-      activity.order.filter(
-        id =>
-          activity.steps
-            .get(id)
-            ?.dataset
-            ?.status ===
-            "running"
-      ).length;
-
-    activity.meta.textContent =
-      running
-        ? "진행 중"
-        : count
-          ? `${count}단계`
-          : "준비 중";
-  }
-
-  function upsertRuntimeStep(
-    id,
-    text,
-    status = "running",
-    detail = ""
-  ) {
-    const activity =
-      state.runtimeActivity ||
-      (
-        beginRuntimeActivity(),
-        state.runtimeActivity
-      );
-
-    if (!activity) return null;
-
-    const key =
-      String(id || "");
-
-    if (!key) return null;
-
-    let step =
-      activity.steps.get(
-        key
-      );
-
-    if (!step) {
-      step =
-        document.createElement(
-          "div"
-        );
-
-      step.className =
-        "astra-runtime-step";
-      step.innerHTML =
-        runtimeStepMarkup();
-      step.dataset.stepId =
-        key;
-
-      const presentation =
-        runtimeStepPresentation(
-          key
-        );
-
-      step.dataset.nodeType =
-        presentation.type;
-
-      const icon =
-        step.querySelector(
-          ".astra-runtime-step-icon"
-        );
-
-      if (icon) {
-        icon.innerHTML =
-          presentation.icon;
-
-        icon.hidden =
-          !presentation.icon;
-      }
-
-      if (
-        presentation.color
-      ) {
-        step.style.setProperty(
-          "--runtime-node-color",
-          presentation.color
-        );
-      }
-
-      activity.steps.set(
-        key,
-        step
-      );
-      activity.order.push(
-        key
-      );
-      activity.stepsRoot
-        ?.appendChild(
-          step
-        );
-
-      requestAnimationFrame(
-        () =>
-          step.classList.add(
-            "is-visible"
-          )
-      );
-    }
-
-    const label =
-      step.querySelector(
-        ".astra-runtime-step-label"
-      );
-
-    const detailElement =
-      step.querySelector(
-        ".astra-runtime-step-detail"
-      );
-
-    const nextText =
-      status === "done"
-        ? normalizeCompletedStepText(
-            text
-          )
-        : String(text || "").trim();
-
-    if (label && nextText) {
-      label.textContent =
-        nextText;
-    }
-
-    const detailText =
-      String(detail || "")
-        .replace(
-          /\s+/g,
-          " "
-        )
-        .trim()
-        .slice(
-          0,
-          180
-        );
-
-    if (detailElement) {
-      detailElement.textContent =
-        detailText;
-      detailElement.hidden =
-        !detailText;
-    }
-
-    step.dataset.status =
-      status;
-
-    syncRuntimeActivityMeta();
-    scrollChatToBottom();
-    return step;
   }
 
   function setRuntimeActivity(
@@ -2259,62 +1944,81 @@
     options = {}
   ) {
     const value =
-      String(text || "").trim();
+      String(text || "")
+        .replace(/\s+/g, " ")
+        .trim();
 
     if (!value) return;
 
-    const id =
-      String(
-        options.id ||
-        "__status__"
-      );
-
-    upsertRuntimeStep(
-      id,
-      value,
-      options.status ||
-        "running",
-      options.detail ||
-        ""
-    );
-  }
-
-  function completeRuntimeStep(
-    id,
-    options = {}
-  ) {
     const activity =
-      state.runtimeActivity;
-
-    if (!activity) return;
-
-    const key =
-      String(id || "");
-    const step =
-      activity.steps.get(
-        key
+      state.runtimeActivity ||
+      (
+        beginRuntimeActivity(
+          value
+        ),
+        state.runtimeActivity
       );
 
-    if (!step) return;
+    if (
+      !activity ||
+      activity.text === value
+    ) {
+      return;
+    }
 
-    const label =
-      step.querySelector(
-        ".astra-runtime-step-label"
-      );
-
-    upsertRuntimeStep(
-      key,
-      options.text ||
-        label?.textContent ||
-        "",
-      options.failed
-        ? "failed"
-        : options.skipped
-          ? "skipped"
-          : "done",
-      options.detail ||
-        ""
+    clearTimeout(
+      activity.timer
     );
+
+    const apply = () => {
+      activity.text = value;
+
+      if (activity.label) {
+        activity.label.textContent =
+          value;
+      }
+
+      activity.row
+        ?.classList
+        .remove(
+          "is-changing"
+        );
+
+      activity.row
+        ?.classList
+        .add(
+          "is-entering"
+        );
+
+      requestAnimationFrame(
+        () => {
+          activity.row
+            ?.classList
+            .remove(
+              "is-entering"
+            );
+        }
+      );
+
+      scrollChatToBottom();
+    };
+
+    if (options.immediate) {
+      apply();
+      return;
+    }
+
+    activity.row
+      ?.classList
+      .add(
+        "is-changing"
+      );
+
+    activity.timer =
+      setTimeout(
+        apply,
+        105
+      );
   }
 
   function finishRuntimeActivity(
@@ -2325,41 +2029,17 @@
 
     if (!activity) return;
 
+    clearTimeout(
+      activity.timer
+    );
+
+    state.runtimeActivity = null;
+
     if (
       options.removeImmediately
     ) {
       activity.row?.remove();
-      state.runtimeActivity =
-        null;
       return;
-    }
-
-    activity.finished =
-      true;
-
-    for (
-      const id of
-      activity.order
-    ) {
-      const step =
-        activity.steps.get(
-          id
-        );
-
-      if (
-        step?.dataset
-          ?.status ===
-          "running"
-      ) {
-        completeRuntimeStep(
-          id,
-          {
-            failed:
-              options.failed === true &&
-              id === "__finalize__"
-          }
-        );
-      }
     }
 
     activity.row
@@ -2368,51 +2048,30 @@
         "is-complete"
       );
 
-    syncRuntimeActivityMeta();
-
-    const shouldCollapse =
-      runtimeActivityCount(
-        activity
-      ) > 4;
-
-    if (
-      !activity.userToggled &&
-      shouldCollapse
-    ) {
-      setTimeout(
-        () => {
-          activity.row
-            ?.classList
-            .add(
-              "is-collapsed"
-            );
-
-          activity.summary
-            ?.setAttribute(
-              "aria-expanded",
-              "false"
-            );
-        },
-        520
-      );
-    } else if (
-      !activity.userToggled
-    ) {
-      activity.row
-        ?.classList
-        .remove(
-          "is-collapsed"
-        );
-
-      activity.summary
-        ?.setAttribute(
-          "aria-expanded",
-          "true"
-        );
+    if (activity.label) {
+      activity.label.textContent =
+        options.failed
+          ? "실행 종료"
+          : "완료";
     }
 
-    state.runtimeActivity =
-      null;
+    setTimeout(
+      () => {
+        activity.row
+          ?.classList
+          .add(
+            "is-leaving"
+          );
+      },
+      160
+    );
+
+    setTimeout(
+      () => {
+        activity.row?.remove();
+      },
+      520
+    );
   }
 
   function compactRuntimeSubject(
@@ -2431,6 +2090,23 @@
     }
 
     return text.slice(0, 33) + "…";
+  }
+
+  function presenceSpeechText(
+    value,
+    max = 74
+  ) {
+    const text =
+      String(value || "")
+        .replace(/[`*_#>~\[\]]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
+
+    if (!text) return "";
+
+    return text.length > max
+      ? text.slice(0, max - 1) + "…"
+      : text;
   }
 
   function runtimeActivityText(
@@ -2749,15 +2425,6 @@
         );
     }
 
-    completeRuntimeStep(
-      "__finalize__",
-      {
-        failed:
-          run?.status ===
-            "FAILED"
-      }
-    );
-
     finishRuntimeActivity({
       failed:
         run?.status ===
@@ -2779,6 +2446,10 @@
           artifacts:
             collectRunArtifacts(
               run
+            ),
+          presenceSpeech:
+            presenceSpeechText(
+              message
             )
         }
       );
@@ -3178,7 +2849,12 @@
                 result.question,
               showCanvasView:
                 result.mode ===
-                "workflow"
+                "workflow",
+              presenceSpeech:
+                presenceSpeechText(
+                  result.question ||
+                  result.message
+                )
             }
           );
 
@@ -3301,12 +2977,16 @@
   }
 
   function handleRuntimeEvent(event) {
-    if (!event || typeof event !== "object") {
+    if (
+      !event ||
+      typeof event !== "object"
+    ) {
       return;
     }
 
     if (event.type === "run:start") {
       clearRuntimeConnections();
+
       state.canvas
         ?.clearRuntimeNodeStates?.();
 
@@ -3314,9 +2994,11 @@
         "실행 준비 중"
       );
 
-      console.info(
-        "[ovll runtime] start",
-        event
+      Presence.canvasStatus?.(
+        "실행 준비 중",
+        {
+          hold: 1400
+        }
       );
 
       return;
@@ -3328,9 +3010,7 @@
           event.edgeId || ""
         );
 
-      if (!edgeId) {
-        return;
-      }
+      if (!edgeId) return;
 
       if (event.active) {
         state.runtimeConnections.add(
@@ -3362,17 +3042,19 @@
         event.status ===
           "RUNNING"
       ) {
-        completeRuntimeStep(
-          "__prepare__"
-        );
-
-        setRuntimeActivity(
+        const text =
           runtimeActivityText(
             event
-          ),
+          );
+
+        setRuntimeActivity(
+          text
+        );
+
+        Presence.canvasStatus?.(
+          text,
           {
-            id:
-              event.nodeId
+            hold: 0
           }
         );
       } else if (
@@ -3398,74 +3080,53 @@
             artifact
           );
         }
-
-        completeRuntimeStep(
-          event.nodeId,
-          {
-            detail:
-              event.report ||
-              ""
-          }
-        );
       } else if (
         event.status ===
           "FAILED"
       ) {
-        completeRuntimeStep(
-          event.nodeId,
-          {
-            failed: true,
-            detail:
-              userFacingError(
-                event.state?.error,
-                "이 단계에서 문제가 생겼어."
-              )
-          }
+        const text =
+          userFacingError(
+            event.state?.error,
+            "이 단계에서 문제가 생겼어."
+          );
+
+        setRuntimeActivity(
+          text
         );
-      } else if (
-        event.status ===
-          "SKIPPED"
-      ) {
-        completeRuntimeStep(
-          event.nodeId,
+
+        Presence.canvasStatus?.(
+          text,
           {
-            skipped: true
+            hold: 2600
           }
         );
       }
-
-      console.info(
-        "[ovll runtime] node",
-        event
-      );
 
       return;
     }
 
     if (event.type === "run:finish") {
       clearRuntimeConnections();
+
       state.canvas
         ?.selectNode?.(
           event.pivot
         );
 
-      completeRuntimeStep(
-        "__prepare__"
-      );
-
-      setRuntimeActivity(
+      const text =
         event.status === "FAILED"
           ? "실행 결과 확인 중"
-          : "결과를 정리 중",
-        {
-          id:
-            "__finalize__"
-        }
+          : "결과를 정리 중";
+
+      setRuntimeActivity(
+        text
       );
 
-      console.info(
-        "[ovll runtime] finish",
-        event
+      Presence.canvasStatus?.(
+        text,
+        {
+          hold: 0
+        }
       );
     }
   }
@@ -3517,11 +3178,29 @@
 
       Presence.settle();
 
-      addAssistantMessage(
+      const message =
         userFacingError(
           error,
           "실행 중 문제가 생겼어. 다시 시도해줘."
-        )
+        );
+
+      Presence.canvasStatus?.(
+        presenceSpeechText(
+          message
+        ),
+        {
+          hold: 3000
+        }
+      );
+
+      addAssistantMessage(
+        message,
+        {
+          presenceSpeech:
+            presenceSpeechText(
+              message
+            )
+        }
       );
 
       return null;
@@ -3544,215 +3223,252 @@
     );
   }
 
-  async function openConversation(
+  function openConversation(
     conversationId,
     options = {}
   ) {
-    if (
-      state.destroyed ||
-      state.busy
-    ) {
-      return null;
-    }
-
     const id =
       String(
         conversationId ||
         ""
       );
 
-    const conversation =
-      WorkspaceStore
-        .getConversation?.(
-          id
-        );
-
-    if (!conversation) {
-      return null;
+    if (!id) {
+      return Promise.resolve(
+        null
+      );
     }
 
-    const previousId =
-      currentConversationId();
+    const restore =
+      async () => {
+        if (
+          state.destroyed ||
+          state.busy
+        ) {
+          return null;
+        }
 
-    if (
-      previousId &&
-      previousId !== id &&
-      options.skipSave !== true
-    ) {
-      await saveActiveConversation();
-    }
+        const conversation =
+          WorkspaceStore
+            .getConversation?.(
+              id
+            );
 
-    if (
-      WorkspaceStore
-        .getActiveConversation?.()
-        ?.id !== id
-    ) {
-      WorkspaceStore
-        .activateConversation(
-          id
-        );
-    }
+        if (!conversation) {
+          return null;
+        }
 
-    state.restoringConversation =
-      true;
+        const previousId =
+          currentConversationId();
 
-    try {
-      clearRuntimeConnections();
-
-      finishRuntimeActivity({
-        removeImmediately:
-          true
-      });
-
-      state.canvas
-        ?.clearRuntimeNodeStates?.();
-
-      chatMessages.replaceChildren();
-
-      state.messages = [];
-      state.messageCount = 0;
-      state.activeConversationId =
-        id;
-      state.lastUserRequest =
-        String(
-          conversation
-            .state
-            ?.lastUserRequest ||
-          ""
-        );
-
-      const memory =
-        WorkspaceStore
-          .getConversationMemory(
-            id
+        if (
+          state.workspaceSaveTimer
+        ) {
+          clearTimeout(
+            state.workspaceSaveTimer
           );
+          state.workspaceSaveTimer =
+            null;
+        }
 
-      state.conversationMemory =
-        normalizeMemory(
-          memory
-        ) || {
-          flow: "",
-          recent: "",
-          detail: ""
-        };
+        if (
+          previousId &&
+          previousId !== id &&
+          options.skipSave !== true
+        ) {
+          await saveActiveConversation();
+        }
 
-      memoryStore.value =
-        clone(
-          state.conversationMemory
-        );
+        if (
+          WorkspaceStore
+            .getActiveConversation?.()
+            ?.id !== id
+        ) {
+          WorkspaceStore
+            .activateConversation(
+              id
+            );
+        }
 
-      const canvasState =
-        conversation
-          .state
-          ?.canvas;
+        state.restoringConversation =
+          true;
 
-      if (
-        canvasState &&
-        state.canvas
-          ?.setState
-      ) {
-        state.canvas.setState(
-          clone(
-            canvasState
-          )
-        );
-      } else {
-        state.canvas
-          ?.setState?.({
-            workflow: {
-              nodes: [],
-              connections: []
-            },
-            viewport: {
-              scale: 1,
-              offset: {
-                x: 0,
-                y: 0
-              }
-            }
-          });
-      }
+        try {
+          clearRuntimeConnections();
 
-      const messages =
-        Array.isArray(
-          conversation
-            .state
-            ?.messages
-        )
-          ? conversation
-              .state
-              .messages
-          : [];
-
-      for (
-        const item
-        of messages
-      ) {
-        createMessage(
-          item.role,
-          item.text,
-          {
-            id:
-              item.id,
-            question:
-              item.question,
-            showCanvasView:
-              item.showCanvasView,
-            artifacts:
-              item.artifacts,
-            createdAt:
-              item.createdAt,
-            persist:
-              false,
-            silent:
+          finishRuntimeActivity({
+            removeImmediately:
               true
-          }
-        );
+          });
 
-        state.messages.push(
-          clone(item)
-        );
-      }
+          Presence.hideCanvasSpeech?.();
 
-      Presence
-        .resetConversation?.({
-          started:
-            messages.length > 0
-        });
-
-      UI.setMode?.(
-        conversation
-          .state
-          ?.mode ||
-        "chat",
-        {
-          immediate: true
-        }
-      );
-
-      state.workflow =
-        getCurrentWorkflow();
-
-      requestAnimationFrame(
-        () => {
           state.canvas
-            ?.render?.();
-          scrollChatToBottom(
-            true
+            ?.clearRuntimeNodeStates?.();
+
+          chatMessages
+            .replaceChildren();
+
+          state.messages = [];
+          state.messageCount = 0;
+          state.activeConversationId =
+            id;
+          state.lastUserRequest =
+            String(
+              conversation
+                .state
+                ?.lastUserRequest ||
+              ""
+            );
+
+          const memory =
+            WorkspaceStore
+              .getConversationMemory(
+                id
+              );
+
+          state.conversationMemory =
+            normalizeMemory(
+              memory
+            ) || {
+              flow: "",
+              recent: "",
+              detail: ""
+            };
+
+          memoryStore.value =
+            clone(
+              state.conversationMemory
+            );
+
+          const canvasState =
+            conversation
+              .state
+              ?.canvas;
+
+          if (
+            canvasState &&
+            state.canvas
+              ?.setState
+          ) {
+            state.canvas.setState(
+              clone(
+                canvasState
+              )
+            );
+          } else {
+            state.canvas
+              ?.setState?.({
+                workflow: {
+                  nodes: [],
+                  connections: []
+                },
+                viewport: {
+                  scale: 1,
+                  offset: {
+                    x: 0,
+                    y: 0
+                  }
+                }
+              });
+          }
+
+          const messages =
+            Array.isArray(
+              conversation
+                .state
+                ?.messages
+            )
+              ? conversation
+                  .state
+                  .messages
+              : [];
+
+          for (
+            const item
+            of messages
+          ) {
+            createMessage(
+              item.role,
+              item.text,
+              {
+                id:
+                  item.id,
+                question:
+                  item.question,
+                showCanvasView:
+                  item.showCanvasView,
+                artifacts:
+                  item.artifacts,
+                createdAt:
+                  item.createdAt,
+                persist:
+                  false,
+                silent:
+                  true
+              }
+            );
+
+            state.messages.push(
+              clone(item)
+            );
+          }
+
+          Presence
+            .resetConversation?.({
+              started:
+                messages.length > 0
+            });
+
+          UI.setMode?.(
+            conversation
+              .state
+              ?.mode ||
+            "chat",
+            {
+              immediate: true
+            }
           );
+
+          state.workflow =
+            getCurrentWorkflow();
+
+          requestAnimationFrame(
+            () => {
+              state.canvas
+                ?.render?.();
+
+              scrollChatToBottom(
+                true
+              );
+            }
+          );
+        } finally {
+          state.restoringConversation =
+            false;
         }
+
+        global.OvllShellMenu
+          ?.refresh?.();
+
+        return clone(
+          conversation
+        );
+      };
+
+    const queued =
+      conversationSwitchQueue
+        .then(
+          restore,
+          restore
+        );
+
+    conversationSwitchQueue =
+      queued.catch(
+        () => null
       );
-    } finally {
-      state.restoringConversation =
-        false;
-    }
 
-    global.OvllShellMenu
-      ?.refresh?.();
-
-    return clone(
-      conversation
-    );
+    return queued;
   }
 
   function refreshConversationContext() {
