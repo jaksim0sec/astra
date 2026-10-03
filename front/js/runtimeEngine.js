@@ -645,106 +645,112 @@
                 );
               }
 
-              await Promise.all(
+              const releaseParentEdges =
                 parentEdges.map(
-                  async connection => {
-                    const release =
-                      acquireEdge(connection);
-
-                    try {
-                      await resolveNode(
-                        connection.from.node
-                      );
-                    } finally {
-                      release();
-                    }
-                  }
-                )
-              );
-
-              const flowIncoming =
-                parentEdges.filter(
                   connection =>
-                    connectionKind(connection) ===
-                    "flow"
+                    acquireEdge(connection)
                 );
-
-              if (
-                flowIncoming.length &&
-                !flowIncoming.some(
-                  edgeIsActive
-                )
-              ) {
-                setState(
-                  nodeId,
-                  "SKIPPED",
-                  {
-                    finishedAt:
-                      Date.now()
-                  }
-                );
-
-                return null;
-              }
-
-              const inputs =
-                collectInputs(nodeId);
-
-              setState(
-                nodeId,
-                "RUNNING",
-                {
-                  inputs: clone(inputs),
-                  startedAt: Date.now()
-                }
-              );
 
               try {
-                const result =
-                  await this.executor.run(
-                    clone(node),
-                    clone(inputs),
+                await Promise.all(
+                  parentEdges.map(
+                    connection =>
+                      resolveNode(
+                        connection.from.node
+                      )
+                  )
+                );
+
+                const flowIncoming =
+                  parentEdges.filter(
+                    connection =>
+                      connectionKind(connection) ===
+                      "flow"
+                  );
+
+                if (
+                  flowIncoming.length &&
+                  !flowIncoming.some(
+                    edgeIsActive
+                  )
+                ) {
+                  setState(
+                    nodeId,
+                    "SKIPPED",
                     {
-                      runId,
-                      nodeId,
-                      pivot,
-                      mode
+                      finishedAt:
+                        Date.now()
                     }
                   );
 
-                setState(
-                  nodeId,
-                  "SUCCESS",
-                  {
-                    result:
-                      clone(result),
-                    finishedAt:
-                      Date.now(),
-                    report:
-                      result?.report ||
-                      null
-                  }
-                );
+                  return null;
+                }
 
-                return result;
-              } catch (error) {
-                const failure = {
-                  message:
-                    error?.message ||
-                    String(error)
-                };
+                const inputs =
+                  collectInputs(nodeId);
 
                 setState(
                   nodeId,
-                  "FAILED",
+                  "RUNNING",
                   {
-                    error: failure,
-                    finishedAt:
-                      Date.now()
+                    inputs: clone(inputs),
+                    startedAt: Date.now()
                   }
                 );
 
-                throw error;
+                try {
+                  const result =
+                    await this.executor.run(
+                      clone(node),
+                      clone(inputs),
+                      {
+                        runId,
+                        nodeId,
+                        pivot,
+                        mode
+                      }
+                    );
+
+                  setState(
+                    nodeId,
+                    "SUCCESS",
+                    {
+                      result:
+                        clone(result),
+                      finishedAt:
+                        Date.now(),
+                      report:
+                        result?.report ||
+                        null
+                    }
+                  );
+
+                  return result;
+                } catch (error) {
+                  const failure = {
+                    message:
+                      error?.message ||
+                      String(error)
+                  };
+
+                  setState(
+                    nodeId,
+                    "FAILED",
+                    {
+                      error: failure,
+                      finishedAt:
+                        Date.now()
+                    }
+                  );
+
+                  throw error;
+                }
+              } finally {
+                releaseParentEdges
+                  .forEach(
+                    release =>
+                      release()
+                  );
               }
             })();
 
