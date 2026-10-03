@@ -1851,12 +1851,7 @@ listen(
         ".ovll-sidebar-chat-item"
       );
 
-    if(
-      !item ||
-      event.target.closest(
-        ".ovll-sidebar-chat-more"
-      )
-    ){
+    if(!item){
       return;
     }
 
