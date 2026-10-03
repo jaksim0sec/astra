@@ -1446,58 +1446,86 @@ function handleClick(event){
   }
 }
 
-function beginGesture(event){
+function clearGestureVisuals(){
+  root.classList.remove(
+    "is-dragging"
+  );
+
+  root.style.removeProperty(
+    "--sidebar-drag-x"
+  );
+
+  root.style.removeProperty(
+    "--sidebar-drag-progress"
+  );
+}
+
+function beginGesturePoint(
+  x,
+  y,
+  id,
+  source,
+  target
+){
   if(
     !state.open ||
-    state.destroyed ||
-    event.button!==undefined &&
-    event.button!==0
+    state.destroyed
   ){
-    return;
+    return false;
   }
 
   if(
-    event.target.closest(
+    target?.closest?.(
       "input,textarea"
     )
   ){
-    return;
+    return false;
   }
 
-  state.gesture.active=true;
-  state.gesture.horizontal=false;
-  state.gesture.pointerId=
-    event.pointerId;
-  state.gesture.startX=
-    event.clientX;
-  state.gesture.startY=
-    event.clientY;
-  state.gesture.lastX=
-    event.clientX;
-  state.gesture.lastTime=
-    performance.now();
-  state.gesture.velocityX=0;
-  state.gesture.dragX=0;
-}
-
-function moveGesture(event){
   const gesture=
     state.gesture;
 
-  if(
-    !gesture.active ||
-    gesture.pointerId!==
-      event.pointerId
-  ){
+  gesture.active=true;
+  gesture.horizontal=false;
+  gesture.pointerId=
+    source==="pointer"
+      ?id
+      :null;
+  gesture.touchId=
+    source==="touch"
+      ?id
+      :null;
+  gesture.source=source;
+  gesture.startX=x;
+  gesture.startY=y;
+  gesture.lastX=x;
+  gesture.lastTime=
+    performance.now();
+  gesture.velocityX=0;
+  gesture.dragX=0;
+
+  return true;
+}
+
+function updateGesturePoint(
+  x,
+  y,
+  preventDefault,
+  capture
+){
+  const gesture=
+    state.gesture;
+
+  if(!gesture.active){
     return;
   }
 
   const dx=
-    event.clientX-
+    x-
     gesture.startX;
 
   const dy=
-    event.clientY-
+    y-
     gesture.startY;
 
   if(
@@ -1507,33 +1535,35 @@ function moveGesture(event){
       Math.max(
         Math.abs(dx),
         Math.abs(dy)
-      )<7
+      )<6
     ){
       return;
     }
 
     if(
       Math.abs(dy)>
-      Math.abs(dx) ||
+        Math.abs(dx)*.92 ||
       dx>=0
     ){
       gesture.active=false;
+      gesture.pointerId=null;
+      gesture.touchId=null;
+      gesture.source=null;
       return;
     }
 
     gesture.horizontal=true;
+
     root.classList.add(
       "is-dragging"
     );
 
     try{
-      panel.setPointerCapture(
-        event.pointerId
-      );
+      capture?.();
     }catch{}
   }
 
-  event.preventDefault();
+  preventDefault?.();
 
   const width=
     Math.max(
@@ -1585,36 +1615,36 @@ function moveGesture(event){
 
   const velocity=
     (
-      event.clientX-
+      x-
       gesture.lastX
     )/
     dt;
 
   gesture.velocityX=
-    gesture.velocityX*.7+
-    velocity*.3;
+    gesture.velocityX*.68+
+    velocity*.32;
 
-  gesture.lastX=
-    event.clientX;
-  gesture.lastTime=
-    current;
+  gesture.lastX=x;
+  gesture.lastTime=current;
 }
 
-function endGesture(event){
+function finishGestureState(
+  release
+){
   const gesture=
     state.gesture;
 
-  if(
-    !gesture.active &&
-    !gesture.horizontal
-  ){
-    return;
-  }
+  const wasHorizontal=
+    gesture.horizontal;
 
   if(
-    gesture.pointerId!==
-      event.pointerId
+    !gesture.active &&
+    !wasHorizontal
   ){
+    gesture.pointerId=null;
+    gesture.touchId=null;
+    gesture.source=null;
+    clearGestureVisuals();
     return;
   }
 
@@ -1626,37 +1656,27 @@ function endGesture(event){
         .width
     );
 
-  const wasHorizontal=
-    gesture.horizontal;
-
   const shouldClose=
-    Math.abs(
-      gesture.dragX
-    )>
-      width*.28 ||
-    gesture.velocityX<
-      -.48;
+    wasHorizontal &&
+    (
+      Math.abs(
+        gesture.dragX
+      )>
+        width*.22 ||
+      gesture.velocityX<
+        -.34
+    );
 
   gesture.active=false;
   gesture.horizontal=false;
   gesture.pointerId=null;
+  gesture.touchId=null;
+  gesture.source=null;
 
-  root.classList.remove(
-    "is-dragging"
-  );
-
-  root.style.removeProperty(
-    "--sidebar-drag-x"
-  );
-
-  root.style.removeProperty(
-    "--sidebar-drag-progress"
-  );
+  clearGestureVisuals();
 
   try{
-    panel.releasePointerCapture(
-      event.pointerId
-    );
+    release?.();
   }catch{}
 
   if(wasHorizontal){
@@ -1666,13 +1686,157 @@ function endGesture(event){
       ()=>{
         state.suppressClick=false;
       },
-      320
+      360
     );
   }
 
   if(shouldClose){
     close();
   }
+}
+
+function beginGesture(event){
+  if(
+    event.pointerType==="touch" ||
+    (
+      event.button!==undefined &&
+      event.button!==0
+    )
+  ){
+    return;
+  }
+
+  beginGesturePoint(
+    event.clientX,
+    event.clientY,
+    event.pointerId,
+    "pointer",
+    event.target
+  );
+}
+
+function moveGesture(event){
+  const gesture=
+    state.gesture;
+
+  if(
+    event.pointerType==="touch" ||
+    gesture.source!=="pointer" ||
+    gesture.pointerId!==
+      event.pointerId
+  ){
+    return;
+  }
+
+  updateGesturePoint(
+    event.clientX,
+    event.clientY,
+    ()=>event.preventDefault(),
+    ()=>panel.setPointerCapture(
+      event.pointerId
+    )
+  );
+}
+
+function endGesture(event){
+  const gesture=
+    state.gesture;
+
+  if(
+    event.pointerType==="touch" ||
+    gesture.source!=="pointer" ||
+    gesture.pointerId!==
+      event.pointerId
+  ){
+    return;
+  }
+
+  finishGestureState(
+    ()=>panel.releasePointerCapture(
+      event.pointerId
+    )
+  );
+}
+
+function touchById(
+  list,
+  id
+){
+  for(
+    let index=0;
+    index<list.length;
+    index++
+  ){
+    if(
+      list[index].identifier===
+      id
+    ){
+      return list[index];
+    }
+  }
+
+  return null;
+}
+
+function beginTouchGesture(event){
+  if(
+    !event.touches ||
+    event.touches.length!==1
+  ){
+    return;
+  }
+
+  const touch=
+    event.touches[0];
+
+  beginGesturePoint(
+    touch.clientX,
+    touch.clientY,
+    touch.identifier,
+    "touch",
+    event.target
+  );
+}
+
+function moveTouchGesture(event){
+  const gesture=
+    state.gesture;
+
+  if(
+    gesture.source!=="touch" ||
+    gesture.touchId===null
+  ){
+    return;
+  }
+
+  const touch=
+    touchById(
+      event.touches,
+      gesture.touchId
+    );
+
+  if(!touch){
+    return;
+  }
+
+  updateGesturePoint(
+    touch.clientX,
+    touch.clientY,
+    ()=>event.preventDefault()
+  );
+}
+
+function endTouchGesture(event){
+  const gesture=
+    state.gesture;
+
+  if(
+    gesture.source!=="touch"
+  ){
+    return;
+  }
+
+  finishGestureState();
 }
 
 listen(
@@ -1756,6 +1920,42 @@ listen(
   panel,
   "pointercancel",
   endGesture,
+  {
+    passive:true
+  }
+);
+
+listen(
+  panel,
+  "touchstart",
+  beginTouchGesture,
+  {
+    passive:true
+  }
+);
+
+listen(
+  panel,
+  "touchmove",
+  moveTouchGesture,
+  {
+    passive:false
+  }
+);
+
+listen(
+  panel,
+  "touchend",
+  endTouchGesture,
+  {
+    passive:true
+  }
+);
+
+listen(
+  panel,
+  "touchcancel",
+  endTouchGesture,
   {
     passive:true
   }
