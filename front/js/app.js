@@ -66,6 +66,8 @@
     runtime: null,
     runtimeConnections: new Set(),
     runtimeActivity: null,
+    errorNotice: null,
+    errorRetry: null,
     lastUserRequest: "",
     activeConversationId: null,
     messages: [],
@@ -421,10 +423,10 @@
     return text || fallback;
   }
 
-  function userFacingError(
+  function errorPresentation(
     error,
     fallback =
-      "처리 중 문제가 생겼어. 다시 시도해줘."
+      "작업을 완료하지 못했어."
   ) {
     const code =
       String(
@@ -442,85 +444,328 @@
         0
       );
 
-    const message =
-      String(
-        error?.message ||
+    const rawMessage =
+      cleanPublicMessage(
+        error?.message,
         ""
       );
 
-    if (
-      code ===
-        "GEMINI_REQUEST_REFUSED"
-    ) {
-      return cleanPublicMessage(
-        message,
-        "이 요청은 지금 실행 구조로 처리하기 어려워. 범위를 줄이거나 목표를 더 구체적으로 잡아줘."
-      );
-    }
+    const noisy =
+      /(?:Groq|Gemini) API (?:오류|error):?\s*\d+\s*[\[{]/i
+        .test(
+          rawMessage
+        );
 
-    if (
-      code ===
-        "GEMINI_API_KEY_MISSING"
-    ) {
-      return "Gemini API 키가 아직 설정되지 않았어.";
-    }
-
-    if (
-      code ===
-        "GEMINI_GROUP_TOO_LARGE" ||
-      /too large|payload too large/i
-        .test(message)
-    ) {
-      return "한 번에 처리할 작업이 너무 커. 범위를 줄이거나 여러 번으로 나눠서 실행해줘.";
-    }
-
-    if (
-      code ===
-        "NETWORK_ERROR"
-    ) {
-      return "서버 연결이 불안정해. 연결을 확인하고 다시 시도해줘.";
-    }
+    let title =
+      "작업 오류";
 
     if (
       status === 429 ||
       /rate limit|quota|too many requests/i
-        .test(message)
+        .test(rawMessage)
     ) {
-      return "지금 요청이 몰렸어. 잠깐 뒤에 다시 실행해줘.";
-    }
-
-    if (
+      title =
+        "요청이 많아";
+    } else if (
       status === 413 ||
       code ===
         "CLIENT_PAYLOAD_TOO_LARGE" ||
-      /too large|payload too large/i
-        .test(message)
+      code ===
+        "GEMINI_GROUP_TOO_LARGE" ||
+      /payload too large|too large/i
+        .test(rawMessage)
     ) {
-      return "한 번에 처리할 내용이 너무 커. 범위를 조금 줄이거나 작업을 나눠서 실행해줘.";
+      title =
+        "작업이 너무 커";
+    } else if (
+      /NETWORK|FETCH/.test(
+        code
+      ) ||
+      /network|fetch failed|connection/i
+        .test(rawMessage)
+    ) {
+      title =
+        "연결 오류";
+    } else if (
+      code.includes(
+        "API_KEY"
+      )
+    ) {
+      title =
+        "API 설정 필요";
+    } else if (
+      code ===
+        "GEMINI_REQUEST_REFUSED"
+    ) {
+      title =
+        "실행할 수 없음";
+    } else if (
+      code.startsWith(
+        "INVALID_"
+      )
+    ) {
+      title =
+        "응답 처리 오류";
     }
 
-    if (
-      code ===
-        "INVALID_SERVER_RESPONSE" ||
-      code ===
-        "INVALID_GEMINI_RESPONSE" ||
-      code ===
-        "INVALID_GEMINI_RESULT"
-    ) {
-      return "모델 응답을 정리하는 데 실패했어. 다시 실행해줘.";
-    }
+    const detail =
+      !noisy &&
+      rawMessage
+        ? rawMessage
+        : fallback;
 
-    if (
-      code ===
-        "INVALID_EXECUTION_GROUP" ||
-      code ===
-        "UNSUPPORTED_GEMINI_NODE"
-    ) {
-      return "현재 워크플로 구조로는 이 실행을 처리할 수 없어.";
-    }
-
-    return fallback;
+    return {
+      title,
+      detail:
+        cleanPublicMessage(
+          detail,
+          fallback
+        ),
+      code:
+        code ||
+        (
+          status
+            ? String(status)
+            : ""
+        ),
+      retryable:
+        error?.retryable ===
+          true ||
+        status === 429 ||
+        status >= 500 ||
+        /NETWORK|FETCH/.test(
+          code
+        )
+    };
   }
+
+  function userFacingError(
+    error,
+    fallback =
+      "작업을 완료하지 못했어."
+  ) {
+    return errorPresentation(
+      error,
+      fallback
+    ).detail;
+  }
+
+  function dismissErrorNotice() {
+    const notice =
+      state.errorNotice;
+
+    state.errorNotice =
+      null;
+    state.errorRetry =
+      null;
+
+    if (!notice) {
+      return;
+    }
+
+    notice.classList.add(
+      "is-leaving"
+    );
+
+    setTimeout(
+      () => {
+        notice.remove();
+      },
+      180
+    );
+  }
+
+  function showErrorNotice(
+    error,
+    options = {}
+  ) {
+    dismissErrorNotice();
+
+    const presentation =
+      errorPresentation(
+        error,
+        options.fallback ||
+        "작업을 완료하지 못했어."
+      );
+
+    const notice =
+      document.createElement(
+        "section"
+      );
+
+    notice.className =
+      "ovll-error-notice";
+
+    notice.setAttribute(
+      "role",
+      "status"
+    );
+
+    notice.setAttribute(
+      "aria-live",
+      "polite"
+    );
+
+    const mark =
+      document.createElement(
+        "span"
+      );
+
+    mark.className =
+      "ovll-error-mark";
+
+    mark.innerHTML = `
+      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="M10 3.4a6.6 6.6 0 1 1 0 13.2 6.6 6.6 0 0 1 0-13.2Z" stroke="currentColor" stroke-width="1.45"/>
+        <path d="M10 6.4v4.2" stroke="currentColor" stroke-width="1.55" stroke-linecap="round"/>
+        <circle cx="10" cy="13.4" r=".85" fill="currentColor"/>
+      </svg>
+    `;
+
+    const copy =
+      document.createElement(
+        "div"
+      );
+
+    copy.className =
+      "ovll-error-copy";
+
+    const title =
+      document.createElement(
+        "strong"
+      );
+
+    title.textContent =
+      String(
+        options.scope ||
+        presentation.title
+      );
+
+    const detail =
+      document.createElement(
+        "span"
+      );
+
+    detail.textContent =
+      presentation.detail;
+
+    copy.append(
+      title,
+      detail
+    );
+
+    const actions =
+      document.createElement(
+        "div"
+      );
+
+    actions.className =
+      "ovll-error-actions";
+
+    if (
+      typeof options.onRetry ===
+        "function"
+    ) {
+      const retry =
+        document.createElement(
+          "button"
+        );
+
+      retry.type =
+        "button";
+
+      retry.className =
+        "ovll-error-retry";
+
+      retry.textContent =
+        options.retryLabel ||
+        "재시도";
+
+      retry.addEventListener(
+        "click",
+        () => {
+          const handler =
+            state.errorRetry;
+
+          dismissErrorNotice();
+
+          if (
+            typeof handler ===
+              "function"
+          ) {
+            handler();
+          }
+        }
+      );
+
+      actions.appendChild(
+        retry
+      );
+
+      state.errorRetry =
+        options.onRetry;
+    }
+
+    const close =
+      document.createElement(
+        "button"
+      );
+
+    close.type =
+      "button";
+
+    close.className =
+      "ovll-error-close";
+
+    close.setAttribute(
+      "aria-label",
+      "오류 닫기"
+    );
+
+    close.innerHTML = `
+      <svg viewBox="0 0 20 20" fill="none" aria-hidden="true">
+        <path d="m6.4 6.4 7.2 7.2M13.6 6.4l-7.2 7.2" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>
+      </svg>
+    `;
+
+    close.addEventListener(
+      "click",
+      dismissErrorNotice
+    );
+
+    actions.appendChild(
+      close
+    );
+
+    notice.append(
+      mark,
+      copy,
+      actions
+    );
+
+    const stage =
+      document.querySelector(
+        "#app-stage"
+      );
+
+    stage?.appendChild(
+      notice
+    );
+
+    state.errorNotice =
+      notice;
+
+    requestAnimationFrame(
+      () => {
+        notice.classList.add(
+          "is-visible"
+        );
+      }
+    );
+
+    return notice;
+  }
+
 
   function escapeChatHtml(value) {
     return String(
@@ -2880,11 +3125,24 @@
         error
       );
 
-      addAssistantMessage(
-        userFacingError(
-          error,
-          "요청을 처리하지 못했어. 다시 시도해줘."
-        )
+      showErrorNotice(
+        error,
+        {
+          scope:
+            "요청 처리 오류",
+          fallback:
+            "요청을 처리하지 못했어.",
+          onRetry:
+            () => {
+              void runPrompt(
+                value,
+                {
+                  addUserMessage:
+                    false
+                }
+              );
+            }
+        }
       );
     } finally {
       setBusy(false);
@@ -2906,7 +3164,88 @@
     resizeComposer();
   }
 
-  function handleComposerFileChange(event) {
+  function isTextLikeUpload(
+    file
+  ) {
+    const mime =
+      String(
+        file?.type ||
+        ""
+      )
+        .toLowerCase();
+
+    const name =
+      String(
+        file?.name ||
+        ""
+      )
+        .toLowerCase();
+
+    return (
+      mime.startsWith(
+        "text/"
+      ) ||
+      /(?:json|xml|javascript|typescript|csv|yaml|toml|markdown)/i
+        .test(mime) ||
+      /\.(?:txt|md|markdown|csv|tsv|json|jsonl|xml|html?|css|js|mjs|cjs|ts|tsx|jsx|py|java|c|cc|cpp|h|hpp|go|rs|rb|php|sql|sh|bash|zsh|yaml|yml|toml|ini|log)$/i
+        .test(name)
+    );
+  }
+
+  async function readUploadTextPreview(
+    file
+  ) {
+    if (
+      !isTextLikeUpload(
+        file
+      )
+    ) {
+      return null;
+    }
+
+    const previewLimit =
+      12000;
+
+    const readLimit =
+      48000;
+
+    const text =
+      await file
+        .slice(
+          0,
+          readLimit
+        )
+        .text();
+
+    const normalized =
+      String(text || "")
+        .replace(
+          /\u0000/g,
+          ""
+        )
+        .trim();
+
+    if (!normalized) {
+      return null;
+    }
+
+    return {
+      textPreview:
+        normalized.slice(
+          0,
+          previewLimit
+        ),
+      textTruncated:
+        file.size >
+          readLimit ||
+        normalized.length >
+          previewLimit
+    };
+  }
+
+  async function handleComposerFileChange(
+    event
+  ) {
     const file =
       event.target.files?.[0];
 
@@ -2915,38 +3254,63 @@
     if (
       !file ||
       !state.canvas ||
-      typeof state.canvas.addNode !== "function"
+      typeof state.canvas.addNode !==
+        "function"
     ) {
       return;
     }
 
     try {
+      const preview =
+        await readUploadTextPreview(
+          file
+        );
+
       state.canvas.addNode(
         "file",
         {
           expanded: false,
           data: {
-            name: file.name,
+            source:
+              "upload",
+            name:
+              file.name,
             mime:
               file.type ||
               "application/octet-stream",
-            size: file.size || 0,
+            size:
+              file.size || 0,
             lastModified:
-              file.lastModified || 0
+              file.lastModified || 0,
+            ...(preview || {})
           }
         }
       );
 
+      dismissErrorNotice();
+
       if (
         typeof UI.setMode ===
-        "function"
+          "function"
       ) {
-        UI.setMode("canvas");
+        UI.setMode(
+          "canvas"
+        );
       }
     } catch (error) {
       console.error(
         "File Node Error:",
         error
+      );
+
+      showErrorNotice(
+        error,
+        {
+          scope:
+            "파일 추가 오류",
+          fallback:
+            "파일을 캔버스에 추가하지 못했어."
+        }
       );
     }
   }
@@ -3100,6 +3464,16 @@
             hold: 2600
           }
         );
+
+        showErrorNotice(
+          event.state?.error,
+          {
+            scope:
+              "노드 실행 오류",
+            fallback:
+              text
+          }
+        );
       }
 
       return;
@@ -3178,28 +3552,33 @@
 
       Presence.settle();
 
-      const message =
-        userFacingError(
+      const presentation =
+        errorPresentation(
           error,
-          "실행 중 문제가 생겼어. 다시 시도해줘."
+          "실행을 완료하지 못했어."
         );
 
       Presence.canvasStatus?.(
-        presenceSpeechText(
-          message
-        ),
+        presentation.title,
         {
-          hold: 3000
+          hold: 2200
         }
       );
 
-      addAssistantMessage(
-        message,
+      showErrorNotice(
+        error,
         {
-          presenceSpeech:
-            presenceSpeechText(
-              message
-            )
+          scope:
+            "실행 오류",
+          fallback:
+            "실행을 완료하지 못했어.",
+          onRetry:
+            () => {
+              void runCanvasNode(
+                nodeId,
+                mode
+              );
+            }
         }
       );
 
@@ -3302,6 +3681,7 @@
           });
 
           Presence.hideCanvasSpeech?.();
+          dismissErrorNotice();
 
           state.canvas
             ?.clearRuntimeNodeStates?.();
@@ -4239,6 +4619,7 @@ listen(composerInput, "keydown", handleComposerKeydown);
       state.canvas?.destroy?.();
       state.nodeBuilder.root?.remove();
 
+      dismissErrorNotice();
       Presence.destroy?.();
 
       clearRuntimeConnections();
