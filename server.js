@@ -1940,6 +1940,9 @@ function geminiHttpFailure(
       'GEMINI_GROUP_TOO_LARGE'
       ? 400
       : code ===
+          'GEMINI_REQUEST_REFUSED'
+        ? 422
+      : code ===
           'GEMINI_API_KEY_MISSING'
         ? 503
         : error?.status === 429
