@@ -308,6 +308,33 @@ function showCanvasSpeech(text,{thinking=false,hold=7600}={}){
   }
 }
 
+function canvasStatus(
+  text,
+  options={}
+){
+  const value=
+    String(text??"")
+      .replace(/\s+/g," ")
+      .trim();
+
+  if(!value) return api;
+
+  showCanvasSpeech(
+    value,
+    {
+      thinking:false,
+      hold:
+        Number.isFinite(
+          options.hold
+        )
+          ?options.hold
+          :2200
+    }
+  );
+
+  return api;
+}
+
 function hideCanvasSpeech(){
   clearTimeout(state.speechTimer);
   state.speechTimer=null;
@@ -487,6 +514,7 @@ const api={
   thinking,
   settle,
   speak,
+  canvasStatus,
   hideCanvasSpeech,
   resetConversation,
   workAtNode,
